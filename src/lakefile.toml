@@ -8,3 +8,8 @@ name = "ZkLean"
 [[lean_exe]]
 name = "zklean"
 root = "Main"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "8448d4bb7aab7998632383c7a71975fecab9a9ee"
