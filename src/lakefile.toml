@@ -1,0 +1,10 @@
+name = "zkLean"
+version = "0.1.0"
+defaultTargets = ["zklean"]
+
+[[lean_lib]]
+name = "ZkLean"
+
+[[lean_exe]]
+name = "zklean"
+root = "Main"
