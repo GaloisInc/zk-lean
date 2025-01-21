@@ -1,4 +1,5 @@
 import Mathlib.Algebra.Field.Defs
+import Mathlib.Control.Fold
 import ZkLean
 
 def main : IO Unit :=
@@ -7,27 +8,26 @@ def main : IO Unit :=
 
 
 
+-- ZKProof 7 examples
 
-
-def example1 [Field f] : ZKBuilder (ZKVar f) := do
+def example1 [Field f] [Inhabited f] : ZKBuilder (ZKVar f) := do
   let x: ZKVar f <- witness
   let one: ZKVar f := 1
   constrain (x * (x - one) === 0)
   return x
 
-
-
-
-def eq32 [Field f] : LookupTable f := {}
-
-
+def eq32 [Field f] : LookupTable f :=
+  let product v := Traversable.foldl (. * .) 1 v.toList
+  let mle a b := product (Vector.zipWith a b (λ x y => (x * x + (1 - x) * (1 - y))))
+  lookupTableFromMLE 32 mle
 
 structure RISCVState (f: Type) where
   pc: ZKVar f
   registers: Vector (ZKVar f) 32
+deriving instance Inhabited for RISCVState
 
-def example2 [Field f] (prev_st : RISCVState f) : ZKBuilder (RISCVState f) := do
-  let new_st <- witness
+def example2 [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder (RISCVState f) := do
+  let new_st: RISCVState f <- witness
 
   let r1 := prev_st.registers[1]
   let r2 := prev_st.registers[2]
@@ -35,7 +35,21 @@ def example2 [Field f] (prev_st : RISCVState f) : ZKBuilder (RISCVState f) := do
   let isEq <- lookup eq32 r1 r2
   constrain (new_st.registers[0] === isEq)
 
-  pure new_st
+  return new_st
+
+-- structure RISCVState (backend: Type) where
+--   pc: ZKRepr backend UInt32
+--   registers: Vector (ZKRepr backend UInt32) 32
+
+-- structure RISCVState (backend: Type) [c: ZKBackend backend] where
+--   pc: ZKRepr backend
+--   registers: Vector (ZKRepr backend) 32
+
+-- inductive RISCVState backend [c: ZKBackend backend] where
+-- -- | MkRISCVState : ZKRepr -> Vector ZKRepr 1 -> RISCVState backend
+-- | MkRISCVState : ZKRepr -> List ZKRepr -> RISCVState backend
+-- 
+-- def test : RISCVState Jolt := RISCVState.MkRISCVState 1 [1]
 
 -- structure RISCVState (backend : Type) where
 --   pc: ZKRepr backend Unit
@@ -55,3 +69,16 @@ def example2 [Field f] (prev_st : RISCVState f) : ZKBuilder (RISCVState f) := do
   
 
 -- #eval example1
+
+-- #check -5 
+-- #check (Int.natAbs) -5 
+
+
+
+
+-- Jolt examples
+
+def eqSubtable [Field f] : LookupTable f := lookupTableFromMLE 1 (λ x y => (x[0] * x[0] + (1 - x[0]) * (1 - y[0])))
+
+-- forall x y : F . 0 <= x < 2^n && 0 <= y < 2^n => eqSubtable (bits x) (bits y) == (toI32 x == toI32 y)
+
