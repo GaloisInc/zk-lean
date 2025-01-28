@@ -5,8 +5,8 @@ import ZkLean.AST
 import ZkLean.LookupTable
 
 structure ZKBuilderState where
-  -- environment: Std.HashMap Ident (ZKVar f)
-  -- constraints: List (ZKVar f)
+  -- environment: Std.HashMap Ident (ZKExpr f)
+  -- constraints: List (ZKExpr f)
 
   -- TODO: environment? AST?
 
@@ -29,23 +29,20 @@ deriving instance Monad for ZKBuilder
 --       environment := Std.HashMap.empty,
 --     } -- TODO
 
--- def witness {t : Type} : ZKBuilder (ZKVar t) := 
+-- def witness {t : Type} : ZKBuilder (ZKExpr t) :=
 def witness {a : Type} [Inhabited a] : ZKBuilder a := do
   -- TODO
   pure (panic "TODO")
-  
+
 
 def constrain (_constraint: ZKBuilder Bool) : ZKBuilder Unit :=
   pure (panic "TODO")
 
-def constrainEq (_x: ZKVar a) (_y: ZKVar a) : ZKBuilder Bool :=
+def constrainEq (_x: ZKExpr a) (_y: ZKExpr a) : ZKBuilder Bool :=
   pure (panic "TODO")
 infix:50    " === " => constrainEq
 
 
-def lookup (_table : LookupTable f) (_:ZKVar f) (_:ZKVar f) [Inhabited f] : ZKBuilder (ZKVar f) :=
+def lookup (_table : LookupTable f) (_:ZKExpr f) (_:ZKExpr f) [Inhabited f] : ZKBuilder (ZKExpr f) :=
   let e := panic "TODO"
   pure e
-
-
-

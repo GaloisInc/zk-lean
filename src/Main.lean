@@ -10,9 +10,9 @@ def main : IO Unit :=
 
 -- ZKProof 7 examples
 
-def example1 [Field f] [Inhabited f] : ZKBuilder (ZKVar f) := do
-  let x: ZKVar f <- witness
-  let one: ZKVar f := 1
+def example1 [Field f] [Inhabited f] : ZKBuilder (ZKExpr f) := do
+  let x: ZKExpr f <- witness
+  let one: ZKExpr f := 1
   constrain (x * (x - one) === 0)
   return x
 
@@ -22,8 +22,8 @@ def eq32 [Field f] : LookupTable f :=
   lookupTableFromMLE 32 mle
 
 structure RISCVState (f: Type) where
-  pc: ZKVar f
-  registers: Vector (ZKVar f) 32
+  pc: ZKExpr f
+  registers: Vector (ZKExpr f) 32
 deriving instance Inhabited for RISCVState
 
 def example2 [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder (RISCVState f) := do
@@ -48,7 +48,7 @@ def example2 [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder (RISCV
 -- inductive RISCVState backend [c: ZKBackend backend] where
 -- -- | MkRISCVState : ZKRepr -> Vector ZKRepr 1 -> RISCVState backend
 -- | MkRISCVState : ZKRepr -> List ZKRepr -> RISCVState backend
--- 
+--
 -- def test : RISCVState Jolt := RISCVState.MkRISCVState 1 [1]
 
 -- structure RISCVState (backend : Type) where
@@ -64,14 +64,14 @@ def example2 [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder (RISCV
 -- def example2 {zkrepr:Type} [ZKRepr1 zkrepr Unit Unit] : ZKBuilder (RISCVState (ZKRepr1 zkrepr Unit)) := do
 -- def example2 {zkrepr:Type} : ZKBuilder (RISCVState zkrepr) := do
 --   let new_st <- witness
--- 
+--
 --   pure new_st
-  
+
 
 -- #eval example1
 
--- #check -5 
--- #check (Int.natAbs) -5 
+-- #check -5
+-- #check (Int.natAbs) -5
 
 
 
@@ -81,4 +81,3 @@ def example2 [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder (RISCV
 def eqSubtable [Field f] : LookupTable f := lookupTableFromMLE 1 (λ x y => (x[0] * y[0] + (1 - x[0]) * (1 - y[0])))
 
 -- forall x y : F . 0 <= x < 2^n && 0 <= y < 2^n => eqSubtable (bits x) (bits y) == (toI32 x == toI32 y)
-

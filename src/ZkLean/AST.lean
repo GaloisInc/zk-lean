@@ -2,20 +2,18 @@
 def Ident := Nat
 deriving instance BEq, Hashable for Ident
 
--- TODO: Rename this ZKExpr
-inductive ZKVar (f: Type) where
-  | Literal (lit: f) : ZKVar f
-  | Var (ident: Ident) : ZKVar f
-  | Add (lhs: ZKVar f) (rhs: ZKVar f) : ZKVar f
-  | Mul (lhs: ZKVar f) (rhs: ZKVar f) : ZKVar f
-deriving instance Inhabited for ZKVar
+inductive ZKExpr (f: Type) where
+  | Literal (lit: f) : ZKExpr f
+  | Var (ident: Ident) : ZKExpr f
+  | Add (lhs: ZKExpr f) (rhs: ZKExpr f) : ZKExpr f
+  | Mul (lhs: ZKExpr f) (rhs: ZKExpr f) : ZKExpr f
+deriving instance Inhabited for ZKExpr
 
-instance [OfNat f n] : OfNat (ZKVar f) n where
-  ofNat := ZKVar.Literal (OfNat.ofNat n)
+instance [OfNat f n] : OfNat (ZKExpr f) n where
+  ofNat := ZKExpr.Literal (OfNat.ofNat n)
 
-instance [HSub a a a] : HSub (ZKVar a) (ZKVar a) (ZKVar a) where
-  hSub := ZKVar.Add
+instance [HSub a a a] : HSub (ZKExpr a) (ZKExpr a) (ZKExpr a) where
+  hSub := ZKExpr.Add
 
-instance [HMul a a a] : HMul (ZKVar a) (ZKVar a) (ZKVar a) where
-  hMul := ZKVar.Mul
-
+instance [HMul a a a] : HMul (ZKExpr a) (ZKExpr a) (ZKExpr a) where
+  hMul := ZKExpr.Mul
