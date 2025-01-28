@@ -18,7 +18,7 @@ def example1 [Field f] [Inhabited f] : ZKBuilder (ZKVar f) := do
 
 def eq32 [Field f] : LookupTable f :=
   let product v := Traversable.foldl (. * .) 1 v.toList
-  let mle a b := product (Vector.zipWith a b (λ x y => (x * x + (1 - x) * (1 - y))))
+  let mle a b := product (Vector.zipWith a b (λ x y => (x * y + (1 - x) * (1 - y))))
   lookupTableFromMLE 32 mle
 
 structure RISCVState (f: Type) where
@@ -78,7 +78,7 @@ def example2 [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder (RISCV
 
 -- Jolt examples
 
-def eqSubtable [Field f] : LookupTable f := lookupTableFromMLE 1 (λ x y => (x[0] * x[0] + (1 - x[0]) * (1 - y[0])))
+def eqSubtable [Field f] : LookupTable f := lookupTableFromMLE 1 (λ x y => (x[0] * y[0] + (1 - x[0]) * (1 - y[0])))
 
 -- forall x y : F . 0 <= x < 2^n && 0 <= y < 2^n => eqSubtable (bits x) (bits y) == (toI32 x == toI32 y)
 
