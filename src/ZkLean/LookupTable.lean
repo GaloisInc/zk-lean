@@ -1,19 +1,27 @@
 import Mathlib.Algebra.Field.Defs
 
 inductive Subtable (f: Type) where
-  | SubtableMLE (n: Nat) (mle : Vector f n -> Vector f n -> f) : Subtable f
+  | SubtableMLE (n: Nat) (mle : Vector f n -> f) : Subtable f
 
 
-def SubtableFromMLE {f: Type} (n: Nat) (mle : Vector f n -> Vector f n -> f) : Subtable f := Subtable.SubtableMLE n mle
+def SubtableFromMLE {f: Type} (n: Nat) (mle : Vector f n -> f) : Subtable f := Subtable.SubtableMLE n mle
 
-def unarySubtableFromMLE (n: Nat) (mle : Vector f n -> Vector f n -> f) : Subtable f := Subtable.SubtableMLE n mle
+def unarySubtableFromMLE (n: Nat) (mle : Vector f n -> f) : Subtable f := Subtable.SubtableMLE n mle
 
 
+
+-- `LookupTable` is the specification for table related part of `JoltInstruction` in the jolt codebase.
 inductive LookupTable (f:Type) where
   | Table (n: Nat) (subtables: Vector (Subtable f × Nat) n) (combine_lookups: Vector f n -> f) : LookupTable f
 
 def mkLookupTable  (n: Nat) (subtables: Vector (Subtable f × Nat) n) (combine_lookups: Vector f n -> f) : LookupTable f :=
   LookupTable.Table n subtables combine_lookups
+
+
+-- In Jolt codebase `JoltInstruction::operand_chunks`
+def operand_chunks [Field f] [Inhabited f] (_a: f) : (f × f) :=
+  panic "TODO"
+
 
 -- - Option to define a function for the prover to do witness generation in a more efficient manner
 -- 	- ex: Run xor instead of evaluating the MLE

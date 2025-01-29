@@ -18,8 +18,11 @@ def example1 [Field f] [Inhabited f] : ZKBuilder (ZKExpr f) := do
 
 def eq8 [Field f] : Subtable f :=
   let product v := Traversable.foldl (. * .) 1 v.toList
-  let mle a b := product (Vector.zipWith a b (λ x y => (x * x + (1 - x) * (1 - y))))
-  SubtableFromMLE 8 mle
+  let first_half (v: Vector _ 16) : Vector _ 8 := Vector.take v 8
+  let second_half (v: Vector _ 16) : Vector _ 8 := Vector.drop v 8
+  let mle_on_pair a b:= product (Vector.zipWith a b (λ x y => (x * x + (1 - x) * (1 - y))))
+  let mle (v: Vector f 16): f := mle_on_pair (first_half v) (second_half v)
+  SubtableFromMLE 16 mle
 
 def eq32 [Field f] : LookupTable f :=
   mkLookupTable 4
@@ -83,7 +86,6 @@ def example2 [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder (RISCV
 
 -- Jolt examples
 
-
-def eqSubtable [Field f] : Subtable f := SubtableFromMLE 1 (λ x y => (x[0] * x[1] + (1 - x[0]) * (1 - x[1])))
+def eqSubtable [Field f] : Subtable f := SubtableFromMLE 2 (λ x => (x[0] * x[1] + (1 - x[0]) * (1 - x[1])))
 
 -- forall x y : F . 0 <= x < 2^n && 0 <= y < 2^n => eqSubtable (bits x) (bits y) == (toI32 x == toI32 y)
