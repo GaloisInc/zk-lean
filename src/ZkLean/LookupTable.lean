@@ -1,15 +1,19 @@
 import Mathlib.Algebra.Field.Defs
 
-inductive LookupTable (f: Type) where
-  | SubtableMLE (n: Nat) (mle : Vector f n -> Vector f n -> f) : LookupTable f
-  | ComposedLookupTable (n: Nat) (subtables: Vector (LookupTable f, Nat) n) (combine_lookups: Vector f n -> f) : LookupTable f
+inductive Subtable (f: Type) where
+  | SubtableMLE (n: Nat) (mle : Vector f n -> Vector f n -> f) : Subtable f
 
-def lookupTableFromMLE (n: Nat) (mle : Vector f n -> Vector f n -> f) : LookupTable f := LookupTable.SubtableMLE n mle
 
-def unaryLookupTableFromMLE (n: Nat) (mle : Vector f n -> f) : LookupTable f := LookupTable.SubtableMLE n mle
+def SubtableFromMLE {f: Type} (n: Nat) (mle : Vector f n -> Vector f n -> f) : Subtable f := Subtable.SubtableMLE n mle
 
-def composedLookupTable  (n: Nat) (subtables: Vector (LookupTable f, Nat) n) (combine_lookups: Vector f n -> f) : LookupTable f :=
-  LookupTable.ComposedLookupTable n subtables combine_lookups
+def unarySubtableFromMLE (n: Nat) (mle : Vector f n -> Vector f n -> f) : Subtable f := Subtable.SubtableMLE n mle
+
+
+inductive LookupTable (f:Type) where
+  | Table (n: Nat) (subtables: Vector (Subtable f × Nat) n) (combine_lookups: Vector f n -> f) : LookupTable f
+
+def mkLookupTable  (n: Nat) (subtables: Vector (Subtable f × Nat) n) (combine_lookups: Vector f n -> f) : LookupTable f :=
+  LookupTable.Table n subtables combine_lookups
 
 -- - Option to define a function for the prover to do witness generation in a more efficient manner
 -- 	- ex: Run xor instead of evaluating the MLE
