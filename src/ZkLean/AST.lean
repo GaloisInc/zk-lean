@@ -7,6 +7,7 @@ inductive ZKExpr (f: Type) where
   | Var (ident: Ident) : ZKExpr f
   | Add (lhs: ZKExpr f) (rhs: ZKExpr f) : ZKExpr f
   | Mul (lhs: ZKExpr f) (rhs: ZKExpr f) : ZKExpr f
+  | Eq  (lhs: ZKExpr f) (rhs: ZKExpr f) : ZKExpr f
 deriving instance Inhabited for ZKExpr
 
 instance [OfNat f n] : OfNat (ZKExpr f) n where
