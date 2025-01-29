@@ -1,6 +1,4 @@
-
 import Std.Data.HashMap.Basic
-
 import ZkLean.AST
 import ZkLean.LookupTable
 
@@ -35,14 +33,19 @@ def witness {a : Type} [Inhabited a] : ZKBuilder a := do
   pure (panic "TODO")
 
 
-def constrain (_constraint: ZKBuilder Bool) : ZKBuilder Unit :=
+def constrain (_constraint: ZKExpr f) : ZKBuilder Unit :=
   pure (panic "TODO")
 
-def constrainEq (_x: ZKExpr a) (_y: ZKExpr a) : ZKBuilder Bool :=
-  pure (panic "TODO")
+def constrainEq (x: ZKExpr f) (y: ZKExpr f) : ZKExpr f :=
+  ZKExpr.Eq x y
 infix:50    " === " => constrainEq
 
 
-def lookup (_table : LookupTable f) (_:ZKExpr f) (_:ZKExpr f) [Inhabited f] : ZKBuilder (ZKExpr f) :=
+def lookupSubtable (_table : Subtable f) (_:ZKExpr f) (_:ZKExpr f) [Inhabited f] : ZKBuilder (ZKExpr f) :=
+  let e := panic "TODO"
+  pure e
+
+
+def lookup (_table : LookupTable f) (_a: ZKExpr f) (_a: ZKExpr f) [Inhabited f] : ZKBuilder (ZKExpr f) :=
   let e := panic "TODO"
   pure e
