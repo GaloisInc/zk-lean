@@ -2,6 +2,26 @@
 def Ident := Nat
 deriving instance BEq, Hashable for Ident
 
+
+
+inductive ZKType where
+  | TyField: (f:Type) -> ZKType
+  | TyBool: ZKType
+
+inductive Expr (f: Type): ZKType -> Type where
+  | Literal (lit: f) : Expr f (ZKType.TyField f)
+  | Var (ident: Ident): Expr f (ZKType.TyField f)
+  | Add (lhs: Expr f (ZKType.TyField f)) (rhs: Expr f (ZKType.TyField f)) : Expr f (ZKType.TyField f)
+  | Mul (lhs: Expr f (ZKType.TyField f)) (rhs: Expr f (ZKType.TyField f)) : Expr f (ZKType.TyField f)
+  | Eq (lhs: Expr f (ZKType.TyField f)) (rhs: Expr f (ZKType.TyField f)): Expr f ZKType.TyBool
+--deriving instance Inhabited for Expr
+
+instance [Inhabited f]: Inhabited (Expr f (ZKType.TyField f)) where
+  default := Expr.Literal (default)
+
+instance [Inhabited f]: Inhabited (Expr f (ZKType.TyBool)) where
+  default := Expr.Eq default default
+
 inductive ZKExpr (f: Type) where
   | Literal (lit: f) : ZKExpr f
   | Var (ident: Ident) : ZKExpr f
