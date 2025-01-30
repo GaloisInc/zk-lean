@@ -46,6 +46,6 @@ def lookupSubtable (_table : Subtable f) (_:ZKExpr f) (_:ZKExpr f) [Inhabited f]
   pure e
 
 
-def lookup (_table : LookupTable f) (_a: ZKExpr f) (_a: ZKExpr f) [Inhabited f] : ZKBuilder (ZKExpr f) :=
+def lookup (_table : ComposedLookupTable f) (_a: ZKExpr f) (_a: ZKExpr f) [Inhabited f] : ZKBuilder (ZKExpr f) :=
   let e := panic "TODO"
   pure e

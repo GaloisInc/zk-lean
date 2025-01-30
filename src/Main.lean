@@ -24,8 +24,8 @@ def eq8 [Field f] : Subtable f :=
   let mle (v: Vector f 16): f := mle_on_pair (first_half v) (second_half v)
   SubtableFromMLE 16 mle
 
-def eq32 [Field f] : LookupTable f :=
-  mkLookupTable 4
+def eq32 [Field f] : ComposedLookupTable f :=
+  mkComposedLookupTable 4
     #[ (eq8, 0), (eq8, 1), (eq8, 2), (eq8, 3) ].toVector
     (fun results => results.foldl (· * ·) 1)
 
