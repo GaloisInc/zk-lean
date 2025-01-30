@@ -36,14 +36,13 @@ def witness {a : Type} [Inhabited a] : ZKBuilder a := do
 def constrain (_constraint: ZKExpr f) : ZKBuilder Unit :=
   pure (panic "TODO")
 
-def constrainEq (x: ZKExpr f) (y: ZKExpr f) : ZKExpr f :=
+def constrainEq (x: ZKExpr (ZKType.TyField f)) (y: ZKExpr (ZKType.TyField f)) : ZKExpr (ZKType.TyBool) :=
   ZKExpr.Eq x y
 infix:50    " === " => constrainEq
 
 
-def lookupSubtable (_table : Subtable f) (_:ZKExpr f) (_:ZKExpr f) [Inhabited f] : ZKBuilder (ZKExpr f) :=
-  let e := panic "TODO"
-  pure e
+def lookupSubtable (_table : Subtable f) (a: ZKExpr (ZKType.TyField f)) (_:ZKExpr (ZKType.TyField f)) : ZKBuilder (ZKExpr (ZKType.TyField f)) :=
+  pure a
 
 
 def lookup (_table : ComposedLookupTable f) (_a: ZKExpr f) (_a: ZKExpr f) [Inhabited f] : ZKBuilder (ZKExpr f) :=
