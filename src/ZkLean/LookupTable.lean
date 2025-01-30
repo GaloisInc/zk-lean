@@ -6,7 +6,7 @@ inductive Subtable (f: Type) where
 
 def SubtableFromMLE {f: Type} (n: Nat) (mle : Vector f n -> f) : Subtable f := Subtable.SubtableMLE n mle
 
-def unarySubtableFromMLE (n: Nat) (mle : Vector f n -> f) : Subtable f := Subtable.SubtableMLE n mle
+def subtableFromMLE (n: Nat) (mle : Vector f n -> f) : Subtable f := Subtable.SubtableMLE n mle
 
 
 
