@@ -34,7 +34,7 @@ def witness {a : Type u} [Inhabited a] : ZKBuilder a := do
   pure (panic "TODO")
 
 
-def constrain (_constraint: ZKExpr f) : ZKBuilder Unit :=
+def constrain (_constraint: ZKExpr f) : ZKBuilder PUnit :=
   pure (panic "TODO")
 
 def constrainEq (x: ZKExpr f) (y: ZKExpr f) : ZKExpr Bool :=
