@@ -18,10 +18,6 @@ def mkComposedLookupTable  (n: Nat) (subtables: Vector (Subtable f × Nat) n) (c
   ComposedLookupTable.Table n subtables combine_lookups
 
 
--- In Jolt codebase `JoltInstruction::operand_chunks`
-def operand_chunks [Field f] [Inhabited f] (_a: f) : (f × f) :=
-  panic "TODO"
-
 
 -- - Option to define a function for the prover to do witness generation in a more efficient manner
 -- 	- ex: Run xor instead of evaluating the MLE
