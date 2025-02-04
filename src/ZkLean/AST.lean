@@ -2,20 +2,28 @@
 def Ident := Nat
 deriving instance BEq, Hashable for Ident
 
--- TODO: Rename this ZKExpr
-inductive ZKVar (f: Type) where
-  | Literal (lit: f) : ZKVar f
-  | Var (ident: Ident) : ZKVar f
-  | Add (lhs: ZKVar f) (rhs: ZKVar f) : ZKVar f
-  | Mul (lhs: ZKVar f) (rhs: ZKVar f) : ZKVar f
-deriving instance Inhabited for ZKVar
 
-instance [OfNat f n] : OfNat (ZKVar f) n where
-  ofNat := ZKVar.Literal (OfNat.ofNat n)
 
-instance [HSub a a a] : HSub (ZKVar a) (ZKVar a) (ZKVar a) where
-  hSub := ZKVar.Add
+inductive ZKExpr : (Type 0) -> Type 1 where
+  | Literal : {f: Type 0} -> (lit: f) -> ZKExpr f
+  | Var : {f: Type 0} -> (ident: Ident) -> ZKExpr f
+  | Add : (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
+  | Sub : (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
+  | Mul : (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
+  | Eq : {a: Type 0} -> (lhs: ZKExpr a) -> (rhs: ZKExpr a) -> ZKExpr Bool
 
-instance [HMul a a a] : HMul (ZKVar a) (ZKVar a) (ZKVar a) where
-  hMul := ZKVar.Mul
 
+instance [Inhabited f]: Inhabited (ZKExpr f) where
+  default := ZKExpr.Literal default
+
+instance [OfNat f n] : OfNat (ZKExpr f) n where
+  ofNat := ZKExpr.Literal (OfNat.ofNat n)
+
+instance [HAdd f f f] : HAdd (ZKExpr f) (ZKExpr f) (ZKExpr f) where
+  hAdd := ZKExpr.Add
+
+instance [HSub f f f] : HSub (ZKExpr f) (ZKExpr f) (ZKExpr f) where
+  hSub := ZKExpr.Sub
+
+instance [HMul f f f] : HMul (ZKExpr f) (ZKExpr f) (ZKExpr f) where
+  hMul := ZKExpr.Mul

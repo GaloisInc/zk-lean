@@ -14,7 +14,7 @@ inductive Jolt where
 
 instance : ZKBackend Jolt where
   -- ZKRepr : Type -> Type
-  ZKRepr := fun 
+  ZKRepr := fun
   | UInt32 => Nat
   -- | Unit => UInt32
 
@@ -36,19 +36,19 @@ instance : ZKBackend Jolt where
 --   -- repr (t: Type) : Type
 
 -- -- type F128p := Nat
--- 
+--
 -- class ZKRepr1 (s: Type) (t: Type) (u: Type) where
--- 
--- 
+--
+--
 -- inductive Jolt where
--- instance : ZKRepr1 Jolt UInt32 (ZKVar F128p) where
+-- instance : ZKRepr1 Jolt UInt32 (ZKExpr F128p) where
 
 -- inductive Proxy (a : Type) where
 -- | Proxy
--- 
+--
 -- class Foo (a : Type) where
 --   MyTypeFamily : Proxy a -> Type
--- 
+--
 -- inductive Bar (c : Foo t)
 -- | BarC (MyTypeFamily c) : Bar c
 
@@ -56,13 +56,13 @@ instance : ZKBackend Jolt where
 
 -- class Foo (a : Type u) where
 --   MyTypeFamily : Type u
--- 
+--
 -- instance : Foo Nat where
 --   MyTypeFamily := Bool
--- 
+--
 -- inductive Bar t [c: Foo t] where
 -- | Bar : Foo.MyTypeFamily t -> Bar t
--- 
+--
 -- #check Bar
 -- #check @Bar
 
