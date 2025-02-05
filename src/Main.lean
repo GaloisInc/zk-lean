@@ -16,16 +16,16 @@ def example1 [Field f] [Inhabited f] : ZKBuilder (ZKExpr f) := do
   constrain (x * (x - one) === 0)
   return x
 
-def eq8 [Field f] : Subtable f :=
+def eq8 [Field f] : Subtable f 16 :=
   let product v := Traversable.foldl (. * .) 1 v.toList
   let first_half (v: Vector _ 16) : Vector _ 8 := Vector.take v 8
   let second_half (v: Vector _ 16) : Vector _ 8 := Vector.drop v 8
   let mle_on_pair a b:= product (Vector.zipWith a b (λ x y => (x * x + (1 - x) * (1 - y))))
   let mle (v: Vector f 16): f := mle_on_pair (first_half v) (second_half v)
-  SubtableFromMLE 16 mle
+  subtableFromMLE mle
 
-def eq32 [Field f] : ComposedLookupTable f :=
-  mkComposedLookupTable 4
+def eq32 [Field f] : ComposedLookupTable f 16 4 :=
+  mkComposedLookupTable
     #[ (eq8, 0), (eq8, 1), (eq8, 2), (eq8, 3) ].toVector
     (fun results => results.foldl (· * ·) 1)
 

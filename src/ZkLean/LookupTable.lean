@@ -1,21 +1,39 @@
 import Mathlib.Algebra.Field.Defs
 
-inductive Subtable (f: Type) where
-  | SubtableMLE (n: Nat) (mle : Vector f n -> f) : Subtable f
+inductive Subtable (f: Type) (n: Nat) where
+  | SubtableMLE (mle : Vector f n -> f) : Subtable f n
 
-
-def SubtableFromMLE {f: Type} (n: Nat) (mle : Vector f n -> f) : Subtable f := Subtable.SubtableMLE n mle
-
-def subtableFromMLE (n: Nat) (mle : Vector f n -> f) : Subtable f := Subtable.SubtableMLE n mle
-
+def subtableFromMLE {n: Nat} (mle : Vector f n -> f) : Subtable f n := Subtable.SubtableMLE mle
 
 
 -- `LookupTable` is the specification for table related part of `JoltInstruction` in the jolt codebase.
-inductive ComposedLookupTable (f:Type) where
-  | Table (n: Nat) (subtables: Vector (Subtable f × Nat) n) (combine_lookups: Vector f n -> f) : ComposedLookupTable f
+inductive ComposedLookupTable (f:Type) (n: Nat) (c: Nat) where
+  | Table (m: Nat) (subtables: Vector (Subtable f n × Fin c) m) (combine_lookups: Vector f m -> f) : ComposedLookupTable f n c
 
-def mkComposedLookupTable  (n: Nat) (subtables: Vector (Subtable f × Nat) n) (combine_lookups: Vector f n -> f) : ComposedLookupTable f :=
-  ComposedLookupTable.Table n subtables combine_lookups
+def mkComposedLookupTable  {n:Nat} {m: Nat} {c: Nat} (subtables: Vector (Subtable f n × Fin c) m) (combine_lookups: Vector f m -> f) : ComposedLookupTable f n c:=
+  ComposedLookupTable.Table m subtables combine_lookups
+
+
+-- Evaluation function defining the semantics of `Subtable`.
+def evalSubtable {f: Type} {n: Nat} (subtable: Subtable f n) (input: Vector f n): f :=
+  match subtable with
+  | Subtable.SubtableMLE mle => mle input
+
+
+
+-- The function evaluates a `ComposedLookupTable` on an input.
+-- The input is split in `c` chunks.
+-- It applies the lookup subtables to the right chunks, and combine the lookups.
+-- This corresponds to the Definition 2.6 of the Jolt paper
+-- `T[r] = g(T_1[r_1], ... , T_k[r_1], T_{k+1}[r_2], ... , T_2k[r_2], ... T_{\alpha - (k + 1)}[r_c])`
+-- With the difference that chunks do not necessarily come in order r_1, r_2, etc. but instead are enumerated via an index method from the argument `subtables`.
+-- This definition corresponds also to Definition 2.1 of the "Verifying Jolt zkVM Lookup Semantics" article.
+def evalComposedLookupTable {f: Type} {n: Nat} {c: Nat} (table: ComposedLookupTable f n c) (input: Vector (Vector f n) c) : f :=
+  match table with
+    | ComposedLookupTable.Table m1 subtables combine_lookups =>
+      let l   := Vector.map (fun (t, i) => evalSubtable t input[i]) subtables
+      combine_lookups l
+
 
 
 
