@@ -14,20 +14,27 @@ def mkComposedLookupTable  {n:Nat} {m: Nat} {c: Nat} (subtables: Vector (Subtabl
   ComposedLookupTable.Table m subtables combine_lookups
 
 
--- Evaluation function defining the semantics of `Subtable`.
+/--
+  Evaluation function defining the semantics of `Subtable`.
+--/
 def evalSubtable {f: Type} {n: Nat} (subtable: Subtable f n) (input: Vector f n): f :=
   match subtable with
   | Subtable.SubtableMLE mle => mle input
 
 
+/--
+  Evaluation function definite the semantics of `ComposedLookupTable`
+  given an input that is partitioned into `c` chunks.
 
--- The function evaluates a `ComposedLookupTable` on an input.
--- The input is split in `c` chunks.
--- It applies the lookup subtables to the right chunks, and combine the lookups.
--- This corresponds to the Definition 2.6 of the Jolt paper
--- `T[r] = g(T_1[r_1], ... , T_k[r_1], T_{k+1}[r_2], ... , T_2k[r_2], ... T_{\alpha - (k + 1)}[r_c])`
--- With the difference that chunks do not necessarily come in order r_1, r_2, etc. but instead are enumerated via an index method from the argument `subtables`.
--- This definition corresponds also to Definition 2.1 of the "Verifying Jolt zkVM Lookup Semantics" article.
+  It applies the indexed chunks to the corresponding subtables,
+  and then it combines the lookups.
+
+  This evaluation implements the Definition 2.6 of the Jolt paper
+  `T[r] = g(T_1[r_1], ... , T_k[r_1], T_{k+1}[r_2], ... , T_2k[r_2], ... , T_{ α - (k + 1)}[r_c], ... , T_{α}[r_c])`
+  With the difference that chunks do not come necessarily in order r_1, r_2, etc.
+  but instead are determined by indices provided in `subtables`.
+  It also aligns with Definition 2.1 of the "Verifying Jolt zkVM Lookup Semantics" article.
+--/
 def evalComposedLookupTable {f: Type} {n: Nat} {c: Nat} (table: ComposedLookupTable f n c) (input: Vector (Vector f n) c) : f :=
   match table with
     | ComposedLookupTable.Table m1 subtables combine_lookups =>
