@@ -86,6 +86,6 @@ def example2 [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder (RISCV
 
 -- Jolt examples
 
-def eqSubtable [Field f] : Subtable f := SubtableFromMLE 2 (λ x => (x[0] * x[1] + (1 - x[0]) * (1 - x[1])))
+def eqSubtable [Field f] : Subtable f 2 := subtableFromMLE (λ x => (x[0] * x[1] + (1 - x[0]) * (1 - x[1])))
 
 -- forall x y : F . 0 <= x < 2^n && 0 <= y < 2^n => eqSubtable (bits x) (bits y) == (toI32 x == toI32 y)
