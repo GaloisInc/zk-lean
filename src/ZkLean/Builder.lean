@@ -42,11 +42,11 @@ def constrainEq (x: ZKExpr f) (y: ZKExpr f) : ZKExpr Bool :=
 infix:50    " === " => constrainEq
 
 
-def lookupSubtable (_table : Subtable f) (a: ZKExpr f) (_:ZKExpr f) : ZKBuilder (ZKExpr f) :=
+def lookupSubtable (_table : Subtable f n) (a: ZKExpr f) (_:ZKExpr f) : ZKBuilder (ZKExpr f) :=
   let () := panic "TODO"
   pure a
 
 
-def lookup (_table : ComposedLookupTable f) (_a: ZKExpr f) (_a: ZKExpr f) [Inhabited f] : ZKBuilder (ZKExpr f) :=
+def lookup (_table : ComposedLookupTable f n c) (_a: ZKExpr f) (_a: ZKExpr f) [Inhabited f] : ZKBuilder (ZKExpr f) :=
   let () := panic "TODO"
   pure _a
