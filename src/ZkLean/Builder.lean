@@ -31,15 +31,18 @@ deriving instance Monad for ZKBuilder
 -- def witness {t : Type} : ZKBuilder (ZKExpr t) :=
 def witness {a : Type u} [Inhabited a] : ZKBuilder a := do
   -- TODO
-  pure (panic "TODO")
+  sorry
 
 
 def constrain (_constraint: ZKExpr f) : ZKBuilder PUnit :=
-  pure (panic "TODO")
+  -- TODO
+  sorry
 
-def constrainEq (x: ZKExpr f) (y: ZKExpr f) : ZKExpr Bool :=
-  ZKExpr.Eq x y
-infix:50    " === " => constrainEq
+def constrainEq (x: ZKExpr f) (y: ZKExpr f) : ZKBuilder PUnit :=
+  constrain (ZKExpr.Eq x y)
+
+def constrainR1CS (a: ZKExpr f) (b: ZKExpr f) (c: ZKExpr f) : ZKBuilder PUnit :=
+  constrainEq (ZKExpr.Mul a b) c
 
 
 def lookupSubtable (_table : Subtable f n) (a: ZKExpr f) (_:ZKExpr f) : ZKBuilder (ZKExpr f) :=

@@ -89,3 +89,24 @@ def example2 [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder (RISCV
 def eqSubtable [Field f] : Subtable f 2 := subtableFromMLE (λ x => (x[0] * x[1] + (1 - x[0]) * (1 - x[1])))
 
 -- forall x y : F . 0 <= x < 2^n && 0 <= y < 2^n => eqSubtable (bits x) (bits y) == (toI32 x == toI32 y)
+
+
+-- A[0] = C * 1 + var[3] * 829 + ...
+-- Example of what we extract from Jolt
+-- TODO: Make a struct for the witness variables in a Jolt step. Automatically extract this from JoltInputs enum?
+def uniform_jolt_constraint [Field f] (jolt_flag : ZKExpr f) (jolt_read1 : ZKExpr f) : ZKBuilder PUnit := do
+  constrainR1CS (1 + jolt_flag * 829) (1) (jolt_read1)
+  constrainR1CS (1) (1) (jolt_flag)
+  constrainR1CS (1) (1) (jolt_flag)
+  constrainR1CS (1) (1) (jolt_flag)
+  constrainR1CS (1) (1) (jolt_flag)
+  constrainR1CS (1) (1) (jolt_flag)
+  constrainR1CS (1) (1) (jolt_flag)
+  constrainR1CS (1) (1) (jolt_flag)
+--   ...
+-- def non_uniform_jolt_constraint step_1 step_2 = do
+--   constrainR1CS (step_1.jolt_flag * 123) (step_2.jolt_flag + 1) (1)
+--   constrainR1CS (step_1.jolt_flag * 872187687 + ...) (step_2.jolt_flag + 1) (1)
+--   ...
+  
+
