@@ -10,7 +10,7 @@ def main : IO Unit :=
 
 -- ZKProof 7 examples
 
-def example1 [Field f] [Inhabited f] : ZKBuilder (ZKExpr f) := do
+def example1 [Field f] [Inhabited f] : ZKBuilder f (ZKExpr f) := do
   let x: ZKExpr f <- witness
   let one: ZKExpr f := 1
   constrain (x * (x - one) === 0)
@@ -34,8 +34,10 @@ structure RISCVState (f: Type) where
   registers: Vector (ZKExpr f) 32
 deriving instance Inhabited for RISCVState
 
-def example2 [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder (RISCVState f) := do
-  let new_st: RISCVState f <- witness
+-- TODO: define a type class function for `witness` to return RISCVState
+
+def step [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder f (RISCVState f) := do
+  let new_st: RISCVState f <- witness -- allocate a wire for witness
 
   let r1 := prev_st.registers[1]
   let r2 := prev_st.registers[2]
@@ -44,6 +46,24 @@ def example2 [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder (RISCV
   constrain (new_st.registers[0] === isEq)
 
   return new_st
+
+def rv_circ [Field f] [Inhabited f]: ZKBuilder f (List (RISCVState f))  := do
+  let (init_state : RISCVState f) <- witness -- fix this
+  let (state1 : RISCVState f) <- step init_state
+  let (state2 : RISCVState f) <- step state1
+  let (state3 : RISCVState f) <- step state2
+  pure [init_state, state1, state2, state3]
+
+#check rv_circ
+
+def constraints_semantics [Field f] [Inhabited f] (constraints: List (ZKExpr f)) (witness: List f ) : Bool :=
+  true
+
+def run_circ [Field f] [Inhabited f] (witness: List f) : Bool :=
+  let (circ_states, zk_builder) := StateT.run (rv_circ (f := f)) default
+  let b := constraints_semantics zk_builder.constraints witness
+  b
+
 
 -- structure RISCVState (backend: Type) where
 --   pc: ZKRepr backend UInt32
@@ -99,11 +119,10 @@ structure JoltR1CSInputs (f : Type 0):  Type 1 where
 -- A[0] = C * 1 + var[3] * 829 + ...
 -- Example of what we extract from Jolt
 -- TODO: Make a struct for the witness variables in a Jolt step. Automatically extract this from JoltInputs enum?
-def uniform_jolt_constraint [Field f] (jolt_inputs: JoltR1CSInputs f) : ZKBuilder PUnit := do
+def uniform_jolt_constraint [Field f] (jolt_inputs: JoltR1CSInputs f) : ZKBuilder f PUnit := do
   constrainR1CS ((1 +  jolt_inputs.chunk_1 ) * 829) 1 1
   constrainR1CS 1 1 ((1 +  jolt_inputs.chunk_1 ) * 829)
   -- ...
-
 
 --   ...
 -- def non_uniform_jolt_constraint step_1 step_2 = do

@@ -2,15 +2,25 @@
 def Ident := Nat
 deriving instance BEq, Hashable for Ident
 
+-- TODO: Is this needed?
+instance : OfNat (Ident) n where
+  ofNat := n
 
+def WitnessId := Nat
+deriving instance BEq, Hashable for WitnessId
 
-inductive ZKExpr : (Type 0) -> Type 1 where
-  | Literal : {f: Type 0} -> (lit: f) -> ZKExpr f
-  | Var : {f: Type 0} -> (ident: Ident) -> ZKExpr f
+-- TODO: Is this needed?
+instance : OfNat (WitnessId) n where
+  ofNat := n
+
+inductive ZKExpr (f: Type) where
+  | Literal : (lit: f) -> ZKExpr f
+  | WitnessVar : (id: WitnessId) -> ZKExpr f
   | Add : (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
   | Sub : (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
   | Mul : (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
-  | Eq : {a: Type 0} -> (lhs: ZKExpr a) -> (rhs: ZKExpr a) -> ZKExpr Bool
+  | Eq :  (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
+  -- | Lookup: LookupTable -> arg1 -> arg2 -> ZKExpr f
 infix:50    " === " => ZKExpr.Eq
 
 instance [Inhabited f]: Inhabited (ZKExpr f) where
@@ -37,3 +47,9 @@ instance [HMul f f f] : HMul (ZKExpr f) Nat (ZKExpr f) where
 
 -- instance : Coe Nat (ZKExpr f) where
 --   coe x := sorry
+
+def t := ZKExpr.Mul (ZKExpr.Eq (ZKExpr.Literal 1) (ZKExpr.Literal 2))  (ZKExpr.Eq (ZKExpr.Literal 3) (ZKExpr.Literal 4))
+
+#check t
+
+def t1 := ZKExpr.Mul (1 === (2: ZKExpr Nat)) (3 === (4 : ZKExpr Nat))
