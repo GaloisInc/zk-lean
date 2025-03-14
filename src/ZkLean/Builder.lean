@@ -2,7 +2,7 @@ import Std.Data.HashMap.Basic
 import ZkLean.AST
 import ZkLean.LookupTable
 
-structure ZKBuilderState (f:Type) where
+structure ZKBuilderState (f : Type) where
   foo: Bool
   -- environment: Std.HashMap Ident (ZKExpr f)
   allocated_witness_count: Nat
@@ -55,9 +55,10 @@ def witnessf : ZKBuilder f (ZKExpr f) := do
 
 
 
-def constrain (_constraint: ZKExpr f) : ZKBuilder f PUnit :=
-  -- TODO
-  sorry
+def constrain (constraint: ZKExpr f) : ZKBuilder f PUnit := do
+  let old_state <- StateT.get
+  StateT.set { old_state with constraints := constraint :: old_state.constraints }
+  pure ()
 
 def constrainEq (x: ZKExpr f) (y: ZKExpr f) : ZKBuilder f PUnit :=
   constrain (ZKExpr.Eq x y)

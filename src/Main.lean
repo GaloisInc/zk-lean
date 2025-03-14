@@ -56,11 +56,61 @@ def rv_circ [Field f] [Inhabited f]: ZKBuilder f (List (RISCVState f))  := do
 
 #check rv_circ
 
+inductive Value (f: Type) [Field f] where
+  | VBool : Bool -> Value f
+  | VField : f -> Value f
+  | None : Value f
+
+def semantics_zkexpr [Field f] [Inhabited f] (exprs: ZKExpr f) (witness: List f ) : Value f :=
+  let rec eval (e: ZKExpr f) : Value f :=
+    match e with
+    | ZKExpr.Literal lit => Value.VField lit
+    | ZKExpr.WitnessVar id =>
+      if compare id (witness.length : WitnessId) == Ordering.lt
+      then Value.VField (witness.get! id)
+      else Value.None
+    | ZKExpr.Add lhs rhs =>
+      let a := eval lhs
+      let b := eval rhs
+      match a,b with
+      | Value.VField va, Value.VField vb => Value.VField (va + vb)
+      | _, _ => Value.None
+    | ZKExpr.Sub lhs rhs =>
+      let a := eval lhs
+      let b := eval rhs
+      match a,b with
+      | Value.VField va, Value.VField vb => Value.VField (va - vb)
+      | _, _ => Value.None
+    | ZKExpr.Mul lhs rhs =>
+      let a := eval lhs
+      let b := eval rhs
+      match a,b with
+      | Value.VField va, Value.VField vb => Value.VField (va * vb)
+      | _, _ => Value.None
+    | ZKExpr.Eq lhs rhs  =>
+      let a := eval lhs
+      let b := eval rhs
+      match a,b with
+      | Value.VField va, Value.VField vb =>
+        let b: Bool := true -- TODO: we need BEq on f, compare va vb == Ordering.eq
+        Value.VBool b
+      | _, _ => Value.None
+  eval exprs
+
 def constraints_semantics [Field f] [Inhabited f] (constraints: List (ZKExpr f)) (witness: List f ) : Bool :=
-  true
+  match constraints with
+  | [] => true
+  | c :: cs =>
+    let sem_c := semantics_zkexpr c witness
+    match sem_c with
+    | Value.VBool b =>
+      if b
+      then constraints_semantics cs witness
+      else false
+    | _ => false
 
 def run_circ [Field f] [Inhabited f] (witness: List f) : Bool :=
-  let (circ_states, zk_builder) := StateT.run (rv_circ (f := f)) default
+  let (_circ_states, zk_builder) := StateT.run (rv_circ (f := f)) default
   let b := constraints_semantics zk_builder.constraints witness
   b
 

@@ -1,13 +1,13 @@
 
 def Ident := Nat
-deriving instance BEq, Hashable for Ident
+deriving instance BEq, Ord, Hashable for Ident
 
 -- TODO: Is this needed?
 instance : OfNat (Ident) n where
   ofNat := n
 
 def WitnessId := Nat
-deriving instance BEq, Hashable for WitnessId
+deriving instance BEq, Ord, LT, Hashable for WitnessId
 
 -- TODO: Is this needed?
 instance : OfNat (WitnessId) n where
