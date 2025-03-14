@@ -1,4 +1,9 @@
 
+import Mathlib.Algebra.Field.Defs
+
+
+class JoltField (f: Type) extends Field f, BEq f, Inhabited f
+
 def Ident := Nat
 deriving instance BEq, Ord, Hashable for Ident
 

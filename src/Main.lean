@@ -10,7 +10,7 @@ def main : IO Unit :=
 
 -- ZKProof 7 examples
 
-def example1 [Field f] [Inhabited f] : ZKBuilder f (ZKExpr f) := do
+def example1 [JoltField f] : ZKBuilder f (ZKExpr f) := do
   let x: ZKExpr f <- witness
   let one: ZKExpr f := 1
   constrain (x * (x - one) === 0)
@@ -36,7 +36,7 @@ deriving instance Inhabited for RISCVState
 
 -- TODO: define a type class function for `witness` to return RISCVState
 
-def step [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder f (RISCVState f) := do
+def step [JoltField f] (prev_st : RISCVState f) : ZKBuilder f (RISCVState f) := do
   let new_st: RISCVState f <- witness -- allocate a wire for witness
 
   let r1 := prev_st.registers[1]
@@ -47,7 +47,7 @@ def step [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder f (RISCVSt
 
   return new_st
 
-def rv_circ [Field f] [Inhabited f]: ZKBuilder f (List (RISCVState f))  := do
+def rv_circ [JoltField f]: ZKBuilder f (List (RISCVState f))  := do
   let (init_state : RISCVState f) <- witness -- fix this
   let (state1 : RISCVState f) <- step init_state
   let (state2 : RISCVState f) <- step state1
@@ -56,12 +56,12 @@ def rv_circ [Field f] [Inhabited f]: ZKBuilder f (List (RISCVState f))  := do
 
 #check rv_circ
 
-inductive Value (f: Type) [Field f] where
+inductive Value (f: Type) [JoltField f] where
   | VBool : Bool -> Value f
   | VField : f -> Value f
   | None : Value f
 
-def semantics_zkexpr [Field f] [Inhabited f] (exprs: ZKExpr f) (witness: List f ) : Value f :=
+def semantics_zkexpr [JoltField f] (exprs: ZKExpr f) (witness: List f ) : Value f :=
   let rec eval (e: ZKExpr f) : Value f :=
     match e with
     | ZKExpr.Literal lit => Value.VField lit
@@ -97,7 +97,7 @@ def semantics_zkexpr [Field f] [Inhabited f] (exprs: ZKExpr f) (witness: List f 
       | _, _ => Value.None
   eval exprs
 
-def constraints_semantics [Field f] [Inhabited f] (constraints: List (ZKExpr f)) (witness: List f ) : Bool :=
+def constraints_semantics [JoltField f] (constraints: List (ZKExpr f)) (witness: List f ) : Bool :=
   match constraints with
   | [] => true
   | c :: cs =>
@@ -109,7 +109,7 @@ def constraints_semantics [Field f] [Inhabited f] (constraints: List (ZKExpr f))
       else false
     | _ => false
 
-def run_circ [Field f] [Inhabited f] (witness: List f) : Bool :=
+def run_circ [JoltField f] (witness: List f) : Bool :=
   let (_circ_states, zk_builder) := StateT.run (rv_circ (f := f)) default
   let b := constraints_semantics zk_builder.constraints witness
   b
@@ -156,7 +156,7 @@ def run_circ [Field f] [Inhabited f] (witness: List f) : Bool :=
 
 -- Jolt examples
 
-def eqSubtable [Field f] : Subtable f 2 := subtableFromMLE (λ x => (x[0] * x[1] + (1 - x[0]) * (1 - x[1])))
+def eqSubtable [JoltField f] : Subtable f 2 := subtableFromMLE (λ x => (x[0] * x[1] + (1 - x[0]) * (1 - x[1])))
 
 -- forall x y : F . 0 <= x < 2^n && 0 <= y < 2^n => eqSubtable (bits x) (bits y) == (toI32 x == toI32 y)
 
@@ -169,7 +169,7 @@ structure JoltR1CSInputs (f : Type 0):  Type 1 where
 -- A[0] = C * 1 + var[3] * 829 + ...
 -- Example of what we extract from Jolt
 -- TODO: Make a struct for the witness variables in a Jolt step. Automatically extract this from JoltInputs enum?
-def uniform_jolt_constraint [Field f] (jolt_inputs: JoltR1CSInputs f) : ZKBuilder f PUnit := do
+def uniform_jolt_constraint [JoltField f] (jolt_inputs: JoltR1CSInputs f) : ZKBuilder f PUnit := do
   constrainR1CS ((1 +  jolt_inputs.chunk_1 ) * 829) 1 1
   constrainR1CS 1 1 ((1 +  jolt_inputs.chunk_1 ) * 829)
   -- ...
