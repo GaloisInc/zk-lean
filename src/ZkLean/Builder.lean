@@ -68,8 +68,6 @@ instance [Witnessable f a]: Witnessable f (Vector a n) where
       helper n
 
 
-
-
 def constrain (constraint: ZKExpr f) : ZKBuilder f PUnit := do
   let old_state <- StateT.get
   StateT.set { old_state with constraints := constraint :: old_state.constraints }
@@ -80,12 +78,6 @@ def constrainEq (x: ZKExpr f) (y: ZKExpr f) : ZKBuilder f PUnit :=
 
 def constrainR1CS (a: ZKExpr f) (b: ZKExpr f) (c: ZKExpr f) : ZKBuilder f PUnit :=
   constrainEq (ZKExpr.Mul a b) c
-
-
-def lookupSubtable (_table : Subtable f n) (a: ZKExpr f) (_:ZKExpr f) : ZKBuilder f (ZKExpr f) :=
-  let () := panic "TODO"
-  pure a
-
 
 def lookup (table : ComposedLookupTable f 16 4) (a: ZKExpr f) (b: ZKExpr f): ZKBuilder f (ZKExpr f) :=
   pure (ZKExpr.Lookup table a b)

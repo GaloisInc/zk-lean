@@ -88,6 +88,11 @@ def semantics_zkexpr [JoltField f] (exprs: ZKExpr f) (witness: List f ) : Value 
       match a,b with
       | Value.VField va, Value.VField vb => Value.VField (va - vb)
       | _, _ => Value.None
+    | ZKExpr.Neg rhs =>
+      let a := eval rhs
+      match a with
+      | Value.VField va => Value.VField (-va)
+      | _ => Value.None
     | ZKExpr.Mul lhs rhs =>
       let a := eval lhs
       let b := eval rhs
@@ -102,7 +107,6 @@ def semantics_zkexpr [JoltField f] (exprs: ZKExpr f) (witness: List f ) : Value 
         let b: Bool := va == vb
         Value.VBool b
       | _, _ => Value.None
-
     | ZKExpr.Lookup table arg1 arg2 =>
       let a := eval arg1
       let b := eval arg2
