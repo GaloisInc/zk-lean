@@ -34,12 +34,6 @@ instance: Monad (ZKBuilder f) where
 --       environment := Std.HashMap.empty,
 --     } -- TODO
 
--- def witness {t : Type} : ZKBuilder (ZKExpr t) :=
-def witness [Inhabited f] [Inhabited a] : ZKBuilder f a := do
-  -- TODO
-  -- allocate the wires necessary for `a`
-  sorry
-
 def witnessf : ZKBuilder f (ZKExpr f) := do
   /-let old_count <- StateT.modifyGet
     (fun old_state =>
@@ -52,6 +46,27 @@ def witnessf : ZKBuilder f (ZKExpr f) := do
   let new_count := old_count +1
   StateT.set { old_state with allocated_witness_count := new_count}
   pure (ZKExpr.WitnessVar old_count)
+
+-- A type is witnessable if it has an associated number of witnesses and
+-- a function to recompose a type given a vector of values.
+class Witnessable (f: Type) (t:Type) where
+  witness : ZKBuilder f t
+
+instance: Witnessable f (ZKExpr f) where
+  witness := witnessf
+
+instance [Witnessable f a]: Witnessable f (Vector a n) where
+  witness :=
+    let rec helper n : ZKBuilder f (Vector a n) :=
+      match n with
+      | 0 => pure (Vector.mkEmpty 0)
+      | m+1 => do
+        let w <- Witnessable.witness
+        let v <- helper m
+        pure (Vector.push w v)
+    do
+      helper n
+
 
 
 

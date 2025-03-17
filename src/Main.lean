@@ -11,7 +11,7 @@ def main : IO Unit :=
 -- ZKProof 7 examples
 
 def example1 [JoltField f] : ZKBuilder f (ZKExpr f) := do
-  let x: ZKExpr f <- witness
+  let x: ZKExpr f <- Witnessable.witness
   let one: ZKExpr f := 1
   constrain (x * (x - one) === 0)
   return x
@@ -34,10 +34,16 @@ structure RISCVState (f: Type) where
   registers: Vector (ZKExpr f) 32
 deriving instance Inhabited for RISCVState
 
+instance: Witnessable f (RISCVState f) where
+  witness := do
+   let pc <- Witnessable.witness
+   let registers <- Witnessable.witness
+   pure { pc:=pc, registers := registers}
+
 -- TODO: define a type class function for `witness` to return RISCVState
 
 def step [JoltField f] (prev_st : RISCVState f) : ZKBuilder f (RISCVState f) := do
-  let new_st: RISCVState f <- witness -- allocate a wire for witness
+  let new_st: RISCVState f <- Witnessable.witness -- allocate a wire for witness
 
   let r1 := prev_st.registers[1]
   let r2 := prev_st.registers[2]
@@ -47,8 +53,9 @@ def step [JoltField f] (prev_st : RISCVState f) : ZKBuilder f (RISCVState f) := 
 
   return new_st
 
+
 def rv_circ [JoltField f]: ZKBuilder f (List (RISCVState f))  := do
-  let (init_state : RISCVState f) <- witness -- fix this
+  let (init_state : RISCVState f) <- Witnessable.witness -- fix this
   let (state1 : RISCVState f) <- step init_state
   let (state2 : RISCVState f) <- step state1
   let (state3 : RISCVState f) <- step state2
