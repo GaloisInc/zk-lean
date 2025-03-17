@@ -4,6 +4,4 @@
 import ZkLean.AST
 import ZkLean.Builder
 import ZkLean.LookupTable
-
-
-class JoltField (f: Type) extends Field f, BEq f, Inhabited f, Witnessable f (ZKExpr f)
+import ZkLean.Semantics
