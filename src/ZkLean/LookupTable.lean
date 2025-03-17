@@ -87,10 +87,6 @@ def evalComposedLookupTableArgs
 
 
       let input : Vector (Vector f num_bits) num_chunks := Vector.zipWith bits1 bits2 comb
-      --let h : num_bits /2 + num_bits / 2 = num_bits := by
-      --  sorry
-      --let input2 : Vector (Vector f num_bits) num_chunks := input
-
       evalComposedLookupTable table input
 
 
