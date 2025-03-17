@@ -87,6 +87,5 @@ def lookupSubtable (_table : Subtable f n) (a: ZKExpr f) (_:ZKExpr f) : ZKBuilde
   pure a
 
 
-def lookup (_table : ComposedLookupTable f n c) (_a: ZKExpr f) (_a: ZKExpr f) [Inhabited f] : ZKBuilder f (ZKExpr f) :=
-  let () := panic "TODO"
-  pure _a
+def lookup (table : ComposedLookupTable f 16 4) (a: ZKExpr f) (b: ZKExpr f): ZKBuilder f (ZKExpr f) :=
+  pure (ZKExpr.Lookup table a b)

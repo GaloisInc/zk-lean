@@ -102,6 +102,16 @@ def semantics_zkexpr [JoltField f] (exprs: ZKExpr f) (witness: List f ) : Value 
         let b: Bool := va == vb
         Value.VBool b
       | _, _ => Value.None
+
+    | ZKExpr.Lookup table arg1 arg2 =>
+      let a := eval arg1
+      let b := eval arg2
+      match a,b with
+      | Value.VField va, Value.VField vb =>
+        let h : Even 16 := by
+          exact (Even.add_self 8)
+        Value.VField (evalComposedLookupTableArgs h table va vb)
+      | _, _ => Value.None
   eval exprs
 
 def constraints_semantics [JoltField f] (constraints: List (ZKExpr f)) (witness: List f ) : Bool :=
@@ -168,7 +178,7 @@ def eqSubtable [JoltField f] : Subtable f 2 := subtableFromMLE (λ x => (x[0] * 
 -- forall x y : F . 0 <= x < 2^n && 0 <= y < 2^n => eqSubtable (bits x) (bits y) == (toI32 x == toI32 y)
 
 
-structure JoltR1CSInputs (f : Type 0):  Type 1 where
+structure JoltR1CSInputs (f : Type):  Type where
   chunk_1: ZKExpr f
   chunk_2: ZKExpr f
   /- ... -/
