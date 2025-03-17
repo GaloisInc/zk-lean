@@ -92,7 +92,7 @@ def semantics_zkexpr [JoltField f] (exprs: ZKExpr f) (witness: List f ) : Value 
       let b := eval rhs
       match a,b with
       | Value.VField va, Value.VField vb =>
-        let b: Bool := true -- TODO: we need BEq on f, compare va vb == Ordering.eq
+        let b: Bool := va == vb
         Value.VBool b
       | _, _ => Value.None
   eval exprs
