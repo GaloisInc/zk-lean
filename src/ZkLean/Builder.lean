@@ -3,7 +3,6 @@ import ZkLean.AST
 import ZkLean.LookupTable
 
 structure ZKBuilderState (f : Type) where
-  foo: Bool
   -- environment: Std.HashMap Ident (ZKExpr f)
   allocated_witness_count: Nat
   constraints: List (ZKExpr f)
@@ -18,8 +17,8 @@ deriving instance Inhabited for ZKBuilderState
 def ZKBuilder (f:Type) := StateM (ZKBuilderState f)
 
 instance: Monad (ZKBuilder f) where
-  pure := sorry
-  bind := sorry
+  pure := StateT.pure
+  bind := StateT.bind
 
 -- structure ZKBuilder (a: Type) where
 --   runBuilder: ZKBuilderState -> (a, ZKBuilderState)

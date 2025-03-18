@@ -22,7 +22,7 @@ inductive ZKExpr (f: Type) where
   | Sub : (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
   | Neg : (rhs: ZKExpr f) -> ZKExpr f
   | Mul : (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
-  | Eq :  (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
+  | Eq :  (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f -- TODO: possibly change this to | Eq : {a: Type u} -> (lhs: ZKExpr a) -> (rhs: ZKExpr a) -> ZKExpr (ULift Bool)
   | Lookup: (table: ComposedLookupTable f 16 4) -> (arg1: ZKExpr f) -> (arg2: ZKExpr f) -> ZKExpr f -- TODO fix these 16,4
 infix:50    " === " => ZKExpr.Eq
 
@@ -50,9 +50,3 @@ instance [HMul f f f] : HMul (ZKExpr f) Nat (ZKExpr f) where
 
 -- instance : Coe Nat (ZKExpr f) where
 --   coe x := sorry
-
-def t := ZKExpr.Mul (ZKExpr.Eq (ZKExpr.Literal 1) (ZKExpr.Literal 2))  (ZKExpr.Eq (ZKExpr.Literal 3) (ZKExpr.Literal 4))
-
-#check t
-
-def t1 := ZKExpr.Mul (1 === (2: ZKExpr Nat)) (3 === (4 : ZKExpr Nat))

@@ -40,7 +40,6 @@ instance: Witnessable f (RISCVState f) where
    let registers <- Witnessable.witness
    pure { pc:=pc, registers := registers}
 
--- TODO: define a type class function for `witness` to return RISCVState
 
 def step [JoltField f] (prev_st : RISCVState f) : ZKBuilder f (RISCVState f) := do
   let new_st: RISCVState f <- Witnessable.witness -- allocate a wire for witness
