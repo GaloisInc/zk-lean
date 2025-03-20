@@ -6,6 +6,8 @@ structure ZKBuilderState (f : Type) where
   -- environment: Std.HashMap Ident (ZKExpr f)
   allocated_witness_count: Nat
   constraints: List (ZKExpr f)
+  -- Array of sizes for each RAM.
+  rams: Array Nat
 deriving instance Inhabited for ZKBuilderState
 
   -- TODO: environment? AST?
@@ -80,3 +82,13 @@ def constrainR1CS (a: ZKExpr f) (b: ZKExpr f) (c: ZKExpr f) : ZKBuilder f PUnit 
 
 def lookup (table : ComposedLookupTable f 16 4) (a: ZKExpr f) (b: ZKExpr f): ZKBuilder f (ZKExpr f) :=
   pure (ZKExpr.Lookup table a b)
+
+def ram_new (size : Nat) : ZKBuilder f (RAM f) := do
+  let old_state <- StateT.get
+  let new_ram_id := Array.size old_state.rams
+  StateT.set { old_state with rams := Array.push old_state.rams size }
+  pure { id := { ram_id := new_ram_id }}
+
+def ram_read (ram : RAM f) (addr : ZKExpr f) : ZKBuilder f (ZKExpr f) := sorry
+
+def ram_write (ram : RAM f) (addr : ZKExpr f) (value : ZKExpr f) : ZKBuilder f PUnit := sorry
