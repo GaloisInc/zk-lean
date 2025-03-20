@@ -50,3 +50,10 @@ instance [HMul f f f] : HMul (ZKExpr f) Nat (ZKExpr f) where
 
 -- instance : Coe Nat (ZKExpr f) where
 --   coe x := sorry
+
+structure RamId where 
+  ram_id: Nat
+
+structure RAM (f: Type) where
+  id: RamId
+
