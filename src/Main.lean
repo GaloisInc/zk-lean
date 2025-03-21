@@ -159,24 +159,19 @@ def circuit2 [JoltField f] : ZKBuilder f PUnit := do
 
 
 -- theorem1 : forall a b . a = b <=> run_circuit circuit1 [a, b]
--- theorem circuitEq2Sound [JoltField f] (a b : f) : a = b <=> 
+theorem circuitEq2Sound [JoltField f] (a b : f) : (a = b ↔ run_circuit circuit1 [a, b]) := by sorry
 
 -- theorem2 : forall a b c . a = c <=> run_circuit circuit2 [a, b, c] by theorem1
+theorem circuitEq3Transitive [JoltField f] (a b c : f) : (a = c ↔ run_circuit circuit2 [a, b, c]) := by sorry
 
 
 instance : Fact (Nat.Prime 7) := by decide
+instance : JoltField (ZMod 7) where
 
 def test [Field f] (x:f) : f := x
 
 def one : ZMod 7 := 1
 #eval test one
 
--- instance : JoltField (ZMod 7) where
---   inv := sorry
---   exists_pair_ne := sorry
---   mul_inv_cancel := sorry
---   inv_zero := sorry
---   nnqsmul := sorry
---   qsmul := sorry
-
--- #eval run_circuit circuit1 [one, 2]
+#eval run_circuit circuit1 [one, 1]
+#eval run_circuit circuit1 [one, 2]
