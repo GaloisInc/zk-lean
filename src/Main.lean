@@ -131,3 +131,18 @@ def uniform_jolt_constraint [JoltField f] (jolt_inputs: JoltR1CSInputs f) : ZKBu
 --   constrainR1CS (step_1.jolt_flag * 123) (step_2.jolt_flag + 1) (1)
 --   constrainR1CS (step_1.jolt_flag * 872187687 + ...) (step_2.jolt_flag + 1) (1)
 --   ...
+
+
+
+def circuit1 [JoltField f] (a b : ZKExpr f) : ZKBuilder f PUnit := do
+  -- constrainR1CS (a - b) 1 0
+  constrainR1CS a 1 b
+
+def circuit2 [JoltField f] (a b c : ZKExpr f) : ZKBuilder f PUnit := do
+  circuit1 a b
+  circuit1 b c
+
+-- theorem1 : forall a b . a = b <=> run_circuit circuit1 [a, b]
+-- theorem2 : forall a b c . a = c <=> run_circuit circuit2 [a, b, c] by theorem1
+
+
