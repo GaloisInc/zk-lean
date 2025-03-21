@@ -64,7 +64,7 @@ instance [Witnessable f a]: Witnessable f (Vector a n) where
       | m+1 => do
         let w <- Witnessable.witness
         let v <- helper m
-        pure (Vector.push w v)
+        pure (Vector.push v w)
     do
       helper n
 
