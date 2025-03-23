@@ -2,7 +2,10 @@ import Mathlib.Algebra.Field.Defs
 import ZkLean.AST
 import ZkLean.Builder
 
-class JoltField (f: Type) extends Field f, BEq f, Inhabited f, Witnessable f (ZKExpr f)
+class JoltField (f: Type) extends Field f, BEq f, Inhabited f, LawfulBEq f
+
+instance [JoltField f]: Witnessable f (ZKExpr f) where
+  witness := witnessf
 
 inductive Value (f: Type) [JoltField f] where
   | VBool : Bool -> Value f

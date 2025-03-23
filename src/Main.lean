@@ -193,10 +193,8 @@ def circuit12 : ZKBuilder (ZMod 7) PUnit := do
 -- #check instWitness
 
 
-  
+theorem circuitEq2SoundTry [JoltField f]: (run_circuit circuit1 [ (a: f), (a:f )] = true) := by
 
-
-theorem circuitEq2SoundTry: (run_circuit circuit1 [ (a: ZMod 7), (a: ZMod 7)] = true) := by
   unfold run_circuit
   unfold StateT.run
   unfold circuit1
@@ -211,13 +209,10 @@ theorem circuitEq2SoundTry: (run_circuit circuit1 [ (a: ZMod 7), (a: ZMod 7)] = 
   unfold Array.instInhabited
   simp
   unfold Witnessable.witness
-  unfold JoltField.toWitnessable
-  unfold instJoltFieldZModOfNatNat_main
-  simp
   unfold bind
   unfold Monad.toBind
   unfold instMonadZKBuilder
-  unfold instWitnessableZKExpr
+  unfold instWitnessableZKExprOfJoltField
   simp
   unfold StateT.bind
   simp
@@ -259,10 +254,10 @@ theorem circuitEq2SoundTry: (run_circuit circuit1 [ (a: ZMod 7), (a: ZMod 7)] = 
 
   -- constraints_semantics [] [a, a] = true
   unfold constraints_semantics
-  rfl
+  simp
 
 
-theorem circuitEq2Eval: (run_circuit circuit1 [ (a: ZMod 7), (b: ZMod 7)] = (a == b)) := by
+theorem circuitEq2Eval [JoltField f]: (run_circuit circuit1 [ (a: f), (b: f)] = (a == b)) := by
 
   unfold run_circuit
   unfold StateT.run
@@ -278,13 +273,11 @@ theorem circuitEq2Eval: (run_circuit circuit1 [ (a: ZMod 7), (b: ZMod 7)] = (a =
   unfold Array.instInhabited
   simp
   unfold Witnessable.witness
-  unfold JoltField.toWitnessable
-  unfold instJoltFieldZModOfNatNat_main
+  unfold instWitnessableZKExprOfJoltField
   simp
   unfold bind
   unfold Monad.toBind
   unfold instMonadZKBuilder
-  unfold instWitnessableZKExpr
   simp
   unfold StateT.bind
   simp
@@ -324,17 +317,15 @@ theorem circuitEq2Eval: (run_circuit circuit1 [ (a: ZMod 7), (b: ZMod 7)] = (a =
   simp
 
   intros h
-  rewrite [h]
 
   unfold constraints_semantics
   rfl
-
 
 #check StateT.run_bind
 attribute [local simp] StateT.run_bind
 
 -- theorem1 : forall a b . a = b <=> run_circuit circuit1 [a, b]
-theorem circuitEq2Sound (x y : ZMod 7) : (x = y ↔ run_circuit circuit1 [x, y]) := by -- TODO: [JoltField f]
+theorem circuitEq2Sound [JoltField f] (x y : f) : (x = y ↔ run_circuit circuit1 [x, y]) := by
   -- -- grind
 
   apply Iff.intro
@@ -346,10 +337,10 @@ theorem circuitEq2Sound (x y : ZMod 7) : (x = y ↔ run_circuit circuit1 [x, y])
 
   apply (circuitEq2SoundTry (a := y))
 
-  -- intros h
-  rewrite [circuitEq2Eval (a := x) (b := y)]
-  simp
-  
+  intros h
+  have h2 : _ := circuitEq2Eval (a := x) (b := y)
+  rw [h] at h2
+  simp_all
 
 
 -- theorem2 : forall a b c . a = c <=> run_circuit circuit2 [a, b, c] by theorem1
@@ -358,7 +349,3 @@ theorem circuitEq3Transitive [JoltField f] (a b c : f) : (a = c ↔ run_circuit 
 --   apply Iff.intro
 --   intros acEq
 --   sorry
-
-
-
-
