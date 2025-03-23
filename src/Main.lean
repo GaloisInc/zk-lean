@@ -158,24 +158,6 @@ def circuit2 [JoltField f] : ZKBuilder f PUnit := do
   constrainEq3 a b c
 
 
--- theorem1 : forall a b . a = b <=> run_circuit circuit1 [a, b]
-theorem circuitEq2Sound [JoltField f] (a b : f) : (a = b ↔ run_circuit circuit1 [a, b]) := by
-  apply Iff.intro
-  intros acEq
-  simp_all
-
-  rw [run_circuit, StateT.run, default, circuit1]
-  -- erw [run_circuit, StateT.run, circuit1]
-
--- theorem2 : forall a b c . a = c <=> run_circuit circuit2 [a, b, c] by theorem1
-theorem circuitEq3Transitive [JoltField f] (a b c : f) : (a = c ↔ run_circuit circuit2 [a, b, c]) := by
-  apply Iff.intro
-  intros acEq
-  sorry
-
-
-
-
 
 instance : Fact (Nat.Prime 7) := by decide
 instance : JoltField (ZMod 7) where
@@ -187,3 +169,196 @@ def one : ZMod 7 := 1
 
 #eval run_circuit circuit1 [one, 1]
 #eval run_circuit circuit1 [one, 2]
+
+
+
+
+-- instance : Fact (Nat.Prime 7) := by decide
+-- instance : JoltField (ZMod 7) where
+
+
+def circuit12 : ZKBuilder (ZMod 7) PUnit := do
+  let a <- Witnessable.witness
+  let b <- Witnessable.witness
+  constrainEq2 a b
+
+#eval run_circuit circuit12 [ (0: ZMod 7), (1: ZMod 7)]
+#eval run_circuit circuit12 [ (0: ZMod 7), (0: ZMod 7)]
+
+
+-- instance : Fact (Nat.Prime 7) := by decide
+-- instance instJoltFieldZMod7 : JoltField (ZMod 7) where
+
+#check instJoltFieldZModOfNatNat_main
+-- #check instWitness
+
+
+  
+
+
+theorem circuitEq2SoundTry: (run_circuit circuit1 [ (a: ZMod 7), (a: ZMod 7)] = true) := by
+  unfold run_circuit
+  unfold StateT.run
+  unfold circuit1
+  unfold default
+  unfold instInhabitedZKBuilderState
+  unfold default
+  simp
+  unfold instInhabitedNat
+  simp
+  unfold instInhabitedList
+  simp
+  unfold Array.instInhabited
+  simp
+  unfold Witnessable.witness
+  unfold JoltField.toWitnessable
+  unfold instJoltFieldZModOfNatNat_main
+  simp
+  unfold bind
+  unfold Monad.toBind
+  unfold instMonadZKBuilder
+  unfold instWitnessableZKExpr
+  simp
+  unfold StateT.bind
+  simp
+  unfold witnessf
+  simp
+  unfold pure
+  unfold constrainEq2
+  unfold constrainR1CS
+  unfold constrainEq
+  unfold constrain
+  unfold StateT.get
+  unfold StateT.set
+  simp
+  unfold pure
+  unfold Applicative.toPure
+  unfold Monad.toApplicative
+  unfold instMonadZKBuilder
+  simp
+  unfold StateT.bind
+  unfold StateT.pure
+  simp
+
+  -- now unfold constraints_semantics
+  unfold constraints_semantics
+  unfold semantics_zkexpr
+  unfold semantics_zkexpr.eval
+  unfold semantics_zkexpr.eval
+  simp
+  unfold semantics_zkexpr.eval
+  simp
+  unfold compare
+  unfold instWitnessIdOrd
+  unfold Nat.instOrd_mathlib
+  unfold inferInstance
+  unfold instOrdNat
+  simp
+  unfold compareOfLessAndEq
+  simp
+
+  -- constraints_semantics [] [a, a] = true
+  unfold constraints_semantics
+  rfl
+
+
+theorem circuitEq2Eval: (run_circuit circuit1 [ (a: ZMod 7), (b: ZMod 7)] = (a == b)) := by
+
+  unfold run_circuit
+  unfold StateT.run
+  unfold circuit1
+  unfold default
+  unfold instInhabitedZKBuilderState
+  unfold default
+  simp
+  unfold instInhabitedNat
+  simp
+  unfold instInhabitedList
+  simp
+  unfold Array.instInhabited
+  simp
+  unfold Witnessable.witness
+  unfold JoltField.toWitnessable
+  unfold instJoltFieldZModOfNatNat_main
+  simp
+  unfold bind
+  unfold Monad.toBind
+  unfold instMonadZKBuilder
+  unfold instWitnessableZKExpr
+  simp
+  unfold StateT.bind
+  simp
+  unfold witnessf
+  simp
+  unfold pure
+  unfold constrainEq2
+  unfold constrainR1CS
+  unfold constrainEq
+  unfold constrain
+  unfold StateT.get
+  unfold StateT.set
+  simp
+  unfold pure
+  unfold Applicative.toPure
+  unfold Monad.toApplicative
+  unfold instMonadZKBuilder
+  simp
+  unfold StateT.bind
+  unfold StateT.pure
+  simp
+
+  unfold constraints_semantics
+  unfold semantics_zkexpr
+  unfold semantics_zkexpr.eval
+  unfold semantics_zkexpr.eval
+  simp
+  unfold semantics_zkexpr.eval
+  simp
+  unfold compare
+  unfold instWitnessIdOrd
+  unfold Nat.instOrd_mathlib
+  unfold inferInstance
+  unfold instOrdNat
+  simp
+  unfold compareOfLessAndEq
+  simp
+
+  intros h
+  rewrite [h]
+
+  unfold constraints_semantics
+  rfl
+
+
+#check StateT.run_bind
+attribute [local simp] StateT.run_bind
+
+-- theorem1 : forall a b . a = b <=> run_circuit circuit1 [a, b]
+theorem circuitEq2Sound (x y : ZMod 7) : (x = y ↔ run_circuit circuit1 [x, y]) := by -- TODO: [JoltField f]
+  -- -- grind
+
+  apply Iff.intro
+  intros acEq
+  simp_all
+
+  -- -- https://leanprover-community.github.io/mathlib4_docs/Init/Control/Lawful/Instances.html#StateT.run_bind
+  -- apply (StateT.run_bind _ _ _)
+
+  apply (circuitEq2SoundTry (a := y))
+
+  -- intros h
+  rewrite [circuitEq2Eval (a := x) (b := y)]
+  simp
+  
+
+
+-- theorem2 : forall a b c . a = c <=> run_circuit circuit2 [a, b, c] by theorem1
+theorem circuitEq3Transitive [JoltField f] (a b c : f) : (a = c ↔ run_circuit circuit2 [a, b, c]) := sorry
+-- by
+--   apply Iff.intro
+--   intros acEq
+--   sorry
+
+
+
+
