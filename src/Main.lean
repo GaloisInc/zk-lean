@@ -10,8 +10,8 @@ def main : IO Unit :=
 
 -- ZKProof 7 examples
 
-def example1 [Field f] [Inhabited f] : ZKBuilder (ZKExpr f) := do
-  let x: ZKExpr f <- witness
+def example1 [JoltField f] : ZKBuilder f (ZKExpr f) := do
+  let x: ZKExpr f <- Witnessable.witness
   let one: ZKExpr f := 1
   constrain (x * (x - one) === 0)
   return x
@@ -34,8 +34,15 @@ structure RISCVState (f: Type) where
   registers: Vector (ZKExpr f) 32
 deriving instance Inhabited for RISCVState
 
-def example2 [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder (RISCVState f) := do
-  let new_st: RISCVState f <- witness
+instance: Witnessable f (RISCVState f) where
+  witness := do
+   let pc <- Witnessable.witness
+   let registers <- Witnessable.witness
+   pure { pc:=pc, registers := registers}
+
+
+def step [JoltField f] (prev_st : RISCVState f) : ZKBuilder f (RISCVState f) := do
+  let new_st: RISCVState f <- Witnessable.witness -- allocate a wire for witness
 
   let r1 := prev_st.registers[1]
   let r2 := prev_st.registers[2]
@@ -44,6 +51,21 @@ def example2 [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder (RISCV
   constrain (new_st.registers[0] === isEq)
 
   return new_st
+
+
+def rv_circ [JoltField f]: ZKBuilder f (List (RISCVState f))  := do
+  let (init_state : RISCVState f) <- Witnessable.witness -- fix this
+  let (state1 : RISCVState f) <- step init_state
+  let (state2 : RISCVState f) <- step state1
+  let (state3 : RISCVState f) <- step state2
+  pure [init_state, state1, state2, state3]
+
+
+def run_circ [JoltField f] (witness: List f) : Bool :=
+  let (_circ_states, zk_builder) := StateT.run (rv_circ (f := f)) default
+  let b := constraints_semantics zk_builder.constraints witness
+  b
+
 
 -- structure RISCVState (backend: Type) where
 --   pc: ZKRepr backend UInt32
@@ -86,6 +108,26 @@ def example2 [Field f] [Inhabited f] (prev_st : RISCVState f) : ZKBuilder (RISCV
 
 -- Jolt examples
 
-def eqSubtable [Field f] : Subtable f 2 := subtableFromMLE (λ x => (x[0] * x[1] + (1 - x[0]) * (1 - x[1])))
+def eqSubtable [JoltField f] : Subtable f 2 := subtableFromMLE (λ x => (x[0] * x[1] + (1 - x[0]) * (1 - x[1])))
 
 -- forall x y : F . 0 <= x < 2^n && 0 <= y < 2^n => eqSubtable (bits x) (bits y) == (toI32 x == toI32 y)
+
+
+structure JoltR1CSInputs (f : Type):  Type where
+  chunk_1: ZKExpr f
+  chunk_2: ZKExpr f
+  /- ... -/
+
+-- A[0] = C * 1 + var[3] * 829 + ...
+-- Example of what we extract from Jolt
+-- TODO: Make a struct for the witness variables in a Jolt step. Automatically extract this from JoltInputs enum?
+def uniform_jolt_constraint [JoltField f] (jolt_inputs: JoltR1CSInputs f) : ZKBuilder f PUnit := do
+  constrainR1CS ((1 +  jolt_inputs.chunk_1 ) * 829) 1 1
+  constrainR1CS 1 1 ((1 +  jolt_inputs.chunk_1 ) * 829)
+  -- ...
+
+--   ...
+-- def non_uniform_jolt_constraint step_1 step_2 = do
+--   constrainR1CS (step_1.jolt_flag * 123) (step_2.jolt_flag + 1) (1)
+--   constrainR1CS (step_1.jolt_flag * 872187687 + ...) (step_2.jolt_flag + 1) (1)
+--   ...

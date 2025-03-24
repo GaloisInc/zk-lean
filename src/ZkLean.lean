@@ -4,5 +4,4 @@
 import ZkLean.AST
 import ZkLean.Builder
 import ZkLean.LookupTable
-
-
+import ZkLean.Semantics
