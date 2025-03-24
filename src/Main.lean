@@ -138,6 +138,35 @@ def run_circuit [JoltField f] (circuit: ZKBuilder f a) (witness: List f) : Bool 
 
 
 
+def num_witnesses (circuit : ZKBuilder f a) : Nat :=
+  let (_, state) := StateT.run circuit default
+  state.allocated_witness_count
+  
+def shift_indices s i := sorry
+
+def wellbehaved (circuit: ZKBuilder f a) : Prop :=
+  -- all exprs only point to allocated witnesses
+  -- only adds something to the constraints
+  -- given the behaviors of the circuit with the default, you can also give the behavior of the circuit with another state
+  forall s , 
+    let (_circ_states, state1) := StateT.run circuit default
+    let (_circ_states, state2) := StateT.run circuit s
+    state2.allocated_witness_count = s.allocated_witness_count + state1.allocated_witness_count
+    ∧ state2.constraints = s.constraints ++ shift_indices state1.constraints s.allocated_witness_count
+
+theorem num_witnesses_seq circuit1 circuit2 :
+     wellbehaved circuit1 -> 
+     wellbehaved circuit2 ->
+     num_witnesses (circuit1 >> circuit2) = num_witnesses circuit1 + num_witnesses circuit2 := by
+
+theorem constraints_seq c1 c2 :
+     wellbehaved circuit1 -> 
+     wellbehaved circuit2 ->
+     witness1.length = num_witnesses c1
+     witness2.length = num_witnesses c2
+     run_constraints (circuit1 >> circuit2) (witness1 ++ witness2) = run_constraints circuit1 witness1 && run_constraints circuit2 witness2 := by
+
+-- {} constrainEq2 a b {a == b}
 def constrainEq2 [JoltField f] (a b : ZKExpr f) : ZKBuilder f PUnit := do
   -- constrainR1CS (a - b) 1 0
   constrainR1CS a 1 b
@@ -147,6 +176,7 @@ def circuit1 [JoltField f] : ZKBuilder f PUnit := do
   let b <- Witnessable.witness
   constrainEq2 a b
 
+-- {} constrainEq3 a b c {a == c}
 def constrainEq3 [JoltField f] (a b c : ZKExpr f) : ZKBuilder f PUnit := do
   constrainEq2 a b
   constrainEq2 b c
@@ -194,10 +224,11 @@ def circuit12 : ZKBuilder (ZMod 7) PUnit := do
 
 
 theorem circuitEq2SoundTry [JoltField f]: (run_circuit circuit1 [ (a: f), (a:f )] = true) := by
+  unfold circuit1
 
   unfold run_circuit
   unfold StateT.run
-  unfold circuit1
+  -- unfold circuit1
   unfold default
   unfold instInhabitedZKBuilderState
   unfold default
