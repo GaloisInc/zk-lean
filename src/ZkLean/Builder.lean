@@ -2,12 +2,16 @@ import Std.Data.HashMap.Basic
 import ZkLean.AST
 import ZkLean.LookupTable
 
+inductive RamOp (f : Type) where
+  | Read (addr: ZKExpr f)
+  | Write (addr: ZKExpr f) (value: ZKExpr f)
+
 structure ZKBuilderState (f : Type) where
   -- environment: Std.HashMap Ident (ZKExpr f)
   allocated_witness_count: Nat
   constraints: List (ZKExpr f)
-  -- Array of sizes for each RAM.
-  rams: Array Nat
+  -- Array of sizes and array of operations for each RAM.
+  rams: Array (Nat × Array (RamOp f))
 deriving instance Inhabited for ZKBuilderState
 
   -- TODO: environment? AST?
@@ -86,9 +90,18 @@ def lookup (table : ComposedLookupTable f 16 4) (a: ZKExpr f) (b: ZKExpr f): ZKB
 def ram_new (size : Nat) : ZKBuilder f (RAM f) := do
   let old_state <- StateT.get
   let new_ram_id := Array.size old_state.rams
-  StateT.set { old_state with rams := Array.push old_state.rams size }
+  StateT.set { old_state with rams := Array.push old_state.rams (size, #[]) }
   pure { id := { ram_id := new_ram_id }}
 
-def ram_read (ram : RAM f) (addr : ZKExpr f) : ZKBuilder f (ZKExpr f) := sorry
+def ram_read (ram : RAM f) (addr : ZKExpr f) : ZKBuilder f (ZKExpr f) := do
+  let old_state <- StateT.get
+  let ram_op := RamOp.Read addr
+  let ram_id := ram.id.ram_id
+  let (size, old_ram) := old_state.rams[ram_id]!
+  let op_index := Array.size old_ram
+  let updated_ram := Array.push old_ram ram_op
+  let rams := Array.set! old_state.rams ram_id (size, updated_ram)
+  StateT.set { old_state with rams := rams }
+  pure (ZKExpr.RamOp ram.id op_index)
 
 def ram_write (ram : RAM f) (addr : ZKExpr f) (value : ZKExpr f) : ZKBuilder f PUnit := sorry
