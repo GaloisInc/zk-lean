@@ -93,6 +93,11 @@ def ram_new (size : Nat) : ZKBuilder f (RAM f) := do
   StateT.set { old_state with rams := Array.push old_state.rams (size, #[]) }
   pure { id := { ram_id := new_ram_id }}
 
+-- INSTR: load rs_13 rd_42
+-- addr <- ram_read  ram_reg  13
+-- v    <- ram_read  ram_mem  addr
+--         ram_write ram_reg  42   v
+
 def ram_read (ram : RAM f) (addr : ZKExpr f) : ZKBuilder f (ZKExpr f) := do
   let old_state <- StateT.get
   let ram_op := RamOp.Read addr
@@ -104,4 +109,11 @@ def ram_read (ram : RAM f) (addr : ZKExpr f) : ZKBuilder f (ZKExpr f) := do
   StateT.set { old_state with rams := rams }
   pure (ZKExpr.RamOp ram.id op_index)
 
-def ram_write (ram : RAM f) (addr : ZKExpr f) (value : ZKExpr f) : ZKBuilder f PUnit := sorry
+def ram_write (ram : RAM f) (addr : ZKExpr f) (value : ZKExpr f) : ZKBuilder f PUnit := do
+  let old_state <- StateT.get
+  let ram_op := RamOp.Write addr value
+  let ram_id := ram.id.ram_id
+  let (size, old_ram) := old_state.rams[ram_id]!
+  let updated_ram := Array.push old_ram ram_op
+  let rams := Array.set! old_state.rams ram_id (size, updated_ram)
+  StateT.set { old_state with rams := rams }

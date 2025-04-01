@@ -60,6 +60,8 @@ def semantics_zkexpr [JoltField f] (exprs: ZKExpr f) (witness: List f ) : Value 
           exact (Even.add_self 8)
         Value.VField (evalComposedLookupTableArgs h table va vb)
       | _, _ => Value.None
+    | ZKExpr.RamOp id idx =>
+      Value.None -- TODO: fix this
   eval exprs
 
 def constraints_semantics [JoltField f] (constraints: List (ZKExpr f)) (witness: List f ) : Bool :=
