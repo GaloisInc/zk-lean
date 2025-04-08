@@ -1,20 +1,12 @@
 import Mathlib.Algebra.Field.Defs
 import ZkLean.LookupTable
 
-def Ident := Nat
-deriving instance BEq, Ord, Hashable for Ident
 
--- TODO: Is this needed?
-instance : OfNat (Ident) n where
-  ofNat := n
-
+-- Type to identify witness variables
 def WitnessId := Nat
 deriving instance BEq, Ord, LT, Hashable for WitnessId
 
--- TODO: Is this needed?
-instance : OfNat (WitnessId) n where
-  ofNat := n
-
+-- Type to identify a specific RAM
 structure RamId where
   ram_id: Nat
 deriving instance Inhabited for RamId
