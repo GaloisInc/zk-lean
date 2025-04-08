@@ -31,8 +31,8 @@ def semantics_zkexpr [JoltField f]
     match e with
     | ZKExpr.Literal lit => Value.VField lit
     | ZKExpr.WitnessVar id =>
-      if compare id (witness.length : WitnessId) == Ordering.lt
-      then Value.VField (witness.get! id)
+      if let some v := witness.get? id
+      then Value.VField v
       else Value.None
     | ZKExpr.Add lhs rhs =>
       let a := eval lhs
