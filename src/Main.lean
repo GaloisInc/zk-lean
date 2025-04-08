@@ -133,7 +133,7 @@ def uniform_jolt_constraint [JoltField f] (jolt_inputs: JoltR1CSInputs f) : ZKBu
 
 def run_circuit [JoltField f] (circuit: ZKBuilder f a) (witness: List f) : Bool :=
   let (_circ_states, zk_builder) := StateT.run circuit default
-  let b := constraints_semantics zk_builder.constraints witness (Array.empty)
+  let b := semantics_constraints zk_builder.constraints witness (Array.empty)
   b
 
 
@@ -273,25 +273,16 @@ theorem circuitEq2SoundTry [JoltField f]: (run_circuit circuit1 [ (a: f), (a:f )
   simp
 
   -- now unfold constraints_semantics
-  unfold constraints_semantics
+  unfold semantics_constraints
   unfold semantics_zkexpr
   unfold semantics_zkexpr.eval
   unfold semantics_zkexpr.eval
   simp
   unfold semantics_zkexpr.eval
   simp
-  unfold compare
-  unfold instWitnessIdOrd
-  unfold Nat.instOrd_mathlib
-  unfold inferInstance
-  unfold instOrdNat
-  simp
-  unfold compareOfLessAndEq
-  simp
 
-  -- constraints_semantics [] [a, a] = true
-  unfold constraints_semantics
-  simp
+  unfold semantics_constraints
+  rfl
 
 
 theorem circuitEq2Eval [JoltField f]: (run_circuit circuit1 [ (a: f), (b: f)] = (a == b)) := by
@@ -337,26 +328,16 @@ theorem circuitEq2Eval [JoltField f]: (run_circuit circuit1 [ (a: f), (b: f)] = 
   unfold StateT.pure
   simp
 
-  unfold constraints_semantics
+  unfold semantics_constraints
   unfold semantics_zkexpr
   unfold semantics_zkexpr.eval
   unfold semantics_zkexpr.eval
   simp
   unfold semantics_zkexpr.eval
   simp
-  unfold compare
-  unfold instWitnessIdOrd
-  unfold Nat.instOrd_mathlib
-  unfold inferInstance
-  unfold instOrdNat
-  simp
-  unfold compareOfLessAndEq
+  unfold semantics_constraints
   simp
 
-  intros h
-
-  unfold constraints_semantics
-  rfl
 
 #check StateT.run_bind
 attribute [local simp] StateT.run_bind
