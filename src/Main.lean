@@ -133,7 +133,7 @@ def uniform_jolt_constraint [JoltField f] (jolt_inputs: JoltR1CSInputs f) : ZKBu
 
 def run_circuit [JoltField f] (circuit: ZKBuilder f a) (witness: List f) : Bool :=
   let (_circ_states, zk_builder) := StateT.run circuit default
-  let b := constraints_semantics zk_builder.constraints witness
+  let b := constraints_semantics zk_builder.constraints witness (Array.empty)
   b
 
 
@@ -193,6 +193,10 @@ def circuit2 [JoltField f] : ZKBuilder f PUnit := do
 
 instance : Fact (Nat.Prime 7) := by decide
 instance : JoltField (ZMod 7) where
+  hash x :=
+    match x.val with
+    | 0 => 0
+    | n + 1 => hash n
 
 def test [Field f] (x:f) : f := x
 

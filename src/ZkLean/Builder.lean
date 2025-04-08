@@ -3,15 +3,18 @@ import ZkLean.AST
 import ZkLean.LookupTable
 
 inductive RamOp (f : Type) where
-  | Read (addr: ZKExpr f)
-  | Write (addr: ZKExpr f) (value: ZKExpr f)
+  | Read  (ram_id: RamId) (addr: ZKExpr f)
+  | Write (ram_id: RamId) (addr: ZKExpr f) (value: ZKExpr f)
+deriving instance Inhabited for RamOp
+
 
 structure ZKBuilderState (f : Type) where
   -- environment: Std.HashMap Ident (ZKExpr f)
   allocated_witness_count: Nat
   constraints: List (ZKExpr f)
   -- Array of sizes and array of operations for each RAM.
-  rams: Array (Nat × Array (RamOp f))
+  ram_sizes: Array Nat
+  ram_ops: (Array (RamOp f))
 deriving instance Inhabited for ZKBuilderState
 
   -- TODO: environment? AST?
@@ -89,31 +92,23 @@ def lookup (table : ComposedLookupTable f 16 4) (a: ZKExpr f) (b: ZKExpr f): ZKB
 
 def ram_new (size : Nat) : ZKBuilder f (RAM f) := do
   let old_state <- StateT.get
-  let new_ram_id := Array.size old_state.rams
-  StateT.set { old_state with rams := Array.push old_state.rams (size, #[]) }
-  pure { id := { ram_id := new_ram_id }}
+  let ram_id := Array.size old_state.ram_sizes
+  StateT.set { old_state with ram_sizes := Array.push old_state.ram_sizes size}
+  pure { id := { ram_id := ram_id }}
 
 -- INSTR: load rs_13 rd_42
--- addr <- ram_read  ram_reg  13
--- v    <- ram_read  ram_mem  addr
---         ram_write ram_reg  42   v
+-- addr <- ram_read  ram_reg  13     (implies there is a witness_rs)
+-- v    <- ram_read  ram_mem  addr   (implies there is a witness_ram_addr)
+--         ram_write ram_reg  42   v (implies there is a witness_rd)
 
 def ram_read (ram : RAM f) (addr : ZKExpr f) : ZKBuilder f (ZKExpr f) := do
   let old_state <- StateT.get
-  let ram_op := RamOp.Read addr
-  let ram_id := ram.id.ram_id
-  let (size, old_ram) := old_state.rams[ram_id]!
-  let op_index := Array.size old_ram
-  let updated_ram := Array.push old_ram ram_op
-  let rams := Array.set! old_state.rams ram_id (size, updated_ram)
-  StateT.set { old_state with rams := rams }
-  pure (ZKExpr.RamOp ram.id op_index)
+  let ram_op := RamOp.Read ram.id addr
+  let op_index := Array.size old_state.ram_ops
+  StateT.set { old_state with ram_ops := Array.push old_state.ram_ops ram_op }
+  pure (ZKExpr.RamOp op_index)
 
 def ram_write (ram : RAM f) (addr : ZKExpr f) (value : ZKExpr f) : ZKBuilder f PUnit := do
   let old_state <- StateT.get
-  let ram_op := RamOp.Write addr value
-  let ram_id := ram.id.ram_id
-  let (size, old_ram) := old_state.rams[ram_id]!
-  let updated_ram := Array.push old_ram ram_op
-  let rams := Array.set! old_state.rams ram_id (size, updated_ram)
-  StateT.set { old_state with rams := rams }
+  let ram_op := RamOp.Write ram.id addr value
+  StateT.set { old_state with ram_ops := Array.push old_state.ram_ops ram_op }
