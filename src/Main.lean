@@ -170,7 +170,7 @@ theorem constraints_seq c1 c2 :
 
 -- {} constrainEq2 a b {a == b}
 def constrainEq2 [JoltField f] (a b : ZKExpr f) : ZKBuilder f PUnit := do
-  -- constrainR1CS (a - b) 1 0
+  -- NOTE: equivalently `constrainR1CS (a - b) 1 0`
   constrainR1CS a 1 b
 
 def circuit1 [JoltField f] : ZKBuilder f PUnit := do
@@ -207,12 +207,6 @@ def one : ZMod 7 := 1
 #eval run_circuit circuit1 [one, 2]
 
 
-
-
--- instance : Fact (Nat.Prime 7) := by decide
--- instance : JoltField (ZMod 7) where
-
-
 def circuit12 : ZKBuilder (ZMod 7) PUnit := do
   let a <- Witnessable.witness
   let b <- Witnessable.witness
@@ -221,9 +215,6 @@ def circuit12 : ZKBuilder (ZMod 7) PUnit := do
 #eval run_circuit circuit12 [ (0: ZMod 7), (1: ZMod 7)]
 #eval run_circuit circuit12 [ (0: ZMod 7), (0: ZMod 7)]
 
-
--- instance : Fact (Nat.Prime 7) := by decide
--- instance instJoltFieldZMod7 : JoltField (ZMod 7) where
 
 #check instJoltFieldZModOfNatNat_main
 -- #check instWitness
@@ -344,8 +335,6 @@ attribute [local simp] StateT.run_bind
 
 -- theorem1 : forall a b . a = b <=> run_circuit circuit1 [a, b]
 theorem circuitEq2Sound [JoltField f] (x y : f) : (x = y ↔ run_circuit circuit1 [x, y]) := by
-  -- -- grind
-
   apply Iff.intro
   intros acEq
   simp_all
