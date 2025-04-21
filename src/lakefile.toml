@@ -12,4 +12,4 @@ root = "Main"
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
-rev = "8448d4bb7aab7998632383c7a71975fecab9a9ee"
+rev = "v4.17.0"

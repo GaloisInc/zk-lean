@@ -1,19 +1,20 @@
 import Mathlib.Algebra.Field.Defs
 import ZkLean.LookupTable
 
-def Ident := Nat
-deriving instance BEq, Ord, Hashable for Ident
 
--- TODO: Is this needed?
-instance : OfNat (Ident) n where
-  ofNat := n
-
+-- Type to identify witness variables
 def WitnessId := Nat
 deriving instance BEq, Ord, LT, Hashable for WitnessId
 
--- TODO: Is this needed?
-instance : OfNat (WitnessId) n where
-  ofNat := n
+-- Type to identify a specific RAM
+structure RamId where
+  ram_id: Nat
+deriving instance Inhabited for RamId
+
+
+structure RAM (f: Type) where
+  id: RamId
+deriving instance Inhabited for RAM
 
 inductive ZKExpr (f: Type) where
   | Literal : (lit: f) -> ZKExpr f
@@ -24,6 +25,7 @@ inductive ZKExpr (f: Type) where
   | Mul : (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
   | Eq :  (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f -- TODO: possibly change this to | Eq : {a: Type u} -> (lhs: ZKExpr a) -> (rhs: ZKExpr a) -> ZKExpr (ULift Bool)
   | Lookup: (table: ComposedLookupTable f 16 4) -> (arg1: ZKExpr f) -> (arg2: ZKExpr f) -> ZKExpr f -- TODO fix these 16,4
+  | RamOp : (op_index: Nat) -> ZKExpr f
 infix:50    " === " => ZKExpr.Eq
 
 instance [Inhabited f]: Inhabited (ZKExpr f) where

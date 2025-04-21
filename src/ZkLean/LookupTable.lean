@@ -2,7 +2,7 @@ import Mathlib.Algebra.Field.Defs
 import Mathlib.Algebra.Group.Even
 
 def get_chunks [Field f] (val:f) (num_bits: Nat) (num_chunks: Nat): Vector (Vector f num_bits) num_chunks :=
-  sorry
+  Vector.mkVector num_chunks (Vector.mkVector num_bits 1) -- TODO: Actually implement this XXX
 
 inductive Subtable (f: Type) (n: Nat) where
   | SubtableMLE (mle : Vector f n -> f) : Subtable f n
@@ -84,7 +84,7 @@ def evalComposedLookupTableArgs
           exact h
 
 
-      let input : Vector (Vector f num_bits) num_chunks := Vector.zipWith bits1 bits2 comb
+      let input : Vector (Vector f num_bits) num_chunks := Vector.zipWith comb bits1 bits2
       evalComposedLookupTable table input
 
 
