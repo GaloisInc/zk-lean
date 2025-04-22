@@ -18,12 +18,14 @@ deriving instance Inhabited for ZKBuilderState
 
 
 -- TODO: Make this a free monad?
-def ZKBuilder (f:Type) := StateM (ZKBuilderState f)
+abbrev ZKBuilder (f:Type) := StateM (ZKBuilderState f)
 
-instance: Monad (ZKBuilder f) where
-  pure := StateT.pure
-  bind := StateT.bind
+-- instance: Monad (ZKBuilder f) where
+--   pure := StateT.pure
+--   bind := StateT.bind
 
+-- instance: HAndThen (ZKBuilder f) (ZKBuilder f) (ZKBuilder f) where
+--   hAndThen := StateT.hAndThen
 
 def witnessf : ZKBuilder f (ZKExpr f) := do
   let old_state <- StateT.get
