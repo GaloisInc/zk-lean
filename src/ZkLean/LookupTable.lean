@@ -1,9 +1,6 @@
 import Mathlib.Algebra.Field.Defs
 import Mathlib.Algebra.Group.Even
 
-def get_chunks [Field f] (val:f) (num_bits: Nat) (num_chunks: Nat): Vector (Vector f num_bits) num_chunks :=
-  Vector.mkVector num_chunks (Vector.mkVector num_bits 1) -- TODO: Actually implement this XXX
-
 inductive Subtable (f: Type) (n: Nat) where
   | SubtableMLE (mle : Vector f n -> f) : Subtable f n
 
@@ -54,7 +51,7 @@ def evalComposedLookupTable
   (input: Vector (Vector f num_bits) num_chunks) : f :=
   match table with
     | ComposedLookupTable.Table num_subtables subtables combine_lookups =>
-      let l   := Vector.map (fun (t, i) => evalSubtable t input[i]) subtables
+      let l := Vector.map (fun (t, i) => evalSubtable t input[i]) subtables
       combine_lookups l
 
 
@@ -68,30 +65,30 @@ by
   simp
 
 
-def evalComposedLookupTableArgs
-  [Field f]
-  {num_bits: Nat}
-  {num_chunks: Nat}
-  (h: Even num_bits)
-  (table: ComposedLookupTable f num_bits num_chunks)
-  (arg1 arg2: f) : f :=
-  match table with
-    | ComposedLookupTable.Table num_subtables subtables combine_lookups =>
-      let bits1 := get_chunks arg1 (num_bits/2) num_chunks
-      let bits2 := get_chunks arg2 (num_bits/2) num_chunks
-      let comb
-        (a: Vector f (num_bits / 2))
-        (b: Vector f (num_bits / 2))
-        : Vector f (num_bits) :=
-        by
-          have ab : Vector f _ := Vector.append a b
-          rw [add_even_halves _] at ab
-          exact ab
-          exact h
-
-
-      let input : Vector (Vector f num_bits) num_chunks := Vector.zipWith comb bits1 bits2
-      evalComposedLookupTable table input
+-- def evalComposedLookupTableArgs
+--   [Field f]
+--   {num_bits: Nat}
+--   {num_chunks: Nat}
+--   (table: ComposedLookupTable f num_bits num_chunks)
+--   (input: Vector f num_chunks) : f :=
+--   let chunks := Vector.map (to_chunks · num_bits) input
+--   evalComposedLookupTable table chunks
+--   match table with
+--     | ComposedLookupTable.Table num_subtables subtables combine_lookups =>
+--       let chunks := Vector.map (to_chunks · num_bits) input
+--       let bits1 := get_chunks arg1 (num_bits/2) num_chunks
+--       let bits2 := get_chunks arg2 (num_bits/2) num_chunks
+--       let comb
+--         (a: Vector f (num_bits / 2))
+--         (b: Vector f (num_bits / 2))
+--         : Vector f (num_bits) :=
+--         by
+--           have ab : Vector f _ := Vector.append a b
+--           rw [add_even_halves _] at ab
+--           exact ab
+--           exact h
+--       let input : Vector (Vector f num_bits) num_chunks := Vector.zipWith comb bits1 bits2
+--       evalComposedLookupTable table chunks
 
 
 

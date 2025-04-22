@@ -5,7 +5,9 @@ import Init.Prelude
 import Init.Data.Array.Basic
 import Init.Data.Array.Set
 
-class JoltField (f: Type) extends Field f, BEq f, Inhabited f, LawfulBEq f, Hashable f
+class JoltField (f: Type) extends Field f, BEq f, Inhabited f, LawfulBEq f, Hashable f where
+  -- Mask the lower `num_bits` of a field element and convert to a vector of bits.
+  chunk_to_bits {num_bits: Nat} (val: f) : Vector f num_bits
 
 instance [JoltField f]: Witnessable f (ZKExpr f) where
   witness := witnessf
@@ -72,13 +74,13 @@ def semantics_zkexpr [JoltField f]
       let e3 := eval c3
       match (e0,e1,e2,e3) with
       | (Value.VField v0, Value.VField v1, Value.VField v2, Value.VField v3) =>
-        let h : Even 16 := by
-          exact (Even.add_self 8)
+        -- let h : Even 16 := by
+        --   exact (Even.add_self 8)
         -- OLD: Value.VField (evalComposedLookupTableArgs h table va vb)
-        Value.VField (evalComposedLookupTable table v0 v1 v2 v3)
+        let chunks := Vector.map (λ f => JoltField.chunk_to_bits f) #v[v0, v1, v2, v3]
+        Value.VField (evalComposedLookupTable table chunks)
       | _ => Value.None
     | ZKExpr.RamOp op_id =>
-      let x: _ := ram_values.get op_id ;
       if let some opt := ram_values.get? op_id
       then if let some f := opt
            then Value.VField f
