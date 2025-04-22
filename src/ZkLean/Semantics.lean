@@ -65,15 +65,18 @@ def semantics_zkexpr [JoltField f]
         let b: Bool := va == vb
         Value.VBool b
       | _, _ => Value.None
-    | ZKExpr.Lookup table arg1 arg2 =>
-      let a := eval arg1
-      let b := eval arg2
-      match a,b with
-      | Value.VField va, Value.VField vb =>
+    | ZKExpr.Lookup table c0 c1 c2 c3 =>
+      let e0 := eval c0
+      let e1 := eval c1
+      let e2 := eval c2
+      let e3 := eval c3
+      match (e0,e1,e2,e3) with
+      | (Value.VField v0, Value.VField v1, Value.VField v2, Value.VField v3) =>
         let h : Even 16 := by
           exact (Even.add_self 8)
-        Value.VField (evalComposedLookupTableArgs h table va vb)
-      | _, _ => Value.None
+        -- OLD: Value.VField (evalComposedLookupTableArgs h table va vb)
+        Value.VField (evalComposedLookupTable table v0 v1 v2 v3)
+      | _ => Value.None
     | ZKExpr.RamOp op_id =>
       let x: _ := ram_values.get op_id ;
       if let some opt := ram_values.get? op_id

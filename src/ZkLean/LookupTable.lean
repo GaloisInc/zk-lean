@@ -11,8 +11,14 @@ def subtableFromMLE {n: Nat} (mle : Vector f n -> f) : Subtable f n := Subtable.
 
 
 -- `LookupTable` is the specification for table related part of `JoltInstruction` in the jolt codebase.
-inductive ComposedLookupTable (f:Type) (num_bits: Nat) (num_chunks: Nat) where
-  | Table (num_subtables: Nat) (subtables: Vector (Subtable f num_bits × Fin num_chunks) num_subtables) (combine_lookups: Vector f num_subtables -> f) : ComposedLookupTable f num_bits num_chunks
+inductive ComposedLookupTable
+  (f:Type)
+  (num_bits: Nat)
+  (num_chunks: Nat) where
+  | Table
+    (num_subtables: Nat)
+    (subtables: Vector (Subtable f num_bits × Fin num_chunks) num_subtables) (combine_lookups: Vector f num_subtables -> f):
+    ComposedLookupTable f num_bits num_chunks
 
 
 def mkComposedLookupTable  {num_bits:Nat} {num_subtables: Nat} {num_chunks: Nat} (subtables: Vector (Subtable f num_bits × Fin num_chunks) num_subtables) (combine_lookups: Vector f num_subtables -> f) : ComposedLookupTable f num_bits num_chunks:=
