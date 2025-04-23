@@ -131,10 +131,10 @@ def uniform_jolt_constraint [JoltField f] (jolt_inputs: JoltR1CSInputs f) : ZKBu
 --   constrainR1CS (step_1.jolt_flag * 872187687 + ...) (step_2.jolt_flag + 1) (1)
 --   ...
 
--- def run_circuit [JoltField f] (circuit: ZKBuilder f a) (witness: List f) : Bool :=
---   let (_circ_states, zk_builder) := StateT.run circuit default
---   let b := semantics_constraints zk_builder.constraints witness (Array.empty)
---   b
+def run_circuit' [JoltField f] (circuit: ZKBuilder f a) (witness: List f) : Bool :=
+  let (_circ_states, zk_builder) := StateT.run circuit default
+  let b := semantics_constraints zk_builder.constraints witness (Array.empty)
+  b
 
 
 
@@ -173,10 +173,10 @@ theorem constraints_seq [JoltField f](c1: ZKBuilder f a) (c2: ZKBuilder f b) (wi
      wellbehaved c2 ->
      witness1.length = num_witnesses c1 ->
      witness2.length = num_witnesses c2 ->
-     run_circuit (do 
+     run_circuit' (do 
        let _ <- circuit1
        circuit2
-     ) (witness1 ++ witness2) = run_circuit circuit1 witness1 && run_circuit circuit2 witness2 := by
+     ) (witness1 ++ witness2) = run_circuit' circuit1 witness1 && run_circuit' circuit2 witness2 := by
   sorry
 
 /-
@@ -229,8 +229,8 @@ def test [Field f] (x:f) : f := x
 def one : ZMod 7 := 1
 #eval test one
 
-#eval run_circuit circuit1 [one, 1]
-#eval run_circuit circuit1 [one, 2]
+#eval run_circuit' circuit1 [one, 1]
+#eval run_circuit' circuit1 [one, 2]
 
 
 def circuit12 : ZKBuilder (ZMod 7) PUnit := do
@@ -238,18 +238,18 @@ def circuit12 : ZKBuilder (ZMod 7) PUnit := do
   let b <- Witnessable.witness
   constrainEq2 a b
 
-#eval run_circuit circuit12 [ (0: ZMod 7), (1: ZMod 7)]
-#eval run_circuit circuit12 [ (0: ZMod 7), (0: ZMod 7)]
+#eval run_circuit' circuit12 [ (0: ZMod 7), (1: ZMod 7)]
+#eval run_circuit' circuit12 [ (0: ZMod 7), (0: ZMod 7)]
 
 
 #check instJoltFieldZModOfNatNat_main
 -- #check instWitness
 
 
-theorem circuitEq2SoundTry [JoltField f]: (run_circuit circuit1 [ (a: f), (a:f )] = true) := by
+theorem circuitEq2SoundTry [JoltField f]: (run_circuit' circuit1 [ (a: f), (a:f )] = true) := by
   unfold circuit1
 
-  unfold run_circuit
+  unfold run_circuit'
   unfold StateT.run
   -- unfold circuit1
   unfold default
@@ -304,9 +304,9 @@ theorem circuitEq2SoundTry [JoltField f]: (run_circuit circuit1 [ (a: f), (a:f )
   rfl
 
 
-theorem circuitEq2Eval [JoltField f]: (run_circuit circuit1 [ (a: f), (b: f)] = (a == b)) := by
+theorem circuitEq2Eval [JoltField f]: (run_circuit' circuit1 [ (a: f), (b: f)] = (a == b)) := by
 
-  unfold run_circuit
+  unfold run_circuit'
   unfold StateT.run
   unfold circuit1
   unfold default
@@ -363,7 +363,7 @@ attribute [local simp] StateT.run_bind
 
 -- theorem1 : forall a b . a = b <=> run_circuit circuit1 [a, b]
 -- theorem1 : {TRUE} (circuit1 [a, b]) {a = b}
-theorem circuitEq2Sound [JoltField f] (x y : f) : (x = y ↔ run_circuit circuit1 [x, y]) := by
+theorem circuitEq2Sound [JoltField f] (x y : f) : (x = y ↔ run_circuit' circuit1 [x, y]) := by
   apply Iff.intro
   intros acEq
   simp_all
