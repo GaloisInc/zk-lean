@@ -3,7 +3,7 @@ import ZkLean.LookupTable
 
 
 -- Type to identify witness variables
-def WitnessId := Nat
+abbrev WitnessId := Nat
 deriving instance BEq, Ord, LT, Hashable for WitnessId
 
 -- Type to identify a specific RAM

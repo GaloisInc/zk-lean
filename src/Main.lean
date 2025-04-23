@@ -386,3 +386,12 @@ theorem circuitEq2Sound [JoltField f] (x y : f) : (x = y ↔ run_circuit circuit
 --   apply Iff.intro
 --   intros acEq
 --   sorry
+
+
+
+theorem circuitEq2Sound' [JoltField f] : Hoare f (λ _ _ => True) (λ a b => constrainEq2 a b) (λ af bf => af == bf) := by
+  sorry
+
+-- theorem circuitEq3Transitive' [JoltField f] : Hoare f (λ _ _ => True) (λ a b c => constrainEq3 a b c) (λ af _ cf => af == cf) := by
+--   sorry
+
