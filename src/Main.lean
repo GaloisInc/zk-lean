@@ -1,4 +1,3 @@
--- import Mathlib
 import Mathlib.Algebra.Field.Defs
 import Mathlib.Algebra.Field.ZMod
 import Mathlib.Control.Fold
@@ -388,10 +387,43 @@ theorem circuitEq2Sound [JoltField f] (x y : f) : (x = y ↔ run_circuit' circui
 --   sorry
 
 
+-- def Pair a := (a × a)
+instance: Functor (λ t => t × t) where
+  map f x := match x with
+  | (a, b) => (f a, f b)
 
-theorem circuitEq2Sound' [JoltField f] : Hoare f (λ _ _ => True) (λ a b => constrainEq2 a b) (λ af bf => af == bf) := by
+instance: Traversable (λ t => t × t) where
+  traverse f x := match x with
+    | (a, b) =>
+      (·,·) <$> f a <*> f b
+
+instance: Functor (λ t => t × t × t) where
+  map f x := match x with
+  | (a, b, c) => (f a, f b, f c)
+
+instance: Traversable (λ t => t × t × t) where
+  traverse f x := match x with
+    | (a, b, c) =>
+      (·,·,·) <$> f a <*> f b <*> f c
+
+instance: Functor (λ _ => PUnit) where
+  map f x := ()
+
+instance: Traversable (λ _ => PUnit) where
+  traverse f x := pure ()
+
+#check Function.const PUnit
+
+theorem test' [JoltField f] : Hoare f Id Id (λ _ => true) (λ a => pure a) (λ _ _ => true) := by
   sorry
 
+-- theorem circuitEq2Sound' [JoltField f] : Hoare f Id Id (λ _ => true) (λ a => pure a) (λ _ _ => true) := by
+-- theorem circuitEq2Sound' [JoltField f] : Hoare f Id (Function.const PUnit) (λ _ => true) (λ _ => pure ()) (λ _ _ => true) := by
+-- theorem circuitEq2Sound' [JoltField f] : Hoare (λ _ => true) (λ a => constrainEq a a) (λ _ af => af == af) := by
+theorem constrainEq2Sound [JoltField f] : Hoare f (λ t => t × t) (λ _ => PUnit) (λ _ => true) (λ (a, b) => constrainEq2 a b) (λ (af, bf) _ => af == bf) := by
+  sorry
+
+theorem constrainEq3Sound [JoltField f] : Hoare f (λ t => t × t × t) (λ _ => PUnit) (λ _ => true) (λ (a, b, c) => constrainEq3 a b c) (λ (af, bf, cf) _ => af == cf) := by
 -- theorem circuitEq3Transitive' [JoltField f] : Hoare f (λ _ _ => True) (λ a b c => constrainEq3 a b c) (λ af _ cf => af == cf) := by
---   sorry
+  sorry
 
