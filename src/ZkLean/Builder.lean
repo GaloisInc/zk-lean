@@ -19,6 +19,7 @@ deriving instance Inhabited for ZKBuilderState
 
 -- TODO: Make this a free monad?
 abbrev ZKBuilder (f:Type) := StateM (ZKBuilderState f)
+-- abbrev ZKBuilder (f:Type) := ReaderT (List f) StateM (ZKBuilderState f)
 
 -- instance: Monad (ZKBuilder f) where
 --   pure := StateT.pure

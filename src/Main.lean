@@ -193,7 +193,9 @@ theorem constraints_seq c1 c2 :
      run_constraints (circuit1 >> circuit2) (witness1 ++ witness2) = run_constraints circuit1 witness1 && run_constraints circuit2 witness2 := by
 -/
 
--- {} constrainEq2 a b {a == b}
+-- {} constrainEq2 a b {a_f == b_f}
+-- {} run_circuit (constrainEq2 a b) {state ws res => res <-> (eval a · ·  == eval b ws state)}
+-- run_circuit : ReaderT [f] (ReaderT (ZKBuilderState f)) bool
 def constrainEq2 [JoltField f] (a b : ZKExpr f) : ZKBuilder f PUnit := do
   -- NOTE: equivalently `constrainR1CS (a - b) 1 0`
   constrainR1CS a 1 b
@@ -425,5 +427,10 @@ theorem constrainEq2Sound [JoltField f] : Hoare f (λ t => t × t) (λ _ => PUni
 
 theorem constrainEq3Sound [JoltField f] : Hoare f (λ t => t × t × t) (λ _ => PUnit) (λ _ => true) (λ (a, b, c) => constrainEq3 a b c) (λ (af, bf, cf) _ => af == cf) := by
 -- theorem circuitEq3Transitive' [JoltField f] : Hoare f (λ _ _ => True) (λ a b c => constrainEq3 a b c) (λ af _ cf => af == cf) := by
+  intro s0 ws in_f out_f in_e out_e inH statef
+  simp
+  intro outH
+
+
   sorry
 

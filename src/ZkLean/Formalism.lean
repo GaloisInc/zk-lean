@@ -45,6 +45,8 @@ def eval_exprf [JoltField f] (expr: ZKExpr f) (state: ZKBuilderState f) (witness
 def eval_expr {t: Type -> Type} [Traversable t] [JoltField f] (expr: t (ZKExpr f)) (state: ZKBuilderState f) (witness: List f) : Option (t f) :=
   traverse (eval_exprf · state witness) expr
 
+-- def exec_circuit (circuit: i -> ZKBuilder f o) (input_expr: i) state0 := (StateT.run (circuit input_expr) state0).2
+
 def Hoare (f:Type) (i:Type -> Type) (o:Type -> Type) [Traversable i] [Traversable o] [JoltField f] (precondition: i f -> Bool) (circuit: i (ZKExpr f) -> ZKBuilder f (o (ZKExpr f))) (postcondition: i f -> o f -> Bool) : Prop :=
   ∀ state0 : ZKBuilderState f, 
   ∀ witnesses : List f,
@@ -70,4 +72,26 @@ def Hoare (f:Type) (i:Type -> Type) (o:Type -> Type) [Traversable i] [Traversabl
 
 -- TODO: Will we need to prove that ZKExprs are immutable?
 -- eval_expr expr state0 witness = eval_expr expr (StateT.run (circuit expr) state0).2 witness
+
+instance [Functor f1] [Functor f2] : Functor (λ t => f1 t × f2 t) where
+  map f x := match x with
+  | (a, b) => (f <$> a, f <$> b)
+
+instance [Traversable f1] [Traversable f2] : Traversable (λ t => f1 t × f2 t) where
+  traverse f x := match x with
+    | (a, b) =>
+      (·,·) <$> traverse f a <*> traverse f b
+
+def hoare_bind [Traversable i1] [Traversable o1] [Traversable i2] [Traversable o2] [Traversable i3] [Traversable o3] [JoltField f] :
+  Hoare f i1 o1 pre1 c1 post1 ->
+  Hoare f i2 o2 pre2 c2 post2 ->
+  forall input1: i1 f,
+  forall input2: i2 f,
+  forall _: (pre1 input1 && pre2 input2 -> pre3 (input1, input2)),
+  forall output1: o1 f,
+  Hoare f (λ t => i1 t × i2 t) o2 pre3 (λ (in1, in2) => do
+      let _ <- c1 in1
+      c2 in2
+    ) (λ (in1, in2) out2 => post1 in1 output1 && post2 in2 out2) := by
+  sorry
 
