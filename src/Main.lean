@@ -3,6 +3,7 @@ import Mathlib.Algebra.Field.ZMod
 import Mathlib.Control.Fold
 import Mathlib.Data.Nat.Prime.Defs
 import Mathlib.Data.ZMod.Defs
+import MPL
 import ZkLean
 
 def main : IO Unit :=
@@ -427,10 +428,98 @@ theorem constrainEq2Sound [JoltField f] : Hoare f (λ t => t × t) (λ _ => PUni
 
 theorem constrainEq3Sound [JoltField f] : Hoare f (λ t => t × t × t) (λ _ => PUnit) (λ _ => true) (λ (a, b, c) => constrainEq3 a b c) (λ (af, bf, cf) _ => af == cf) := by
 -- theorem circuitEq3Transitive' [JoltField f] : Hoare f (λ _ _ => True) (λ a b c => constrainEq3 a b c) (λ af _ cf => af == cf) := by
+  dsimp [constrainEq3]
   intro s0 ws in_f out_f in_e out_e inH statef
-  simp
-  intro outH
+  -- intro outH
 
 
   sorry
 
+-- theorem constrainEq2Trivial [JoltField f] (a b:ZKExpr f) : ⦃ ⌜True⌝ ⦄ constrainEq2 a b ⦃⇓ r => ⌜ True ⌝⦄ := by
+--   mintro h
+--   mexact h
+
+theorem constrainEq2Trivial [JoltField f] (a b:ZKExpr f) :
+  ⦃λ s => s = old_s ⦄
+  constrainEq2 a b
+  ⦃⇓ _r s => s.constraints.length = old_s.constraints.length + 1⦄
+  := by
+  mintro h ∀old
+  mpure h
+  -- mwp
+  simp [h]
+  constructor
+
+theorem constrainEq3Transitive [JoltField f] (a b c:ZKExpr f) :
+  ⦃λ s => s = old_s ⦄
+  constrainEq3 a b c
+  ⦃⇓ _r s => s.constraints.length = old_s.constraints.length + 2⦄
+  := by
+  mintro h ∀old
+  mpure h
+  simp [h]
+  unfold constrainEq3
+  mspec (constrainEq2Trivial a b)
+  mintro ∀s2
+  mpure h
+  rename' h => hAB
+  mspec (constrainEq2Trivial b c)
+  mintro ∀s3
+  mpure h
+  simp [h, hAB]
+
+  -- mintro ∀s
+
+  -- mintro h 
+  -- mpure h
+  -- -- mwp
+  -- simp [h]
+
+  -- constructor
+
+  -- unfold constrainEq2
+  -- unfold constrainR1CS
+  -- unfold constrainEq
+  -- unfold constrain
+
+  -- 
+
+  -- -- simp
+  -- -- mintro h
+
+  -- unfold StateT.get
+  -- unfold StateT.set
+  -- wp_simp
+
+
+  -- mintro _
+
+  -- wp_simp
+  -- wp_simp
+
+  -- unfold constrainEq2
+  -- unfold constrainR1CS
+  -- unfold constrainEq
+  -- unfold constrain
+  -- unfold StateT.get
+  -- wp_simp
+  -- unfold StateT.set
+  -- wp_simp
+  -- mwp
+  -- mintro ∀s
+  -- -- mpure
+  -- apply WP.pure_apply
+
+  -- simp
+  -- mpure
+
+
+  -- simp [constrainEq2, constrainR1CS, constrainEq, constrain, StateT.set]
+  -- mwp
+  -- mintro ∀s
+  -- simp
+  -- wp_simp
+  -- 
+  -- sorry
+
+-- Hoare f (λ t => t × t) (λ _ => PUnit) (λ _ => true) (λ (a, b) => constrainEq2 a b) (λ (af, bf) _ => af == bf) := by

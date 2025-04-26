@@ -67,7 +67,7 @@ def Hoare (f:Type) (i:Type -> Type) (o:Type -> Type) [Traversable i] [Traversabl
   let statef := (StateT.run (circuit input_expr) state0).2
   eval_expr output_expr statef witnesses = some output ->
 
-  precondition input →
+  precondition input ->
     run_circuit (circuit input_expr) state0 witnesses ↔ postcondition input output -- x_expr y_expr
 
 -- TODO: Will we need to prove that ZKExprs are immutable?
