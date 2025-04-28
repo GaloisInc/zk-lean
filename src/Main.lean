@@ -570,6 +570,33 @@ theorem constrainEq3Transitive [JoltField f] (a b c:ZKExpr f) (witness: List f) 
   have hEvalBC: eval_exprf b s2 witness = eval_exprf c s2 witness := by apply hBC.mp hS2
   rw [← hEvalBC]
     
+  have hCompose: ¬(eval_circuit s1 witness) → ¬ (eval_circuit s2 witness) := by
+    sorry -- TODO: Prove this lemma
+  have hCompose2: eval_circuit s2 witness → eval_circuit s1 witness := by
+    sorry -- TODO: Prove this lemma w/ hCompose
+  have hCompose3: forall expr, eval_exprf expr s1 witness = eval_exprf expr s2 witness := by
+    sorry -- TODO: Prove this lemma
+  
+  have hS1: eval_circuit s1 witness := by
+    -- rewrite [← hCompose2] at hS2
+    apply hCompose2 at hS2
+    exact hS2
+
+  have hP1: eval_exprf a s1 witness = eval_exprf b s1 witness := by
+    simp at hAB
+    grind
+  have hP2: eval_exprf a s2 witness = eval_exprf b s2 witness := by
+    -- simp [hCompose3 a ]
+    rw [hCompose3 a] at hP1
+    rw [hCompose3 b] at hP1
+    exact hP1
+  exact hP2
+
+
+
+  -- mcases hAB with h
+
+  -- cases hAB
 
 
   -- simp
