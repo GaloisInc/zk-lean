@@ -530,8 +530,8 @@ theorem constrainEq2Sound' [JoltField f] (a b:ZKExpr f) (witness: List f) :
   ⦃λ s => True ⦄ -- eval_circuit s witness ⦄
   constrainEq2 a b
   ⦃⇓ _r s => 
-    eval_circuit s witness ↔
-    eval_exprf a s witness == eval_exprf b s witness
+    ⌜ eval_circuit s witness ↔
+    eval_exprf a s witness == eval_exprf b s witness ⌝ 
   ⦄
   := by 
 
@@ -541,8 +541,8 @@ theorem constrainEq3Transitive [JoltField f] (a b c:ZKExpr f) (witness: List f) 
   ⦃λ s => True ⦄ -- s = s0⦄ -- eval_circuit s witness ⦄
   constrainEq3 a b c
   ⦃⇓ _r s => 
-    eval_circuit s witness →
-    eval_exprf a s witness == eval_exprf c s witness
+    ⌜ eval_circuit s witness →
+    eval_exprf a s witness == eval_exprf c s witness ⌝ 
   ⦄
   := by 
   mintro h0 ∀s0
