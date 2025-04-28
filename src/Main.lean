@@ -450,7 +450,7 @@ theorem constrainEq2Trivial [JoltField f] (a b:ZKExpr f) :
   simp [h]
   constructor
 
-theorem constrainEq3Transitive [JoltField f] (a b c:ZKExpr f) :
+theorem constrainEq3Trivial [JoltField f] (a b c:ZKExpr f) :
   ⦃λ s => s = old_s ⦄
   constrainEq3 a b c
   ⦃⇓ _r s => s.constraints.length = old_s.constraints.length + 2⦄
@@ -522,4 +522,65 @@ theorem constrainEq3Transitive [JoltField f] (a b c:ZKExpr f) :
   -- 
   -- sorry
 
--- Hoare f (λ t => t × t) (λ _ => PUnit) (λ _ => true) (λ (a, b) => constrainEq2 a b) (λ (af, bf) _ => af == bf) := by
+-- theorem constrainEq2Sound' [JoltField f] (a b:ZKExpr f) (witness: List f) :
+--   ⦃λ s => True ⦄
+--   constrainEq2 a b
+--   ⦃⇓ _r s => eval_exprf a s witness == eval_exprf b s witness⦄
+theorem constrainEq2Sound' [JoltField f] (a b:ZKExpr f) (witness: List f) :
+  ⦃λ s => True ⦄ -- eval_circuit s witness ⦄
+  constrainEq2 a b
+  ⦃⇓ _r s => 
+    eval_circuit s witness ↔
+    eval_exprf a s witness == eval_exprf b s witness
+  ⦄
+  := by 
+
+  sorry
+
+theorem constrainEq3Transitive [JoltField f] (a b c:ZKExpr f) (witness: List f) :
+  ⦃λ s => True ⦄ -- eval_circuit s witness ⦄
+  constrainEq3 a b c
+  ⦃⇓ _r s => 
+    eval_circuit s witness →
+    eval_exprf a s witness == eval_exprf c s witness
+  ⦄
+  := by 
+  mintro h0 ∀s0
+  mpure h0
+  unfold constrainEq3
+  mwp
+
+  mspec (constrainEq2Sound' a b witness)
+  mcases h with hAB
+  mintro ∀s1
+  mpure hAB
+  -- unfold MPL.spred
+
+  mspec (constrainEq2Sound' b c witness)
+  mcases h with hBC
+  mintro ∀s2
+  mpure hBC
+
+  simp
+  -- sorry
+  intro hS2
+  -- rewrite [hS2] in hBC
+  
+
+  -- mcases h with hAB
+
+
+
+def exceptTest (input: Nat) : ExceptT String Id Nat := do
+  if input == 0 then throw "error" else pure input
+
+theorem exceptTest' : ⦃ True ⦄ exceptTest 1 ⦃⇓ r => r == 1⦄ := by
+  sorry
+
+theorem exceptTest'' : ⦃ True ⦄ exceptTest 0 ⦃⇓ r => r == 1⦄ := by
+  mintro _
+  mwp
+  simp [exceptTest]
+  sorry
+
+

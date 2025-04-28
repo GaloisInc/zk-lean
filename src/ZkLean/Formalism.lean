@@ -27,6 +27,9 @@ def run_circuit [JoltField f] (circuit: ZKBuilder f a) (state0: ZKBuilderState f
   let (_circ_output, final_state) := StateT.run circuit state0
   semantics witness final_state
 
+def eval_circuit [JoltField f] (final_state: ZKBuilderState f) (witness: List f) : Prop :=
+  semantics witness final_state
+
 -- def circuit_result [JoltField f] [oInst: ZKEncodable o] (output: oInst.ToZKExpr) (state: ZKBuilderState f) (witness: List f) : o :=
 --   let (circ_output, _final_state) := StateT.run (pure output) state
 --   circ_output
