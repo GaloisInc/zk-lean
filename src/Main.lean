@@ -538,7 +538,7 @@ theorem constrainEq2Sound' [JoltField f] (a b:ZKExpr f) (witness: List f) :
   sorry
 
 theorem constrainEq3Transitive [JoltField f] (a b c:ZKExpr f) (witness: List f) :
-  ⦃λ s => True ⦄ -- eval_circuit s witness ⦄
+  ⦃λ s => True ⦄ -- s = s0⦄ -- eval_circuit s witness ⦄
   constrainEq3 a b c
   ⦃⇓ _r s => 
     eval_circuit s witness →
@@ -548,7 +548,7 @@ theorem constrainEq3Transitive [JoltField f] (a b c:ZKExpr f) (witness: List f) 
   mintro h0 ∀s0
   mpure h0
   unfold constrainEq3
-  mwp
+  -- mwp
 
   mspec (constrainEq2Sound' a b witness)
   mcases h with hAB
@@ -557,14 +557,30 @@ theorem constrainEq3Transitive [JoltField f] (a b c:ZKExpr f) (witness: List f) 
   -- unfold MPL.spred
 
   mspec (constrainEq2Sound' b c witness)
-  mcases h with hBC
-  mintro ∀s2
-  mpure hBC
 
+  mintro ∀s2
   simp
-  -- sorry
+  intro hBC
+
   intro hS2
-  -- rewrite [hS2] in hBC
+  -- apply hS2 in hBC
+
+  -- apply hBC.mp hS2
+
+  have hEvalBC: eval_exprf b s2 witness = eval_exprf c s2 witness := by apply hBC.mp hS2
+  rw [← hEvalBC]
+    
+
+
+  -- simp
+  -- mcases h with hBC
+  -- mintro ∀s2
+  -- mpure hBC
+
+  -- simp
+  -- -- sorry
+  -- intro hS2
+  -- -- rewrite [hS2] in hBC
   
 
   -- mcases h with hAB
