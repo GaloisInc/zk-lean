@@ -54,6 +54,9 @@ instance [HAdd f f f] : HAdd Nat (ZKExpr f) (ZKExpr f) where
 instance: HSub (ZKExpr f) (ZKExpr f) (ZKExpr f) where
   hSub := ZKExpr.Sub
 
+instance: Neg (ZKExpr f) where
+  neg := ZKExpr.Neg
+
 instance: HMul (ZKExpr f) (ZKExpr f) (ZKExpr f) where
   hMul := ZKExpr.Mul
 
