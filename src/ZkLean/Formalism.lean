@@ -114,4 +114,12 @@ lemma previous_success [JoltField f] (m : ZKBuilder f a) (witness: List f) :
  := by
   sorry
 
+lemma eval_const [JoltField f] (m : ZKBuilder f a) (witness: List f) (expr: ZKExpr f) :
+ -- TODO: Lawful m
+ ⦃λ s => s = s0⦄
+ m
+ ⦃⇓_r s1 => ⌜eval_exprf expr s0 witness = eval_exprf expr s1 witness⌝⦄
+ := by
+  sorry
+
 

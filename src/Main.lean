@@ -417,23 +417,23 @@ instance: Traversable (λ _ => PUnit) where
 
 #check Function.const PUnit
 
-theorem test' [JoltField f] : Hoare f Id Id (λ _ => true) (λ a => pure a) (λ _ _ => true) := by
-  sorry
-
--- theorem circuitEq2Sound' [JoltField f] : Hoare f Id Id (λ _ => true) (λ a => pure a) (λ _ _ => true) := by
--- theorem circuitEq2Sound' [JoltField f] : Hoare f Id (Function.const PUnit) (λ _ => true) (λ _ => pure ()) (λ _ _ => true) := by
--- theorem circuitEq2Sound' [JoltField f] : Hoare (λ _ => true) (λ a => constrainEq a a) (λ _ af => af == af) := by
-theorem constrainEq2Sound [JoltField f] : Hoare f (λ t => t × t) (λ _ => PUnit) (λ _ => true) (λ (a, b) => constrainEq2 a b) (λ (af, bf) _ => af == bf) := by
-  sorry
-
-theorem constrainEq3Sound [JoltField f] : Hoare f (λ t => t × t × t) (λ _ => PUnit) (λ _ => true) (λ (a, b, c) => constrainEq3 a b c) (λ (af, bf, cf) _ => af == cf) := by
--- theorem circuitEq3Transitive' [JoltField f] : Hoare f (λ _ _ => True) (λ a b c => constrainEq3 a b c) (λ af _ cf => af == cf) := by
-  dsimp [constrainEq3]
-  intro s0 ws in_f out_f in_e out_e inH statef
-  -- intro outH
-
-
-  sorry
+-- theorem test' [JoltField f] : Hoare f Id Id (λ _ => true) (λ a => pure a) (λ _ _ => true) := by
+--   sorry
+-- 
+-- -- theorem circuitEq2Sound' [JoltField f] : Hoare f Id Id (λ _ => true) (λ a => pure a) (λ _ _ => true) := by
+-- -- theorem circuitEq2Sound' [JoltField f] : Hoare f Id (Function.const PUnit) (λ _ => true) (λ _ => pure ()) (λ _ _ => true) := by
+-- -- theorem circuitEq2Sound' [JoltField f] : Hoare (λ _ => true) (λ a => constrainEq a a) (λ _ af => af == af) := by
+-- theorem constrainEq2Sound [JoltField f] : Hoare f (λ t => t × t) (λ _ => PUnit) (λ _ => true) (λ (a, b) => constrainEq2 a b) (λ (af, bf) _ => af == bf) := by
+--   sorry
+-- 
+-- theorem constrainEq3Sound [JoltField f] : Hoare f (λ t => t × t × t) (λ _ => PUnit) (λ _ => true) (λ (a, b, c) => constrainEq3 a b c) (λ (af, bf, cf) _ => af == cf) := by
+-- -- theorem circuitEq3Transitive' [JoltField f] : Hoare f (λ _ _ => True) (λ a b c => constrainEq3 a b c) (λ af _ cf => af == cf) := by
+--   dsimp [constrainEq3]
+--   intro s0 ws in_f out_f in_e out_e inH statef
+--   -- intro outH
+-- 
+-- 
+--   sorry
 
 -- theorem constrainEq2Trivial [JoltField f] (a b:ZKExpr f) : ⦃ ⌜True⌝ ⦄ constrainEq2 a b ⦃⇓ r => ⌜ True ⌝⦄ := by
 --   mintro h
