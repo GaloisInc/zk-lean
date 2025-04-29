@@ -17,4 +17,4 @@ rev = "v4.18.0"
 [[require]]
 name = "mpl"
 git = "https://github.com/sgraf812/mpl"
-rev = "pre-release"
+rev = "39de7934a0a90e0f48aa2948c7dbe96046b3b5d8"
