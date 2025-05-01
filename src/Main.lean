@@ -4,6 +4,7 @@ import Mathlib.Control.Fold
 import Mathlib.Data.Nat.Prime.Defs
 import Mathlib.Data.ZMod.Defs
 import MPL
+import MPL.Triple
 import ZkLean
 
 def main : IO Unit :=
@@ -468,64 +469,6 @@ theorem constrainEq3Trivial [JoltField f] (a b c:ZKExpr f) :
   mpure h
   simp [h, hAB]
 
-  -- mintro ∀s
-
-  -- mintro h 
-  -- mpure h
-  -- -- mwp
-  -- simp [h]
-
-  -- constructor
-
-  -- unfold constrainEq2
-  -- unfold constrainR1CS
-  -- unfold constrainEq
-  -- unfold constrain
-
-  -- 
-
-  -- -- simp
-  -- -- mintro h
-
-  -- unfold StateT.get
-  -- unfold StateT.set
-  -- wp_simp
-
-
-  -- mintro _
-
-  -- wp_simp
-  -- wp_simp
-
-  -- unfold constrainEq2
-  -- unfold constrainR1CS
-  -- unfold constrainEq
-  -- unfold constrain
-  -- unfold StateT.get
-  -- wp_simp
-  -- unfold StateT.set
-  -- wp_simp
-  -- mwp
-  -- mintro ∀s
-  -- -- mpure
-  -- apply WP.pure_apply
-
-  -- simp
-  -- mpure
-
-
-  -- simp [constrainEq2, constrainR1CS, constrainEq, constrain, StateT.set]
-  -- mwp
-  -- mintro ∀s
-  -- simp
-  -- wp_simp
-  -- 
-  -- sorry
-
--- theorem constrainEq2Sound' [JoltField f] (a b:ZKExpr f) (witness: List f) :
---   ⦃λ s => True ⦄
---   constrainEq2 a b
---   ⦃⇓ _r s => eval_exprf a s witness == eval_exprf b s witness⦄
 theorem constrainEq2Sound' [JoltField f] (a b:ZKExpr f) (witness: List f) :
   ⦃λ s => True ⦄ -- eval_circuit s witness ⦄
   constrainEq2 a b
@@ -539,12 +482,10 @@ theorem constrainEq2Sound' [JoltField f] (a b:ZKExpr f) (witness: List f) :
 
 set_option grind.warning false
 
-#check previous_success
-
 theorem constrainEq3Transitive [JoltField f] (a b c:ZKExpr f) (witness: List f) :
-  ⦃λ s => True ⦄ -- s = s0⦄ -- eval_circuit s witness ⦄
+  ⦃λ _s => True ⦄ -- s = s0⦄ -- eval_circuit s witness ⦄
   constrainEq3 a b c
-  ⦃⇓ _r s => 
+  ⦃⇓ _r s =>
     ⌜ eval_circuit s witness →
     eval_exprf a s witness == eval_exprf c s witness ⌝ 
   ⦄
@@ -558,25 +499,44 @@ theorem constrainEq3Transitive [JoltField f] (a b c:ZKExpr f) (witness: List f) 
   mcases h with hAB
   mintro ∀s1
   mpure hAB
-  -- unfold MPL.spred
 
-  -- mspec (previous_success (constrainEq2 b c) witness)
-  mspec (constrainEq2Sound' b c witness)
+  have hCompose :
+    ⦃λ s => s = s1 ∧ True ∧ s = s1 ∧ s = s1⦄
+    constrainEq2 b c
+    ⦃⇓ _r s =>
+      ⌜eval_circuit s witness → eval_circuit s1 witness⌝
+      ∧
+      ⌜ eval_circuit s witness ↔
+      eval_exprf b s witness == eval_exprf c s witness ⌝
+      ∧
+      ⌜eval_exprf a s1 witness = eval_exprf a s witness⌝
+      ∧
+      ⌜eval_exprf b s1 witness = eval_exprf b s witness⌝
+    ⦄
+    := MPL.Triple.and (constrainEq2 b c)
+       (previous_success (constrainEq2 b c) witness)
+       (MPL.Triple.and (constrainEq2 b c)
+         (constrainEq2Sound' b c witness)
+         (MPL.Triple.and (constrainEq2 b c)
+         (eval_const (constrainEq2 b c) witness a)
+         (eval_const (constrainEq2 b c) witness b)))
+
+  mspec hCompose
 
   mintro ∀s2
   simp
   intro hBC
 
+  intro hS2'
+  intro hA
+  intro hB
   intro hS2
 
-
-  have hEvalBC: eval_exprf b s2 witness = eval_exprf c s2 witness := by apply hBC.mp hS2
+  have hEvalBC: eval_exprf b s2 witness = eval_exprf c s2 witness := by apply hS2'.mp hS2
   rw [← hEvalBC]
     
   have hCompose2: eval_circuit s2 witness → eval_circuit s1 witness := by
-    sorry -- TODO: Prove this lemma w/ hCompose
-  have hCompose3: forall expr, eval_exprf expr s1 witness = eval_exprf expr s2 witness := by
-    sorry -- TODO: Prove this lemma
+    exact hBC
   
   have hS1: eval_circuit s1 witness := by
     apply hCompose2 at hS2
@@ -586,8 +546,8 @@ theorem constrainEq3Transitive [JoltField f] (a b c:ZKExpr f) (witness: List f) 
     simp at hAB
     grind
   have hP2: eval_exprf a s2 witness = eval_exprf b s2 witness := by
-    rw [hCompose3 a] at hP1
-    rw [hCompose3 b] at hP1
+    rw [hA] at hP1
+    rw [hB] at hP1
     exact hP1
   exact hP2
 
@@ -595,16 +555,16 @@ theorem constrainEq3Transitive [JoltField f] (a b c:ZKExpr f) (witness: List f) 
 
 
 
-def exceptTest (input: Nat) : ExceptT String Id Nat := do
-  if input == 0 then throw "error" else pure input
-
-theorem exceptTest' : ⦃ True ⦄ exceptTest 1 ⦃⇓ r => r == 1⦄ := by
-  sorry
-
-theorem exceptTest'' : ⦃ True ⦄ exceptTest 0 ⦃⇓ r => r == 1⦄ := by
-  mintro _
-  mwp
-  simp [exceptTest]
-  sorry
+-- def exceptTest (input: Nat) : ExceptT String Id Nat := do
+--   if input == 0 then throw "error" else pure input
+-- 
+-- theorem exceptTest' : ⦃ True ⦄ exceptTest 1 ⦃⇓ r => r == 1⦄ := by
+--   sorry
+-- 
+-- theorem exceptTest'' : ⦃ True ⦄ exceptTest 0 ⦃⇓ r => r == 1⦄ := by
+--   mintro _
+--   mwp
+--   simp [exceptTest]
+--   sorry
 
 
