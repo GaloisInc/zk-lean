@@ -17,16 +17,14 @@ structure ZKBuilderState (f : Type) where
 deriving instance Inhabited for ZKBuilderState
 
 
--- TODO: Make this a free monad?
+-- TODO:
+-- - Make this a free monad?
+-- - Make this `def`
 abbrev ZKBuilder (f:Type) := StateM (ZKBuilderState f)
--- abbrev ZKBuilder (f:Type) := ReaderT (List f) StateM (ZKBuilderState f)
 
 -- instance: Monad (ZKBuilder f) where
 --   pure := StateT.pure
 --   bind := StateT.bind
-
--- instance: HAndThen (ZKBuilder f) (ZKBuilder f) (ZKBuilder f) where
---   hAndThen := StateT.hAndThen
 
 def witnessf : ZKBuilder f (ZKExpr f) := do
   let old_state <- StateT.get
@@ -37,7 +35,8 @@ def witnessf : ZKBuilder f (ZKExpr f) := do
 
 -- A type is witnessable if it has an associated number of witnesses and
 -- a function to recompose a type given a vector of values.
-class Witnessable (f: Type) (t:Type) where
+class Witnessable (f: Type) (t: Type) where
+  /-- Witness a new `t` in circuit. -/
   witness : ZKBuilder f t
 
 instance: Witnessable f (ZKExpr f) where
@@ -56,17 +55,29 @@ instance [Witnessable f a]: Witnessable f (Vector a n) where
       helper n
 
 
+/-- Add a boolean expression constraint to the circuit. -/
 def constrain (constraint: ZKExpr f) : ZKBuilder f PUnit := do
   let old_state <- StateT.get
   StateT.set { old_state with constraints := constraint :: old_state.constraints }
   pure ()
 
+/-- Constrain two expressions to be equal in circuit. -/
 def constrainEq (x: ZKExpr f) (y: ZKExpr f) : ZKBuilder f PUnit :=
   constrain (ZKExpr.Eq x y)
 
+/--
+Helper function to create a single row of a R1CS constraint (Az * Bz = Cz).
+Here's an example to constrain `b` to be a boolean (0 or 1):
+```
+constrainR1CS (b) (1 - b) (0)
+```
+-/
 def constrainR1CS (a: ZKExpr f) (b: ZKExpr f) (c: ZKExpr f) : ZKBuilder f PUnit :=
   constrainEq (ZKExpr.Mul a b) c
 
+/--
+Perform a MLE lookup into the given table with the provided argument chunks.
+-/
 def lookup (table : ComposedLookupTable f 16 4) (a: ZKExpr f) (b: ZKExpr f): ZKBuilder f (ZKExpr f) :=
   pure (ZKExpr.Lookup table a b)
 

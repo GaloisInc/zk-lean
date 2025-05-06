@@ -165,10 +165,6 @@ theorem num_witnesses_seq (circuit1: ZKBuilder f a) (circuit2: ZKBuilder f b) :
      ) = num_witnesses circuit1 + num_witnesses circuit2 := by
      sorry
 
--- def run_constraints [JoltField f] (circuit: ZKBuilder f a) (witness: List f) : List (ZKExpr f) :=
---   let (_circ_states, zk_builder) := StateT.run circuit default
---   zk_builder.constraints
-
 theorem constraints_seq [JoltField f](c1: ZKBuilder f a) (c2: ZKBuilder f b) (witness1: List f) (witness2: List f) :
      wellbehaved c1 ->
      wellbehaved c2 ->
@@ -381,65 +377,6 @@ theorem circuitEq2Sound [JoltField f] (x y : f) : (x = y ↔ run_circuit' circui
   rw [h] at h2
   simp_all
 
-
--- theorem2 : forall a b c . a = c <=> run_circuit circuit2 [a, b, c] by theorem1
--- theorem circuitEq3Transitive [JoltField f] (a b c : f) : (a = c ↔ run_circuit circuit2 [a, b, c]) := by
---   simp [circuit2, constrainEq3]
---   sorry
---   apply Iff.intro
---   intros acEq
---   sorry
-
-
--- def Pair a := (a × a)
-instance: Functor (λ t => t × t) where
-  map f x := match x with
-  | (a, b) => (f a, f b)
-
-instance: Traversable (λ t => t × t) where
-  traverse f x := match x with
-    | (a, b) =>
-      (·,·) <$> f a <*> f b
-
-instance: Functor (λ t => t × t × t) where
-  map f x := match x with
-  | (a, b, c) => (f a, f b, f c)
-
-instance: Traversable (λ t => t × t × t) where
-  traverse f x := match x with
-    | (a, b, c) =>
-      (·,·,·) <$> f a <*> f b <*> f c
-
-instance: Functor (λ _ => PUnit) where
-  map f x := ()
-
-instance: Traversable (λ _ => PUnit) where
-  traverse f x := pure ()
-
-#check Function.const PUnit
-
--- theorem test' [JoltField f] : Hoare f Id Id (λ _ => true) (λ a => pure a) (λ _ _ => true) := by
---   sorry
--- 
--- -- theorem circuitEq2Sound' [JoltField f] : Hoare f Id Id (λ _ => true) (λ a => pure a) (λ _ _ => true) := by
--- -- theorem circuitEq2Sound' [JoltField f] : Hoare f Id (Function.const PUnit) (λ _ => true) (λ _ => pure ()) (λ _ _ => true) := by
--- -- theorem circuitEq2Sound' [JoltField f] : Hoare (λ _ => true) (λ a => constrainEq a a) (λ _ af => af == af) := by
--- theorem constrainEq2Sound [JoltField f] : Hoare f (λ t => t × t) (λ _ => PUnit) (λ _ => true) (λ (a, b) => constrainEq2 a b) (λ (af, bf) _ => af == bf) := by
---   sorry
--- 
--- theorem constrainEq3Sound [JoltField f] : Hoare f (λ t => t × t × t) (λ _ => PUnit) (λ _ => true) (λ (a, b, c) => constrainEq3 a b c) (λ (af, bf, cf) _ => af == cf) := by
--- -- theorem circuitEq3Transitive' [JoltField f] : Hoare f (λ _ _ => True) (λ a b c => constrainEq3 a b c) (λ af _ cf => af == cf) := by
---   dsimp [constrainEq3]
---   intro s0 ws in_f out_f in_e out_e inH statef
---   -- intro outH
--- 
--- 
---   sorry
-
--- theorem constrainEq2Trivial [JoltField f] (a b:ZKExpr f) : ⦃ ⌜True⌝ ⦄ constrainEq2 a b ⦃⇓ r => ⌜ True ⌝⦄ := by
---   mintro h
---   mexact h
-
 theorem constrainEq2Trivial [JoltField f] (a b:ZKExpr f) :
   ⦃λ s => s = old_s ⦄
   constrainEq2 a b
@@ -550,21 +487,5 @@ theorem constrainEq3Transitive [JoltField f] (a b c:ZKExpr f) (witness: List f) 
     rw [hB] at hP1
     exact hP1
   exact hP2
-
-
-
-
-
--- def exceptTest (input: Nat) : ExceptT String Id Nat := do
---   if input == 0 then throw "error" else pure input
--- 
--- theorem exceptTest' : ⦃ True ⦄ exceptTest 1 ⦃⇓ r => r == 1⦄ := by
---   sorry
--- 
--- theorem exceptTest'' : ⦃ True ⦄ exceptTest 0 ⦃⇓ r => r == 1⦄ := by
---   mintro _
---   mwp
---   simp [exceptTest]
---   sorry
 
 
