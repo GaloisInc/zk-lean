@@ -59,14 +59,6 @@ def semantics_zkexpr [JoltField f]
       match a,b with
       | Value.VField va, Value.VField vb => Value.VField (va * vb)
       | _, _ => Value.None
-    | ZKExpr.Eq lhs rhs  =>
-      let a := eval lhs
-      let b := eval rhs
-      match a,b with
-      | Value.VField va, Value.VField vb =>
-        let b: Bool := va == vb
-        Value.VBool b
-      | _, _ => Value.None
     | ZKExpr.Lookup table c0 c1 c2 c3 =>
       let e0 := eval c0
       let e1 := eval c1
@@ -143,17 +135,18 @@ def semantics_ram [JoltField f]
 -- (Generate a comment that says that this function is the semantics of the constraints and take some witness and ram values)
 -- Function for the semantics of the constraints
 -- It takes a list of constraints and a list of witnesses and a list of RAM operation values
-def semantics_constraints [JoltField f] (constraints: List (ZKExpr f)) (witness: List f ) (ram_values: RamOpsEval f): Bool :=
+def semantics_constraints [JoltField f] (constraints: List (ZKExpr f × ZKExpr f)) (witness: List f ) (ram_values: RamOpsEval f): Bool :=
   match constraints with
   | [] => true
-  | c :: cs =>
+  | (c, d) :: cs =>
     let sem_c := semantics_zkexpr c witness ram_values
-    match sem_c with
-    | Value.VBool b =>
-      if b
+    let sem_d := semantics_zkexpr d witness ram_values
+    match sem_c, sem_d with
+    | Value.VField cf, Value.VField df =>
+      if cf == df
       then semantics_constraints cs witness ram_values
       else false
-    | _ => false
+    | _, _ => false
 
 
 -- This function is the main semantics function, it takes a list of witnesses and

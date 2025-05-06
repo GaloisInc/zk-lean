@@ -10,7 +10,8 @@ deriving instance Inhabited for RamOp
 
 structure ZKBuilderState (f : Type) where
   allocated_witness_count: Nat
-  constraints: List (ZKExpr f)
+  -- Pairs of expressions that are constrained to be equal to one another.
+  constraints: List (ZKExpr f × ZKExpr f)
   -- Array of sizes and array of operations for each RAM.
   ram_sizes: Array Nat
   ram_ops: (Array (RamOp f))
@@ -55,15 +56,11 @@ instance [Witnessable f a]: Witnessable f (Vector a n) where
       helper n
 
 
-/-- Add a boolean expression constraint to the circuit. -/
-def constrain (constraint: ZKExpr f) : ZKBuilder f PUnit := do
-  let old_state <- StateT.get
-  StateT.set { old_state with constraints := constraint :: old_state.constraints }
-  pure ()
-
 /-- Constrain two expressions to be equal in circuit. -/
-def constrainEq (x: ZKExpr f) (y: ZKExpr f) : ZKBuilder f PUnit :=
-  constrain (ZKExpr.Eq x y)
+def constrainEq (x: ZKExpr f) (y: ZKExpr f) : ZKBuilder f PUnit := do
+  let old_state <- StateT.get
+  StateT.set { old_state with constraints := (x, y) :: old_state.constraints }
+  pure ()
 
 /--
 Helper function to create a single row of a R1CS constraint (Az * Bz = Cz).

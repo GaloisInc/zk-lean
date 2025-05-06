@@ -18,7 +18,7 @@ def main : IO Unit :=
 def example1 [JoltField f] : ZKBuilder f (ZKExpr f) := do
   let x: ZKExpr f <- Witnessable.witness
   let one: ZKExpr f := 1
-  constrain (x * (x - one) === 0)
+  constrainEq (x * (x - one)) 0
   return x
 
 def eq8 [Field f] : Subtable f 16 :=
@@ -53,7 +53,7 @@ def step [JoltField f] (prev_st : RISCVState f) : ZKBuilder f (RISCVState f) := 
   let r2 := prev_st.registers[2]
 
   let isEq <- lookup eq32 #v[r1, r1, r2, r2] -- Note: This example doesn't really make sense anymore.
-  constrain (new_st.registers[0] === isEq)
+  constrainEq new_st.registers[0] isEq
 
   return new_st
 
@@ -286,7 +286,6 @@ theorem circuitEq2SoundTry [JoltField f]: (run_circuit' circuit1 [ (a: f), (a:f 
   unfold constrainEq2
   unfold constrainR1CS
   unfold constrainEq
-  unfold constrain
   unfold StateT.get
   unfold StateT.set
   simp
@@ -305,8 +304,6 @@ theorem circuitEq2SoundTry [JoltField f]: (run_circuit' circuit1 [ (a: f), (a:f 
   unfold semantics_constraints
   unfold semantics_zkexpr
   unfold semantics_zkexpr.eval
-  unfold semantics_zkexpr.eval
-  simp
   unfold semantics_zkexpr.eval
   simp
 
@@ -344,7 +341,6 @@ theorem circuitEq2Eval [JoltField f]: (run_circuit' circuit1 [ (a: f), (b: f)] =
   unfold constrainEq2
   unfold constrainR1CS
   unfold constrainEq
-  unfold constrain
   unfold StateT.get
   unfold StateT.set
   simp
@@ -360,8 +356,6 @@ theorem circuitEq2Eval [JoltField f]: (run_circuit' circuit1 [ (a: f), (b: f)] =
   unfold semantics_constraints
   unfold semantics_zkexpr
   unfold semantics_zkexpr.eval
-  unfold semantics_zkexpr.eval
-  simp
   unfold semantics_zkexpr.eval
   simp
   unfold semantics_constraints
