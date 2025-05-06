@@ -18,9 +18,7 @@ def eval_exprf [JoltField f] (expr: ZKExpr f) (state: ZKBuilderState f) (witness
   let ram_values := semantics_ram witness state.ram_sizes state.ram_ops
   if let some ram_values := ram_values
   then 
-    match semantics_zkexpr expr witness ram_values with
-    | Value.VField f => some f
-    | _ => none
+    semantics_zkexpr expr witness ram_values
   else
     none
 

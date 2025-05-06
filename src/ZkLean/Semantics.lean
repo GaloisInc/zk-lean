@@ -13,12 +13,6 @@ instance [JoltField f]: Witnessable f (ZKExpr f) where
   witness := witnessf
 
 
--- The semantics associated with the ZKExpr will return either a field value or a boolean value, and none if the expression is not well defined.
-inductive Value (f: Type) [JoltField f] where
-  | VBool : Bool -> Value f
-  | VField : f -> Value f
-  | None : Value f
-
 -- A type for the evaluation of the RAM operations
 -- It is an array of options, where each option is either some value when it is the result of a read operation, and none when it is the result of a write operation.
 abbrev RamOpsEval f [JoltField f] := Array (Option f)
@@ -28,56 +22,51 @@ def semantics_zkexpr [JoltField f]
   (expr: ZKExpr f)
   (witness: List f )
   (ram_values: RamOpsEval f)
-  : Value f :=
-  let rec eval (e: ZKExpr f) : Value f :=
+  : Option f :=
+  let rec eval (e: ZKExpr f) : Option f :=
     match e with
-    | ZKExpr.Literal lit => Value.VField lit
+    | ZKExpr.Literal lit => some lit
     | ZKExpr.WitnessVar id =>
       if let some v := witness[id]?
-      then Value.VField v
-      else Value.None
+      then some v
+      else none
     | ZKExpr.Add lhs rhs =>
       let a := eval lhs
       let b := eval rhs
       match a,b with
-      | Value.VField va, Value.VField vb => Value.VField (va + vb)
-      | _, _ => Value.None
+      | some va, some vb => some (va + vb)
+      | _, _ => none
     | ZKExpr.Sub lhs rhs =>
       let a := eval lhs
       let b := eval rhs
       match a,b with
-      | Value.VField va, Value.VField vb => Value.VField (va - vb)
-      | _, _ => Value.None
+      | some va, some vb => some (va - vb)
+      | _, _ => none
     | ZKExpr.Neg rhs =>
       let a := eval rhs
       match a with
-      | Value.VField va => Value.VField (-va)
-      | _ => Value.None
+      | some va => some (-va)
+      | _ => none
     | ZKExpr.Mul lhs rhs =>
       let a := eval lhs
       let b := eval rhs
       match a,b with
-      | Value.VField va, Value.VField vb => Value.VField (va * vb)
-      | _, _ => Value.None
+      | some va, some vb => some (va * vb)
+      | _, _ => none
     | ZKExpr.Lookup table c0 c1 c2 c3 =>
       let e0 := eval c0
       let e1 := eval c1
       let e2 := eval c2
       let e3 := eval c3
       match (e0,e1,e2,e3) with
-      | (Value.VField v0, Value.VField v1, Value.VField v2, Value.VField v3) =>
-        -- let h : Even 16 := by
-        --   exact (Even.add_self 8)
-        -- OLD: Value.VField (evalComposedLookupTableArgs h table va vb)
+      | (some v0, some v1, some v2, some v3) =>
         let chunks := Vector.map (λ f => JoltField.chunk_to_bits f) #v[v0, v1, v2, v3]
-        Value.VField (evalComposedLookupTable table chunks)
-      | _ => Value.None
+        some (evalComposedLookupTable table chunks)
+      | _ => none
     | ZKExpr.RamOp op_id =>
       if let some opt := ram_values[op_id]?
-      then if let some f := opt
-           then Value.VField f
-           else Value.None
-      else Value.None
+      then opt
+      else none
 
 
   eval expr
@@ -103,7 +92,7 @@ def semantics_ram [JoltField f]
   let semantics_zkexpr_f expr witness ops_eval :=
     let x := semantics_zkexpr expr witness ops_eval;
     match x with
-    | Value.VField n => some n
+    | some n => some n
     | _ => none
 
   -- For every RAM operation, update the RAM environment and the list of evaluated operations
@@ -142,7 +131,7 @@ def semantics_constraints [JoltField f] (constraints: List (ZKExpr f × ZKExpr f
     let sem_c := semantics_zkexpr c witness ram_values
     let sem_d := semantics_zkexpr d witness ram_values
     match sem_c, sem_d with
-    | Value.VField cf, Value.VField df =>
+    | some cf, some df =>
       if cf == df
       then semantics_constraints cs witness ram_values
       else false
