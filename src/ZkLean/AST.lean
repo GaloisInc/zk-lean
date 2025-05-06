@@ -24,7 +24,12 @@ inductive ZKExpr (f: Type) where
   | Neg : (rhs: ZKExpr f) -> ZKExpr f
   | Mul : (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
   | Eq :  (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f -- TODO: possibly change this to | Eq : {a: Type u} -> (lhs: ZKExpr a) -> (rhs: ZKExpr a) -> ZKExpr (ULift Bool)
-  | Lookup: (table: ComposedLookupTable f 16 4) -> (arg1: ZKExpr f) -> (arg2: ZKExpr f) -> ZKExpr f -- TODO fix these 16,4
+  | Lookup: (table: ComposedLookupTable f 16 4) -> (c1: ZKExpr f) -> (c2: ZKExpr f) -> (c3: ZKExpr f) ->(c4: ZKExpr f) -> ZKExpr f -- TODO: this should be a Vector (ZKExpr f) 4 instead the 4 expressions
+
+  --| MuxLookup:
+  --  (chunk_queries: Array (ZKExpr f)) -> -- TODO: this should be a Vector (ZKExpr f) 4 instead of an Array
+  --  (flags_and_lookups: (Array ((ZKExpr f) × ComposedLookupTable f 16 4))) ->
+  --  ZKExpr f
   | RamOp : (op_index: Nat) -> ZKExpr f
 infix:50    " === " => ZKExpr.Eq
 
@@ -34,16 +39,25 @@ instance [Inhabited f]: Inhabited (ZKExpr f) where
 instance [OfNat f n] : OfNat (ZKExpr f) n where
   ofNat := ZKExpr.Literal (OfNat.ofNat n)
 
-instance [HAdd f f f] : HAdd (ZKExpr f) (ZKExpr f) (ZKExpr f) where
+instance [Zero f]: Zero (ZKExpr f) where
+  zero := ZKExpr.Literal 0
+
+instance: HAdd (ZKExpr f) (ZKExpr f) (ZKExpr f) where
   hAdd := ZKExpr.Add
+
+instance: Add (ZKExpr f) where
+  add := ZKExpr.Add
 
 instance [HAdd f f f] : HAdd Nat (ZKExpr f) (ZKExpr f) where
   hAdd := sorry
 
-instance [HSub f f f] : HSub (ZKExpr f) (ZKExpr f) (ZKExpr f) where
+instance: HSub (ZKExpr f) (ZKExpr f) (ZKExpr f) where
   hSub := ZKExpr.Sub
 
-instance [HMul f f f] : HMul (ZKExpr f) (ZKExpr f) (ZKExpr f) where
+instance: Neg (ZKExpr f) where
+  neg := ZKExpr.Neg
+
+instance: HMul (ZKExpr f) (ZKExpr f) (ZKExpr f) where
   hMul := ZKExpr.Mul
 
 -- #check OfNat.ofNat

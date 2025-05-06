@@ -52,7 +52,7 @@ def step [JoltField f] (prev_st : RISCVState f) : ZKBuilder f (RISCVState f) := 
   let r1 := prev_st.registers[1]
   let r2 := prev_st.registers[2]
 
-  let isEq <- lookup eq32 r1 r2
+  let isEq <- lookup eq32 #v[r1, r1, r2, r2] -- Note: This example doesn't really make sense anymore.
   constrain (new_st.registers[0] === isEq)
 
   return new_st
@@ -215,13 +215,24 @@ def circuit2 [JoltField f] : ZKBuilder f PUnit := do
   constrainEq3 a b c
 
 
-
 instance : Fact (Nat.Prime 7) := by decide
 instance : JoltField (ZMod 7) where
   hash x :=
     match x.val with
     | 0 => 0
     | n + 1 => hash n
+
+  chunk_to_bits {num_bits: Nat} f :=
+    let bv : BitVec 3 := BitVec.ofFin (Fin.castSucc f)
+    -- TODO: Double check the endianess.
+    Vector.map (fun i =>
+      if _:i < 3 then
+        if bv[i] then 1 else 0
+      else
+        0
+    ) (Vector.range num_bits)
+
+    
 
 def test [Field f] (x:f) : f := x
 

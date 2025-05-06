@@ -78,8 +78,26 @@ def constrainR1CS (a: ZKExpr f) (b: ZKExpr f) (c: ZKExpr f) : ZKBuilder f PUnit 
 /--
 Perform a MLE lookup into the given table with the provided argument chunks.
 -/
-def lookup (table : ComposedLookupTable f 16 4) (a: ZKExpr f) (b: ZKExpr f): ZKBuilder f (ZKExpr f) :=
-  pure (ZKExpr.Lookup table a b)
+def lookup (table : ComposedLookupTable f 16 4) (chunks: Vector (ZKExpr f) 4): ZKBuilder f (ZKExpr f) :=
+  let c0 := chunks[0]
+  let c1 := chunks[1]
+  let c2 := chunks[2]
+  let c3 := chunks[3]
+  pure (ZKExpr.Lookup table c0 c1 c2 c3)
+
+def mux_lookup [Zero f]
+  (chunk_queries: Vector (ZKExpr f) 4)
+  (flags_and_lookups: (Array (ZKExpr f × ComposedLookupTable f 16 4)))
+  : ZKBuilder f (ZKExpr f) := do
+  -- We use zkLean to compute the product of every flag with the result of the lookup.
+  -- This corresponds to the [`prove_primary_sumcheck`](https://github.com/a16z/jolt/blob/main/jolt-core/src/jolt/vm/instruction_lookups.rs#L980) function in Jolt.
+  let prods <- Array.mapM (λ (flag, table) => do
+      let lookup_expr <- lookup table chunk_queries
+      let r: ZKExpr f := flag * lookup_expr
+      pure r
+    ) flags_and_lookups
+  pure (Array.sum prods)
+
 
 def ram_new (size : Nat) : ZKBuilder f (RAM f) := do
   let old_state <- StateT.get
