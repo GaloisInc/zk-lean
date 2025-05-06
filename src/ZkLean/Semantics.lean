@@ -33,7 +33,7 @@ def semantics_zkexpr [JoltField f]
     match e with
     | ZKExpr.Literal lit => Value.VField lit
     | ZKExpr.WitnessVar id =>
-      if let some v := witness.get? id
+      if let some v := witness[id]?
       then Value.VField v
       else Value.None
     | ZKExpr.Add lhs rhs =>
@@ -81,7 +81,7 @@ def semantics_zkexpr [JoltField f]
         Value.VField (evalComposedLookupTable table chunks)
       | _ => Value.None
     | ZKExpr.RamOp op_id =>
-      if let some opt := ram_values.get? op_id
+      if let some opt := ram_values[op_id]?
       then if let some f := opt
            then Value.VField f
            else Value.None
