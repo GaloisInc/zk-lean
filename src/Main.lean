@@ -139,6 +139,7 @@ def run_circuit' [JoltField f] (circuit: ZKBuilder f a) (witness: List f) : Bool
 
 
 
+/-
 def num_witnesses (circuit : ZKBuilder f a) : Nat :=
   let (_, state) := StateT.run circuit default
   state.allocated_witness_count
@@ -176,7 +177,6 @@ theorem constraints_seq [JoltField f](c1: ZKBuilder f a) (c2: ZKBuilder f b) (wi
      ) (witness1 ++ witness2) = run_circuit' circuit1 witness1 && run_circuit' circuit2 witness2 := by
   sorry
 
-/-
 theorem num_witnesses_bind (circuit1: ZKBuilder f a) (circuit2: ZKBuilder f a) :
      wellbehaved circuit1 ->
      wellbehaved circuit2 ->

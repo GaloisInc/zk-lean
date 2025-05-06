@@ -48,9 +48,6 @@ instance: HAdd (ZKExpr f) (ZKExpr f) (ZKExpr f) where
 instance: Add (ZKExpr f) where
   add := ZKExpr.Add
 
-instance [HAdd f f f] : HAdd Nat (ZKExpr f) (ZKExpr f) where
-  hAdd := sorry
-
 instance: HSub (ZKExpr f) (ZKExpr f) (ZKExpr f) where
   hSub := ZKExpr.Sub
 
@@ -60,9 +57,3 @@ instance: Neg (ZKExpr f) where
 instance: HMul (ZKExpr f) (ZKExpr f) (ZKExpr f) where
   hMul := ZKExpr.Mul
 
--- #check OfNat.ofNat
-instance [HMul f f f] : HMul (ZKExpr f) Nat (ZKExpr f) where
-  hMul a b := sorry -- ZKExpr.Mul a (ZKExpr.Literal b) -- (OfNat.ofNat b))
-
--- instance : Coe Nat (ZKExpr f) where
---   coe x := sorry
