@@ -8,16 +8,16 @@ import ZkLean.LookupTable
 import ZkLean.Semantics
 
 /-- Run a circuit builder given an initial builder state and then evaluate the resulting circuit given witnesses. -/
-def run_circuit [JoltField f] (circuit: ZKBuilder f a) (state0: ZKBuilderState f) (witness: List f) : Bool :=
+def run_circuit [ZKField f] (circuit: ZKBuilder f a) (state0: ZKBuilderState f) (witness: List f) : Bool :=
   let (_circ_output, final_state) := StateT.run circuit state0
   semantics witness final_state
 
 /-- Evaluate a circuit given some witnesses and a builder final state. -/
-def eval_circuit [JoltField f] (final_state: ZKBuilderState f) (witness: List f) : Prop :=
+def eval_circuit [ZKField f] (final_state: ZKBuilderState f) (witness: List f) : Prop :=
   semantics witness final_state
 
 /-- Evaluate an expression given a builder state and some witnesses. -/
-def eval_exprf [JoltField f] (expr: ZKExpr f) (state: ZKBuilderState f) (witness: List f) : Option f :=
+def eval_exprf [ZKField f] (expr: ZKExpr f) (state: ZKBuilderState f) (witness: List f) : Option f :=
   let ram_values := semantics_ram witness state.ram_sizes state.ram_ops
   if let some ram_values := ram_values
   then
@@ -25,11 +25,11 @@ def eval_exprf [JoltField f] (expr: ZKExpr f) (state: ZKBuilderState f) (witness
   else
     none
 
-def eval_traversable_expr {t: Type -> Type} [Traversable t] [JoltField f] (expr: t (ZKExpr f)) (state: ZKBuilderState f) (witness: List f) : Option (t f) :=
+def eval_traversable_expr {t: Type -> Type} [Traversable t] [ZKField f] (expr: t (ZKExpr f)) (state: ZKBuilderState f) (witness: List f) : Option (t f) :=
   traverse (eval_exprf · state witness) expr
 
 /-- If a circuit fails at a given state then it must fail for subsequent state. -/
-lemma failure_propagates [JoltField f] (m : ZKBuilder f a) (witness: List f) :
+lemma failure_propagates [ZKField f] (m : ZKBuilder f a) (witness: List f) :
  -- TODO: Lawful m
  ⦃λ s => s = s0⦄
  m
@@ -38,7 +38,7 @@ lemma failure_propagates [JoltField f] (m : ZKBuilder f a) (witness: List f) :
   sorry
 
 /-- If a circuit succeeds at a given state then it must have succeeded in previous state. -/
-lemma previous_success [JoltField f] (m : ZKBuilder f a) (witness: List f) :
+lemma previous_success [ZKField f] (m : ZKBuilder f a) (witness: List f) :
  -- TODO: Lawful m
  ⦃λ s => s = s0⦄
  m
@@ -47,7 +47,7 @@ lemma previous_success [JoltField f] (m : ZKBuilder f a) (witness: List f) :
   sorry
 
 /-- If an expression evaluates to a value at a given state then it must evaluate at the same value for a subsequent state. -/
-lemma eval_const [JoltField f] (m : ZKBuilder f a) (witness: List f) (expr: ZKExpr f) :
+lemma eval_const [ZKField f] (m : ZKBuilder f a) (witness: List f) (expr: ZKExpr f) :
  -- TODO: Lawful m
  ⦃λ s => s = s0⦄
  m
