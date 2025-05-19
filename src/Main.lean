@@ -276,7 +276,7 @@ theorem circuitEq2SoundTry [ZKField f]: (run_circuit' circuit1 [ (a: f), (a:f )]
   unfold bind
   unfold Monad.toBind
   unfold StateT.instMonad -- instMonadZKBuilder
-  unfold instWitnessableZKExprOfZKField
+  unfold instWitnessableZKExpr
   simp
   unfold StateT.bind
   simp
@@ -327,7 +327,7 @@ theorem circuitEq2Eval [ZKField f]: (run_circuit' circuit1 [ (a: f), (b: f)] = (
   unfold Array.instInhabited
   simp
   unfold Witnessable.witness
-  unfold instWitnessableZKExprOfZKField
+  unfold instWitnessableZKExpr
   simp
   unfold bind
   unfold Monad.toBind

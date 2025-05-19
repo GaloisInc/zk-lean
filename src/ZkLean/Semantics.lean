@@ -11,11 +11,6 @@ class ZKField (f: Type) extends Field f, BEq f, Inhabited f, LawfulBEq f, Hashab
   chunk_to_bits {num_bits: Nat} (val: f) : Vector f num_bits
 
 
--- TODO: Isn't this redundant with `Witnessable f (ZKExpr f)` in Builder.lean?
-instance [ZKField f]: Witnessable f (ZKExpr f) where
-  witness := witnessf
-
-
 /-- Type for the evaluation of RAM operations
 
 It is an array of options, where each option is either some value when it is the result of a read operation, and none when it is the result of a write operation.
