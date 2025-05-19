@@ -2,20 +2,28 @@ import Mathlib.Algebra.Field.Defs
 import ZkLean.LookupTable
 
 
--- Type to identify witness variables
+/-- Type to identify witness variables -/
 abbrev WitnessId := Nat
 deriving instance BEq, Ord, LT, Hashable for WitnessId
 
--- Type to identify a specific RAM
+/-- Type to identify a specific RAM -/
 structure RamId where
   ram_id: Nat
 deriving instance Inhabited for RamId
 
-
+/-- Type for RAM -/
 structure RAM (f: Type) where
   id: RamId
 deriving instance Inhabited for RAM
 
+/--
+Type for expressions to define computation to be verified by a Zero-Knowledge protocol.
+
+The expressions are parametrized by a field type `f`.
+The construtors include the usual arithmetic operations.
+It includes also a constructor for looking up values in a lookup table
+and a constructor for RAM operations.
+-/
 inductive ZKExpr (f: Type) where
   | Literal : (lit: f) -> ZKExpr f
   | WitnessVar : (id: WitnessId) -> ZKExpr f
@@ -49,4 +57,3 @@ instance: Neg (ZKExpr f) where
 
 instance: HMul (ZKExpr f) (ZKExpr f) (ZKExpr f) where
   hMul := ZKExpr.Mul
-

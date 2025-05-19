@@ -1,30 +1,41 @@
 import Mathlib.Algebra.Field.Defs
 import Mathlib.Algebra.Group.Even
 
+/-- Subtables modelled as multilinear extensions
+
+The multilinear extension is simply a function that takes a vector of `n` field input and returns a field output.
+-/
 inductive Subtable (f: Type) (n: Nat) where
   | SubtableMLE (mle : Vector f n -> f) : Subtable f n
 
+/-- Construct a `Subtable` from an MLE. -/
 def subtableFromMLE {n: Nat} (mle : Vector f n -> f) : Subtable f n := Subtable.SubtableMLE mle
 
 
--- `LookupTable` is the specification for table related part of `JoltInstruction` in the jolt codebase.
+/-- Type for composed lookup tables
+
+A `ComposedLookupTable` is a collection of subtables with a function to
+combine the results of the subtables into a single output.
+--/
 inductive ComposedLookupTable
-  (f:Type)
+  (f: Type)
   (num_bits: Nat)
   (num_chunks: Nat) where
   | Table
     (num_subtables: Nat)
-    (subtables: Vector (Subtable f num_bits × Fin num_chunks) num_subtables) (combine_lookups: Vector f num_subtables -> f):
+    (subtables: Vector (Subtable f num_bits × Fin num_chunks) num_subtables)
+    (combine_lookups: Vector f num_subtables -> f) :
     ComposedLookupTable f num_bits num_chunks
 
-
-def mkComposedLookupTable  {num_bits:Nat} {num_subtables: Nat} {num_chunks: Nat} (subtables: Vector (Subtable f num_bits × Fin num_chunks) num_subtables) (combine_lookups: Vector f num_subtables -> f) : ComposedLookupTable f num_bits num_chunks:=
+/-- Function to make a `ComposedLookupTable` -/
+def mkComposedLookupTable {num_bits:Nat} {num_subtables: Nat} {num_chunks: Nat}
+  (subtables: Vector (Subtable f num_bits × Fin num_chunks) num_subtables)
+  (combine_lookups: Vector f num_subtables -> f) :
+  ComposedLookupTable f num_bits num_chunks :=
   ComposedLookupTable.Table num_subtables subtables combine_lookups
 
 
-/--
-  Evaluation function defining the semantics of `Subtable`.
---/
+/-- Evaluation function defining the semantics of `Subtable` --/
 def evalSubtable {f: Type} {num_bits: Nat} (subtable: Subtable f num_bits) (input: Vector f num_bits): f :=
   match subtable with
   | Subtable.SubtableMLE mle => mle input
@@ -43,12 +54,12 @@ def evalSubtable {f: Type} {num_bits: Nat} (subtable: Subtable f num_bits) (inpu
   but instead are determined by indices provided in `subtables`.
   It also aligns with Definition 2.1 of the "Verifying Jolt zkVM Lookup Semantics" article.
 --/
-def evalComposedLookupTable
-  {f: Type}
+def evalComposedLookupTable {f: Type}
   {num_bits: Nat}
   {num_chunks: Nat}
   (table: ComposedLookupTable f num_bits num_chunks)
-  (input: Vector (Vector f num_bits) num_chunks) : f :=
+  (input: Vector (Vector f num_bits) num_chunks)
+  : f :=
   match table with
     | ComposedLookupTable.Table num_subtables subtables combine_lookups =>
       let l := Vector.map (fun (t, i) => evalSubtable t input[i]) subtables

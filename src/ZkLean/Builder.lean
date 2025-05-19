@@ -2,12 +2,18 @@ import Std.Data.HashMap.Basic
 import ZkLean.AST
 import ZkLean.LookupTable
 
+/-- Type for RAM operations (Read and Write) -/
 inductive RamOp (f : Type) where
   | Read  (ram_id: RamId) (addr: ZKExpr f)
   | Write (ram_id: RamId) (addr: ZKExpr f) (value: ZKExpr f)
 deriving instance Inhabited for RamOp
 
 
+/--
+State associated with the building process of a ZK circuit.
+
+It holds witnesses, constraints, and RAM operations.
+-/
 structure ZKBuilderState (f : Type) where
   allocated_witness_count: Nat
   -- Pairs of expressions that are constrained to be equal to one another.
@@ -21,12 +27,14 @@ deriving instance Inhabited for ZKBuilderState
 -- TODO:
 -- - Make this a free monad?
 -- - Make this `def`
+/-- Type for the ZK circuit builder monad. -/
 abbrev ZKBuilder (f:Type) := StateM (ZKBuilderState f)
 
 -- instance: Monad (ZKBuilder f) where
 --   pure := StateT.pure
 --   bind := StateT.bind
 
+/-- Get a fresh witness variable. -/
 def witnessf : ZKBuilder f (ZKExpr f) := do
   let old_state <- StateT.get
   let old_count := old_state.allocated_witness_count
@@ -34,15 +42,18 @@ def witnessf : ZKBuilder f (ZKExpr f) := do
   StateT.set { old_state with allocated_witness_count := new_count}
   pure (ZKExpr.WitnessVar old_count)
 
--- A type is witnessable if it has an associated number of witnesses and
--- a function to recompose a type given a vector of values.
+/--
+A type is Witnessable if is has an associated building process.
+-/
 class Witnessable (f: Type) (t: Type) where
   /-- Witness a new `t` in circuit. -/
   witness : ZKBuilder f t
 
+/- Expressions of type `ZKExpr` are `Witnessable`. -/
 instance: Witnessable f (ZKExpr f) where
   witness := witnessf
 
+/- A vector of  `Witnessable` expressions is `Witnessable`. -/
 instance [Witnessable f a]: Witnessable f (Vector a n) where
   witness :=
     let rec helper n : ZKBuilder f (Vector a n) :=
@@ -83,7 +94,7 @@ def lookup (table : ComposedLookupTable f 16 4) (chunks: Vector (ZKExpr f) 4): Z
   pure (ZKExpr.Lookup table c0 c1 c2 c3)
 
 /--
-Helper function to perform a mux over a set of lookup tables. 
+Helper function to perform a mux over a set of lookup tables.
 We use zkLean to compute the product of every flag with the result of the lookup.
 This corresponds to the [`prove_primary_sumcheck`](https://github.com/a16z/jolt/blob/main/jolt-core/src/jolt/vm/instruction_lookups.rs#L980) function in Jolt.
 All flags in `flags_and_lookups` should be 0 or 1 with only a single flag being set to 1.
@@ -94,7 +105,7 @@ mux_lookup
     #[
       (addFlag, addInstruction),
       (andFlag, andInstruction),
-      ... 
+      ...
     ]
 ```
 -/
@@ -119,7 +130,7 @@ def ram_new (size : Nat) : ZKBuilder f (RAM f) := do
   pure { id := { ram_id := ram_id }}
 
 /--
-Perform an oblivious RAM read. 
+Perform an oblivious RAM read.
 Here's an example of how you might perform a CPU load instruction:
 ```
 -- INSTR: load rs_13 rd_7
@@ -136,7 +147,7 @@ def ram_read (ram : RAM f) (addr : ZKExpr f) : ZKBuilder f (ZKExpr f) := do
   pure (ZKExpr.RamOp op_index)
 
 /--
-Perform an oblivious RAM write. 
+Perform an oblivious RAM write.
 Here's an example of how you might perform a CPU load instruction:
 ```
 -- INSTR: load rs_13 rd_7
