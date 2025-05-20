@@ -13,7 +13,8 @@ class ZKField (f: Type) extends Field f, BEq f, Inhabited f, LawfulBEq f, Hashab
 
 /-- Type for the evaluation of RAM operations
 
-It is an array of options, where each option is either some value when it is the result of a read operation, and none when it is the result of a write operation.
+It is an array of options, where each option is either some value when it is the result of a read operation,
+or none when it is the result of a write operation.
 -/
 abbrev RamOpsEval f [ZKField f] := Array (Option f)
 

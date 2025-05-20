@@ -1,9 +1,12 @@
 import Mathlib.Algebra.Field.Defs
 import Mathlib.Algebra.Group.Even
 
-/-- Subtables modelled as multilinear extensions
+/-- Type for subtables, the building blocks to construct lookup tables.
 
-The multilinear extension is simply a function that takes a vector of `n` field input and returns a field output.
+A subtable is an `n`-variate function on the boolean hypercube returning a field value.
+A key property of Jolt's subtables is that they can be written as multilinear extensions (MLE).
+We model an MLE as simply a function that takes a vector of `n` field input and returns a field output;
+the polynomial and multilinearity properties are not important at this point in the formalization.
 -/
 inductive Subtable (f: Type) (n: Nat) where
   | SubtableMLE (mle : Vector f n -> f) : Subtable f n
@@ -42,7 +45,7 @@ def evalSubtable {f: Type} {num_bits: Nat} (subtable: Subtable f num_bits) (inpu
 
 
 /--
-  Evaluation function definite the semantics of `ComposedLookupTable`
+  Evaluation function defining the semantics of `ComposedLookupTable`
   given an input that is partitioned into `c` chunks.
 
   It applies the indexed chunks to the corresponding subtables,
