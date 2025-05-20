@@ -5,20 +5,26 @@ import Init.Prelude
 import Init.Data.Array.Basic
 import Init.Data.Array.Set
 
-class JoltField (f: Type) extends Field f, BEq f, Inhabited f, LawfulBEq f, Hashable f where
+/-- Class for Fields with additional properties necessary for ZkLean -/
+class ZKField (f: Type) extends Field f, BEq f, Inhabited f, LawfulBEq f, Hashable f where
   -- Mask the lower `num_bits` of a field element and convert to a vector of bits.
   chunk_to_bits {num_bits: Nat} (val: f) : Vector f num_bits
 
-instance [JoltField f]: Witnessable f (ZKExpr f) where
-  witness := witnessf
 
+/-- Type for the evaluation of RAM operations
 
--- A type for the evaluation of the RAM operations
--- It is an array of options, where each option is either some value when it is the result of a read operation, and none when it is the result of a write operation.
-abbrev RamOpsEval f [JoltField f] := Array (Option f)
+It is an array of options, where each option is either some value when it is the result of a read operation,
+or none when it is the result of a write operation.
+-/
+abbrev RamOpsEval f [ZKField f] := Array (Option f)
 
--- The semantics of the ZKExpr is defined as a recursive function that takes a ZKExpr, a witness vector and a RAM
-def semantics_zkexpr [JoltField f]
+/-- Semantics for `ZKExpr`
+
+The semantics of the ZKExpr is defined as a recursive function that takes a `ZKExpr`,
+a witness vector, some RAM values, and returns an a field value when the expression
+evaluates correctly or nothing if the expression is not well defined.
+-/
+def semantics_zkexpr [ZKField f]
   (expr: ZKExpr f)
   (witness: List f )
   (ram_values: RamOpsEval f)
@@ -58,9 +64,9 @@ def semantics_zkexpr [JoltField f]
       let e1 := eval c1
       let e2 := eval c2
       let e3 := eval c3
-      match (e0,e1,e2,e3) with
+      match (e0, e1, e2, e3) with
       | (some v0, some v1, some v2, some v3) =>
-        let chunks := Vector.map (λ f => JoltField.chunk_to_bits f) #v[v0, v1, v2, v3]
+        let chunks := Vector.map (λ f => ZKField.chunk_to_bits f) #v[v0, v1, v2, v3]
         some (evalComposedLookupTable table chunks)
       | _ => none
     | ZKExpr.RamOp op_id =>
@@ -68,21 +74,26 @@ def semantics_zkexpr [JoltField f]
       then opt
       else none
 
-
   eval expr
 
 
--- A type capturing the state of the RAM
--- It is a mapping between the RAM id and the values stored in the RAM.
--- The values are stored in a hash map, where the keys are the addresses and the values are the field values.
-abbrev RamEnv f [JoltField f] := Array (Std.HashMap f f)
+
+/-- A type capturing the state of the RAM
+
+It is a mapping between the RAM id and the values stored in the RAM.
+The values are stored in a hash map, where the keys are the addresses and the values are the field values.
+-/
+abbrev RamEnv f [ZKField f] := Array (Std.HashMap f f)
 
 
--- Execute all the rams operations sequentially, maintain a mapping between addresses and values.
--- This mapping is used to read or write values to the RAM.
-def semantics_ram [JoltField f]
+/-- Semantics for RAM operations
+
+Execute all the rams operations sequentially, maintain a mapping between addresses and values.
+This mapping is used to read or write values to the RAM.
+-/
+def semantics_ram [ZKField f]
   (witness: List f)
-  (ram_sizes : Array Nat)
+  (ram_sizes: Array Nat)
   (ram_ops: Array (RamOp f))
   : Option (RamOpsEval f) := do
   -- Let's create the empty environment
@@ -121,10 +132,15 @@ def semantics_ram [JoltField f]
   -- return the list of evaluated RAM operations
   pure res.2
 
--- (Generate a comment that says that this function is the semantics of the constraints and take some witness and ram values)
--- Function for the semantics of the constraints
--- It takes a list of constraints and a list of witnesses and a list of RAM operation values
-def semantics_constraints [JoltField f] (constraints: List (ZKExpr f × ZKExpr f)) (witness: List f ) (ram_values: RamOpsEval f): Bool :=
+/-- Semantics for equality constraints
+
+It takes a list of constraints, a list of witnesses and a list of RAM operation values
+-/
+def semantics_constraints [ZKField f]
+  (constraints: List (ZKExpr f × ZKExpr f))
+  (witness: List f)
+  (ram_values: RamOpsEval f)
+  : Bool :=
   match constraints with
   | [] => true
   | (c, d) :: cs =>
@@ -138,9 +154,12 @@ def semantics_constraints [JoltField f] (constraints: List (ZKExpr f × ZKExpr f
     | _, _ => false
 
 
--- This function is the main semantics function, it takes a list of witnesses and
--- a state of constructed ZK circuit and returns a boolean indicating whether the circuit is satisfied.
-def semantics [JoltField f] (witness: List f ) (state: ZKBuilderState f) : Bool :=
+/-- Main semantics function
+
+It takes a list of witnesses and a state of constructed ZK circuit and returns a boolean indicating
+whether the circuit is satisfied.
+-/
+def semantics [ZKField f] (witness: List f) (state: ZKBuilderState f) : Bool :=
   -- First, we need to evaluate the RAM operations and get the values
   let ram_values := semantics_ram witness state.ram_sizes state.ram_ops;
   -- Then, we need to evaluate the constraints
