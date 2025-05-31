@@ -24,139 +24,130 @@ structure ZKBuilderState (f : Type) where
 deriving instance Inhabited for ZKBuilderState
 
 
--- TODO:
--- - Make this a free monad?
--- - Make this `def`
+inductive Free (f : Type -> Type) (a : Type) where
+| pure : a -> Free f a
+| bind : ∀ x, f x -> (x -> Free f a) -> Free f a
+
+def Free.map {α β : Type} (F : Type → Type) (f : α → β) : Free F α → Free F β :=
+λ FFa =>
+match FFa with
+| pure a => Free.pure (f a)
+| bind X Fx k => Free.bind X Fx (λ z => map F f (k z))
+
+instance : Functor (Free F) where
+map := Free.map F
+
+def bindFree {a b : Type} (F : Type → Type) (x : Free F a) (f : a → Free F b) : Free F b :=
+match x with
+| .pure a => f a
+| .bind X Fx k => .bind X Fx (λ z => bindFree F (k z) f)
+
+instance FreeMonad (F : Type → Type) : Monad (Free F) where
+  pure := Free.pure
+  bind := bindFree F
+
+/-- Primitive instructions for the circuit DSL - the effect 'functor'. -/
+inductive ZKOp (f : Type) : Type → Type
+| AllocWitness                         : ZKOp f (ZKExpr f)
+| ConstrainEq    (x y    : ZKExpr f)   : ZKOp f PUnit
+| ConstrainR1CS  (a b c  : ZKExpr f)   : ZKOp f PUnit
+| Lookup         (tbl    : ComposedLookupTable f 16 4)
+                 (args   : Vector (ZKExpr f) 4)        : ZKOp f (ZKExpr f)
+| MuxLookup      (chunks : Vector (ZKExpr f) 4)
+                 (cases  : Array (ZKExpr f × ComposedLookupTable f 16 4))
+                                                     : ZKOp f (ZKExpr f)
+| RamNew         (size   : Nat)                       : ZKOp f (RAM f)
+| RamRead        (ram    : RAM f) (addr  : ZKExpr f)  : ZKOp f (ZKExpr f)
+| RamWrite       (ram    : RAM f) (addr v: ZKExpr f)  : ZKOp f PUnit
+
 /-- Type for the ZK circuit builder monad. -/
-abbrev ZKBuilder (f:Type) := StateM (ZKBuilderState f)
+def ZKBuilder (f : Type) := Free (ZKOp f)
 
--- instance: Monad (ZKBuilder f) where
---   pure := StateT.pure
---   bind := StateT.bind
+instance : Monad (ZKBuilder f) :=
+  FreeMonad (ZKOp f)
 
-/-- Get a fresh witness variable. -/
-def witnessf : ZKBuilder f (ZKExpr f) := do
-  let old_state <- StateT.get
-  let old_count := old_state.allocated_witness_count
-  let new_count := old_count +1
-  StateT.set { old_state with allocated_witness_count := new_count}
-  pure (ZKExpr.WitnessVar old_count)
+/-- Provide a `Zero` instance for `ZKExpr`. -/
+instance [Zero f] : Zero (ZKExpr f) where
+  zero := ZKExpr.Literal 0
 
-/--
-A type is Witnessable if is has an associated building process.
--/
+namespace ZKBuilder
+
+def witness     : ZKBuilder f (ZKExpr f) :=
+  .bind _ (ZKOp.AllocWitness) .pure
+
+def constrainEq (x y : ZKExpr f) : ZKBuilder f PUnit :=
+  .bind _ (ZKOp.ConstrainEq x y) .pure
+
+def constrainR1CS (a b c : ZKExpr f) : ZKBuilder f PUnit :=
+  .bind _ (ZKOp.ConstrainR1CS a b c) .pure
+
+def lookup (tbl : ComposedLookupTable f 16 4)
+           (v   : Vector (ZKExpr f) 4) : ZKBuilder f (ZKExpr f) :=
+  .bind _ (ZKOp.Lookup tbl v) .pure
+
+def muxLookup (chunks : Vector (ZKExpr f) 4)
+              (cases  : Array (ZKExpr f × ComposedLookupTable f 16 4))
+  : ZKBuilder f (ZKExpr f) :=
+  .bind _ (ZKOp.MuxLookup chunks cases) .pure
+
+def ramNew   (n : Nat)                   : ZKBuilder f (RAM f)       :=
+  .bind _ (ZKOp.RamNew n) .pure
+def ramRead  (r : RAM f) (a : ZKExpr f)  : ZKBuilder f (ZKExpr f)   :=
+  .bind _ (ZKOp.RamRead r a) .pure
+def ramWrite (r : RAM f) (a v : ZKExpr f): ZKBuilder f PUnit        :=
+  .bind _ (ZKOp.RamWrite r a v) .pure
+
+end ZKBuilder
+
+open ZKBuilder
+
 class Witnessable (f: Type) (t: Type) where
   /-- Witness a new `t` in circuit. -/
   witness : ZKBuilder f t
 
-/- Expressions of type `ZKExpr` are `Witnessable`. -/
-instance: Witnessable f (ZKExpr f) where
-  witness := witnessf
+/-- Algebra that *executes* one primitive, updating the state. -/
+def buildAlg [Zero f] {β} (op : ZKOp f β) (st : ZKBuilderState f) : (β × ZKBuilderState f) :=
+  match op with
+  | ZKOp.AllocWitness =>
+      let idx := st.allocated_witness_count
+      (ZKExpr.WitnessVar idx, { st with allocated_witness_count := idx + 1 })
+  | ZKOp.ConstrainEq x y =>
+      ((), { st with constraints := (x, y) :: st.constraints })
+  | ZKOp.ConstrainR1CS a b c =>
+      ((), { st with constraints := (ZKExpr.Mul a b, c) :: st.constraints })
+  | ZKOp.Lookup tbl args =>
+      (ZKExpr.Lookup tbl args[0] args[1] args[2] args[3], st)
+  | ZKOp.MuxLookup ch cases =>
+      let sum := Array.foldl (fun acc (flag, tbl) =>
+        acc + ZKExpr.Mul flag (ZKExpr.Lookup tbl ch[0] ch[1] ch[2] ch[3])) (ZKExpr.Literal (0 : f)) cases
+      (sum, st)
+  | ZKOp.RamNew n =>
+      let id := st.ram_sizes.size
+      ({ id := { ram_id := id } }, { st with ram_sizes := st.ram_sizes.push n })
+  | ZKOp.RamRead ram a =>
+      let i := st.ram_ops.size
+      (ZKExpr.RamOp i, { st with ram_ops := st.ram_ops.push (RamOp.Read ram.id a) })
+  | ZKOp.RamWrite ram a v =>
+      ((), { st with ram_ops := st.ram_ops.push (RamOp.Write ram.id a v) })
 
-/- A vector of  `Witnessable` expressions is `Witnessable`. -/
-instance [Witnessable f a]: Witnessable f (Vector a n) where
+/-- Run a `ZKBuilder` program, producing its result and the final state. -/
+def build [Zero f] (p : ZKBuilder f α) (st : ZKBuilderState f)
+    : (α × ZKBuilderState f) :=
+  match p with
+  | .pure a        => (a, st)
+  | .bind _ op k   =>
+      let (b, st') := buildAlg op st
+      build (k b) st'
+
+instance : Witnessable f (ZKExpr f) where
+  witness := ZKBuilder.witness   -- smart constructor, pure DSL
+
+instance [Witnessable f a] : Witnessable f (Vector a n) where
   witness :=
-    let rec helper n : ZKBuilder f (Vector a n) :=
-      match n with
+    let rec go : (m : Nat) → ZKBuilder f (Vector a m)
       | 0 => pure (Vector.mkEmpty 0)
-      | m+1 => do
-        let w <- Witnessable.witness
-        let v <- helper m
-        pure (Vector.push v w)
-    do
-      helper n
-
-
-/-- Constrain two expressions to be equal in circuit. -/
-def constrainEq (x: ZKExpr f) (y: ZKExpr f) : ZKBuilder f PUnit := do
-  let old_state <- StateT.get
-  StateT.set { old_state with constraints := (x, y) :: old_state.constraints }
-  pure ()
-
-/--
-Helper function to create a single row of a R1CS constraint (Az * Bz = Cz).
-Here's an example to constrain `b` to be a boolean (0 or 1):
-```
-constrainR1CS (b) (1 - b) (0)
-```
--/
-def constrainR1CS (a: ZKExpr f) (b: ZKExpr f) (c: ZKExpr f) : ZKBuilder f PUnit :=
-  constrainEq (ZKExpr.Mul a b) c
-
-/--
-Perform a MLE lookup into the given table with the provided argument chunks.
--/
-def lookup (table : ComposedLookupTable f 16 4) (chunks: Vector (ZKExpr f) 4): ZKBuilder f (ZKExpr f) :=
-  let c0 := chunks[0]
-  let c1 := chunks[1]
-  let c2 := chunks[2]
-  let c3 := chunks[3]
-  pure (ZKExpr.Lookup table c0 c1 c2 c3)
-
-/--
-Helper function to perform a mux over a set of lookup tables.
-We use zkLean to compute the product of every flag with the result of the lookup.
-This corresponds to the [`prove_primary_sumcheck`](https://github.com/a16z/jolt/blob/main/jolt-core/src/jolt/vm/instruction_lookups.rs#L980) function in Jolt.
-All flags in `flags_and_lookups` should be 0 or 1 with only a single flag being set to 1.
-Example:
-```
-mux_lookup
-    #v[arg0, arg1, arg2, arg3]
-    #[
-      (addFlag, addInstruction),
-      (andFlag, andInstruction),
-      ...
-    ]
-```
--/
-def mux_lookup [Zero f]
-  (chunk_queries: Vector (ZKExpr f) 4)
-  (flags_and_lookups: (Array (ZKExpr f × ComposedLookupTable f 16 4)))
-  : ZKBuilder f (ZKExpr f) := do
-  let prods <- Array.mapM (λ (flag, table) => do
-      let lookup_expr <- lookup table chunk_queries
-      let r: ZKExpr f := flag * lookup_expr
-      pure r
-    ) flags_and_lookups
-  pure (Array.sum prods)
-
-/--
-Create a new oblivious RAM in circuit of the given size.
--/
-def ram_new (size : Nat) : ZKBuilder f (RAM f) := do
-  let old_state <- StateT.get
-  let ram_id := Array.size old_state.ram_sizes
-  StateT.set { old_state with ram_sizes := Array.push old_state.ram_sizes size}
-  pure { id := { ram_id := ram_id }}
-
-/--
-Perform an oblivious RAM read.
-Here's an example of how you might perform a CPU load instruction:
-```
--- INSTR: load rs_13 rd_7
-let addr <- ram_read  ram_reg  13
-let v    <- ram_read  ram_mem  addr
-            ram_write ram_reg  7    v
-```
--/
-def ram_read (ram : RAM f) (addr : ZKExpr f) : ZKBuilder f (ZKExpr f) := do
-  let old_state <- StateT.get
-  let ram_op := RamOp.Read ram.id addr
-  let op_index := Array.size old_state.ram_ops
-  StateT.set { old_state with ram_ops := Array.push old_state.ram_ops ram_op }
-  pure (ZKExpr.RamOp op_index)
-
-/--
-Perform an oblivious RAM write.
-Here's an example of how you might perform a CPU load instruction:
-```
--- INSTR: load rs_13 rd_7
-let addr <- ram_read  ram_reg  13
-let v    <- ram_read  ram_mem  addr
-            ram_write ram_reg  7    v
-```
--/
-def ram_write (ram : RAM f) (addr : ZKExpr f) (value : ZKExpr f) : ZKBuilder f PUnit := do
-  let old_state <- StateT.get
-  let ram_op := RamOp.Write ram.id addr value
-  StateT.set { old_state with ram_ops := Array.push old_state.ram_ops ram_op }
+      | Nat.succ m => do
+          let w ← Witnessable.witness
+          let v ← go m
+          pure (Vector.push v w)
+    go n
