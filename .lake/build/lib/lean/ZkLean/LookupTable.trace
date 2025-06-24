@@ -1,0 +1,5 @@
+{"log":
+ [{"message":
+   ".> LEAN_PATH=././.lake/packages/Cli/.lake/build/lib/lean:././.lake/packages/batteries/.lake/build/lib/lean:././.lake/packages/Qq/.lake/build/lib/lean:././.lake/packages/aesop/.lake/build/lib/lean:././.lake/packages/proofwidgets/.lake/build/lib/lean:././.lake/packages/importGraph/.lake/build/lib/lean:././.lake/packages/LeanSearchClient/.lake/build/lib/lean:././.lake/packages/plausible/.lake/build/lib/lean:././.lake/packages/mathlib/.lake/build/lib/lean:././.lake/packages/mpl/.lake/build/lib/lean:././.lake/build/lib/lean /Users/tannerduve/.elan/toolchains/leanprover--lean4---v4.18.0/bin/lean ././././ZkLean/LookupTable.lean -R ./././. -o ././.lake/build/lib/lean/ZkLean/LookupTable.olean -i ././.lake/build/lib/lean/ZkLean/LookupTable.ilean -c ././.lake/build/ir/ZkLean/LookupTable.c --json",
+   "level": "trace"}],
+ "depHash": "5607275277565927256"}

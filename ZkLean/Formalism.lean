@@ -14,7 +14,7 @@ def run_circuit [ZKField f]
     (state₀  : ZKBuilderState f)
     (witness : List f) : Bool :=
   -- `build` interprets the free‑monad program into a final state.
-  let (_out, state₁) := build prog state₀
+  let (_out, state₁) := runFold prog state₀
   semantics witness state₁
 
 /-- Evaluate a previously‑built circuit (represented only by its final state). -/

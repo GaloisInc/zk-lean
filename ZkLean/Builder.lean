@@ -1,6 +1,7 @@
 import Std.Data.HashMap.Basic
 import ZkLean.AST
 import ZkLean.LookupTable
+import ZkLean.FreeMonad
 
 /-- Type for RAM operations (Read and Write) -/
 inductive RamOp (f : Type) where
@@ -24,28 +25,6 @@ structure ZKBuilderState (f : Type) where
 deriving instance Inhabited for ZKBuilderState
 
 
-inductive Free (f : Type -> Type) (a : Type) where
-| pure : a -> Free f a
-| bind : ∀ x, f x -> (x -> Free f a) -> Free f a
-
-def Free.map {α β : Type} (F : Type → Type) (f : α → β) : Free F α → Free F β :=
-λ FFa =>
-match FFa with
-| pure a => Free.pure (f a)
-| bind X Fx k => Free.bind X Fx (λ z => map F f (k z))
-
-instance : Functor (Free F) where
-map := Free.map F
-
-def bindFree {a b : Type} (F : Type → Type) (x : Free F a) (f : a → Free F b) : Free F b :=
-match x with
-| .pure a => f a
-| .bind X Fx k => .bind X Fx (λ z => bindFree F (k z) f)
-
-instance FreeMonad (F : Type → Type) : Monad (Free F) where
-  pure := Free.pure
-  bind := bindFree F
-
 /-- Primitive instructions for the circuit DSL - the effect 'functor'. -/
 inductive ZKOp (f : Type) : Type → Type
 | AllocWitness                         : ZKOp f (ZKExpr f)
@@ -61,10 +40,15 @@ inductive ZKOp (f : Type) : Type → Type
 | RamWrite       (ram    : RAM f) (addr v: ZKExpr f)  : ZKOp f PUnit
 
 /-- Type for the ZK circuit builder monad. -/
-def ZKBuilder (f : Type) := Free (ZKOp f)
+def ZKBuilder (f : Type) := FreeM (ZKOp f)
 
-instance : Monad (ZKBuilder f) :=
-  FreeMonad (ZKOp f)
+instance : Monad (ZKBuilder f) := by
+ unfold ZKBuilder
+ infer_instance
+
+instance : LawfulMonad (ZKBuilder f) := by
+  unfold ZKBuilder
+  infer_instance
 
 /-- Provide a `Zero` instance for `ZKExpr`. -/
 instance [Zero f] : Zero (ZKExpr f) where
@@ -72,30 +56,32 @@ instance [Zero f] : Zero (ZKExpr f) where
 
 namespace ZKBuilder
 
-def witness     : ZKBuilder f (ZKExpr f) :=
-  .bind _ (ZKOp.AllocWitness) .pure
+def witness : ZKBuilder f (ZKExpr f) :=
+  FreeM.lift ZKOp.AllocWitness
 
 def constrainEq (x y : ZKExpr f) : ZKBuilder f PUnit :=
-  .bind _ (ZKOp.ConstrainEq x y) .pure
+  FreeM.lift (ZKOp.ConstrainEq x y)
 
 def constrainR1CS (a b c : ZKExpr f) : ZKBuilder f PUnit :=
-  .bind _ (ZKOp.ConstrainR1CS a b c) .pure
+  FreeM.lift (ZKOp.ConstrainR1CS a b c)
 
 def lookup (tbl : ComposedLookupTable f 16 4)
-           (v   : Vector (ZKExpr f) 4) : ZKBuilder f (ZKExpr f) :=
-  .bind _ (ZKOp.Lookup tbl v) .pure
+           (args : Vector (ZKExpr f) 4) : ZKBuilder f (ZKExpr f) :=
+  FreeM.lift (ZKOp.Lookup tbl args)
 
 def muxLookup (chunks : Vector (ZKExpr f) 4)
               (cases  : Array (ZKExpr f × ComposedLookupTable f 16 4))
   : ZKBuilder f (ZKExpr f) :=
-  .bind _ (ZKOp.MuxLookup chunks cases) .pure
+  FreeM.lift (ZKOp.MuxLookup chunks cases)
 
 def ramNew   (n : Nat)                   : ZKBuilder f (RAM f)       :=
-  .bind _ (ZKOp.RamNew n) .pure
+  FreeM.lift (ZKOp.RamNew n)
+
 def ramRead  (r : RAM f) (a : ZKExpr f)  : ZKBuilder f (ZKExpr f)   :=
-  .bind _ (ZKOp.RamRead r a) .pure
+  FreeM.lift (ZKOp.RamRead r a)
+
 def ramWrite (r : RAM f) (a v : ZKExpr f): ZKBuilder f PUnit        :=
-  .bind _ (ZKOp.RamWrite r a v) .pure
+  FreeM.lift (ZKOp.RamWrite r a v)
 
 end ZKBuilder
 
@@ -105,8 +91,8 @@ class Witnessable (f: Type) (t: Type) where
   /-- Witness a new `t` in circuit. -/
   witness : ZKBuilder f t
 
-/-- Algebra that *executes* one primitive, updating the state. -/
-def buildAlg [Zero f] {β} (op : ZKOp f β) (st : ZKBuilderState f) : (β × ZKBuilderState f) :=
+/-- Execute one `ZKOp` instruction and update the `ZKBuilderState`. -/
+def ZKOpInterp [Zero f] {β} (op : ZKOp f β) (st : ZKBuilderState f) : (β × ZKBuilderState f) :=
   match op with
   | ZKOp.AllocWitness =>
       let idx := st.allocated_witness_count
@@ -130,14 +116,33 @@ def buildAlg [Zero f] {β} (op : ZKOp f β) (st : ZKBuilderState f) : (β × ZKB
   | ZKOp.RamWrite ram a v =>
       ((), { st with ram_ops := st.ram_ops.push (RamOp.Write ram.id a v) })
 
-/-- Run a `ZKBuilder` program, producing its result and the final state. -/
-def build [Zero f] (p : ZKBuilder f α) (st : ZKBuilderState f)
+/-- Convert a `ZKBuilder` computation into a `StateM` computation. -/
+def toStateM [Zero f] {α : Type} (comp : ZKBuilder f α) : StateM (ZKBuilderState f) α :=
+  comp.mapM ZKOpInterp
+
+/--
+Run a `ZKBuilder` program starting from an initial state.
+
+The function walks through the program step-by-step:
+• when it reaches `pure`, it simply returns the value without changing the state;
+• when it sees an operation, it uses `ZKOpInterp` to update the state, then
+  continues with the rest of the program.
+
+Internally this is implemented with `FreeM.cataFreeM`, which is quite literally a `fold` over the `FreeM` tree.
+-/
+def runFold [Zero f] (p : ZKBuilder f α) (st : ZKBuilderState f)
     : (α × ZKBuilderState f) :=
-  match p with
-  | .pure a        => (a, st)
-  | .bind _ op k   =>
-      let (b, st') := buildAlg op st
-      build (k b) st'
+  -- We first create a state-transformer by folding over the `FreeM` tree,
+  -- then apply it to the supplied initial state.
+  (FreeM.cataFreeM
+    -- pure case : just return the value, leaving the state untouched
+    (fun a => fun st => (a, st))
+    -- bind case : interpret one primitive with `ZKOpInterp`, then feed the
+    -- resulting value into the continuation on the updated state.
+    (fun {_} op k => fun st =>
+      let (b, st') := ZKOpInterp op st
+      k b st')
+    p) st
 
 instance : Witnessable f (ZKExpr f) where
   witness := ZKBuilder.witness   -- smart constructor, pure DSL

@@ -14,7 +14,6 @@ inductive Subtable (f: Type) (n: Nat) where
 /-- Construct a `Subtable` from an MLE. -/
 def subtableFromMLE {n: Nat} (mle : Vector f n -> f) : Subtable f n := Subtable.SubtableMLE mle
 
-
 /-- Type for composed lookup tables
 
 A `ComposedLookupTable` is a collection of subtables with a function to
@@ -42,7 +41,6 @@ def mkComposedLookupTable {num_bits:Nat} {num_subtables: Nat} {num_chunks: Nat}
 def evalSubtable {f: Type} {num_bits: Nat} (subtable: Subtable f num_bits) (input: Vector f num_bits): f :=
   match subtable with
   | Subtable.SubtableMLE mle => mle input
-
 
 /--
   Evaluation function defining the semantics of `ComposedLookupTable`
