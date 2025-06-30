@@ -477,12 +477,28 @@ def RTYPE_pure64_RISCV_XOR (rs2_val : BitVec 32) (rs1_val : BitVec 32) : BitVec 
   BitVec.xor rs2_val rs1_val
 
 -- attempt at map_f_to_bv
-def map_f_to_bv (rs1_val : ZMod 4139) : Option (BitVec 32) :=
+-- def map_f_to_bv (rs1_val : ZMod 4139) : Option (BitVec 32) :=
+--   let n := (rs1_val.val : Nat)
+--   if n < 2^32 then
+--     some (BitVec.ofNat 32 n)
+--   else
+--     none
+
+def map_f_to_bv (rs1_val : ZMod 4139) : Option (BitVec 8) :=
   let n := (rs1_val.val : Nat)
-  if n < 2^32 then
-    some (BitVec.ofNat 32 n)
+  if n < 8 then
+    some (BitVec.ofNat 8 n)
   else
     none
+
+def bv_to_bool (bv : BitVec a) : Option Bool := if bv == 0 then some true else if bv == 1 then some false else none
+
+-- def map_f_to_bv (rs1_val : ZMod 4139) : Option (BitVec 8) :=
+--   let n := (rs1_val.val : Nat)
+--   if n < 2^3 then
+--     some (BitVec.ofNat 8 n)
+--   else
+--     none
 
 instance : Fact (Nat.Prime 4139) := by sorry
 instance : ZKField (ZMod 4139) where
@@ -517,6 +533,45 @@ def xor_circuit [ZKField f] : ZKBuilder f PUnit := do
   constrainEq res c
 
 #eval run_circuit xor_circuit default [0, one, one, one, 0]
+
+
+abbrev f := ZMod 4139
+lemma xor_mle_one_chunk[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
+  some bvoutput = map_f_to_bv foutput ∧ 
+  some bv1[0] = bv_to_bool <$> map_f_to_bv fv1[0] ∧ 
+  some bv1[1] = bv_to_bool <$> map_f_to_bv fv1[1] ∧ 
+  some bv1[2] = bv_to_bool <$> map_f_to_bv fv1[2] ∧ 
+  some bv1[3] = bv_to_bool <$> map_f_to_bv fv1[3] ∧ 
+  some bv1[4] = bv_to_bool <$> map_f_to_bv fv1[4] ∧ 
+  some bv1[5] = bv_to_bool <$> map_f_to_bv fv1[5] ∧ 
+  some bv1[6] = bv_to_bool <$> map_f_to_bv fv1[6] ∧ 
+  some bv1[7] = bv_to_bool <$> map_f_to_bv fv1[7] ∧ 
+  some bv2[0] = bv_to_bool <$> map_f_to_bv fv2[0] ∧ 
+  some bv2[1] = bv_to_bool <$> map_f_to_bv fv2[1] ∧ 
+  some bv2[2] = bv_to_bool <$> map_f_to_bv fv2[2] ∧ 
+  some bv2[3] = bv_to_bool <$> map_f_to_bv fv2[3] ∧ 
+  some bv2[4] = bv_to_bool <$> map_f_to_bv fv2[4] ∧ 
+  some bv2[5] = bv_to_bool <$> map_f_to_bv fv2[5] ∧ 
+  some bv2[6] = bv_to_bool <$> map_f_to_bv fv2[6] ∧ 
+  some bv2[7] = bv_to_bool <$> map_f_to_bv fv2[7] ∧ 
+  bvoutput = BitVec.xor bv1 bv2
+  ↔
+  foutput = evalSubtable XOR_16 (Vector.append fv1 fv2)
+:= by sorry
+
+
+
+lemma xor_mle[ZKField f]  (a b : ZMod 4139) :
+  map_f_to_bv a = some bv1 →
+  map_f_to_bv b = some bv2 →
+  RTYPE_pure64_RISCV_XOR bv1 bv2 = bv3 →
+  --bv3[0-8] := →
+  ⦃ λ _s => True ⦄
+    lookup XOR_32_4_16 #v[c1, c2, c3, c4]
+  ⦃⇓ _r s =>
+    ⌜ eval_circuit s [ ] ⌝
+  ⦄ := by
+
 
 -- scratch work:
 -- let b0 := Nat.mod (b.val : Nat)  256 →
@@ -579,23 +634,6 @@ theorem xor_mle_equiv [ZKField f]  (a b : ZMod 4139) :
 -- prove a lemma running XOR lookup table iff
 -- XOR Is first chunk of bitvectors?
 --- x1[0-8] XOR x1[8-16] = bv3[0-8]
-theorem xor_mle_first_chunk[ZKField f]  (a b : ZMod 4139) :
-  map_f_to_bv a = some bv1 →
-  map_f_to_bv b = some bv2 →
-  RTYPE_pure64_RISCV_XOR bv1 bv2 = bv3 →
-  --bv3[0-8] := →
-  ⦃ λ _s => True ⦄
-    lookup XOR_32_4_16 #v[x1, x2, x3, x4]
-  ⦃⇓ _r s =>
-    ⌜ eval_circuit s [
-       ((Nat.mod a.val 256+ 256 * Nat.mod b.val 256 ): ZMod 4139),
-        ((Nat.mod (a.val/256) 256 + 256 * Nat.mod (b.val/256) 256):ZMod 4139),
-       ((Nat.mod (a.val/256^2) 256 + 256 * Nat.mod (b.val/256^2) 256): ZMod 4139),
-       ((Nat.mod (a.val/256^3) 256 + 256 * Nat.mod (b.val/256^3) 256): ZMod 4139),
-     c] ⌝
-  ⦄ := by
-
-
 
 
   unfold ZKExpr.eval ComposedLookupTable.eval Subtable.eval Subtable.evalFn Subtable.evalFnAt subtableFromMLE
