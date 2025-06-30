@@ -130,7 +130,7 @@ structure JoltR1CSInputs (f : Type):  Type where
   chunk_2: ZKExpr f
   /- ... -/
 
--- A[0] = C * 1 + var[3] * 829 + ...
+-- A[0] = C * 1 +  var[3] * 829 + ...
 -- Example of what we extract from Jolt
 -- TODO: Make a struct for the witness variables in a Jolt step. Automatically extract this from JoltInputs enum?
 def uniform_jolt_constraint [ZKField f] (jolt_inputs: JoltR1CSInputs f) : ZKBuilder f PUnit := do
@@ -463,3 +463,280 @@ theorem constrainEq3Transitive [ZKField f] (a b c:ZKExpr f) (witness: List f) :
   --   rw [hB] at hP1
   --   exact hP1
   -- exact hP2
+
+-- definitions from other files
+
+def XOR_16 [Field f] : Subtable f 16 :=
+  subtableFromMLE (fun x => 0 + 1*((1 - x[7])*x[15] + x[7]*(1 - x[15])) + 2*((1 - x[6])*x[14] + x[6]*(1 - x[14])) + 4*((1 - x[5])*x[13] + x[5]*(1 - x[13])) + 8*((1 - x[4])*x[12] + x[4]*(1 - x[12])) + 16*((1 - x[3])*x[11] + x[3]*(1 - x[11])) + 32*((1 - x[2])*x[10] + x[2]*(1 - x[10])) + 64*((1 - x[1])*x[9] + x[1]*(1 - x[9])) + 128*((1 - x[0])*x[8] + x[0]*(1 - x[8])))
+
+def XOR_32_4_16 [Field f] : ComposedLookupTable f 16 4
+  := mkComposedLookupTable #[ (XOR_16, 0), (XOR_16, 1), (XOR_16, 2), (XOR_16, 3) ].toVector (fun x => 0 + 1*x[3] + 1*256*x[2] + 1*256*256*x[1] + 1*256*256*256*x[0])
+
+
+def RTYPE_pure64_RISCV_XOR (rs2_val : BitVec 32) (rs1_val : BitVec 32) : BitVec 32 :=
+  BitVec.xor rs2_val rs1_val
+
+-- attempt at map_f_to_bv
+def map_f_to_bv (rs1_val : ZMod 4139) : Option (BitVec 32) :=
+  let n := (rs1_val.val : Nat)
+  if n < 2^32 then
+    some (BitVec.ofNat 32 n)
+  else
+    none
+
+instance : Fact (Nat.Prime 4139) := by sorry
+instance : ZKField (ZMod 4139) where
+  hash x :=
+    match x.val with
+    | 0 => 0
+    | n + 1 => hash n
+
+  chunk_to_bits {num_bits: Nat} f :=
+    let bv : BitVec 13 := BitVec.ofFin (Fin.castSucc f)
+    -- TODO: Double check the endianess.
+    Vector.map (fun i =>
+      if _:i < 3 then
+        if bv[i] then 1 else 0
+      else
+        0
+    ) (Vector.range num_bits)
+
+instance : Witnessable (ZMod 4139) (ZMod 4139) := by sorry
+
+
+
+set_option diagnostics true
+
+def xor_circuit [ZKField f] : ZKBuilder f PUnit := do
+  let a <- Witnessable.witness
+  let b <- Witnessable.witness
+  let aa <- Witnessable.witness
+  let bb <- Witnessable.witness
+  let c <- Witnessable.witness
+  let res <- lookup XOR_32_4_16 #v[a, aa, bb, b]
+  constrainEq res c
+
+#eval run_circuit xor_circuit default [0, one, one, one, 0]
+
+-- scratch work:
+-- let b0 := Nat.mod (b.val : Nat)  256 →
+ --  let b1 = Nat.mod (b.val / 256) 256 →
+ --  some b2 = Nat.mod (b.val / 256^2) 256 →
+ --  some b3 =  Nat.mod (b.val / 256^3)  256 →
+ --  some a0 = Nat.mod a.val 256 →
+ -- some a1 = Nat.mod (a.val/ 256) 256 →
+ -- some a2 = Nat.mod (a.val / 256^2) 256 →
+  -- some a3 = Nat.mod (a.val / 256^3) 256 →
+  -- some x0 = a0 + 256 * b0 →
+  -- some x1 = a1 + 256 * b1 →
+ --  some x2 = a2 + 256 * b2 →
+ -- some x3 = a3 + 256 * b3 →
+ -- x[0] xor [x8]
+
+-- MLE version of XOR
+theorem xor_mle_equiv [ZKField f]  (a b : ZMod 4139) :
+  map_f_to_bv a = some bv1 →
+  map_f_to_bv b = some bv2 →
+  map_f_to_bv c = some bv3 →
+  RTYPE_pure64_RISCV_XOR bv1 bv2 = bv3 →
+  ⦃ λ _s => True ⦄
+    xor_circuit
+  ⦃⇓ _r s =>
+    ⌜ eval_circuit s [
+       ((Nat.mod a.val 256+ 256 * Nat.mod b.val 256 ): ZMod 4139),
+        ((Nat.mod (a.val/256) 256 + 256 * Nat.mod (b.val/256) 256):ZMod 4139),
+       ((Nat.mod (a.val/256^2) 256 + 256 * Nat.mod (b.val/256^2) 256): ZMod 4139),
+       ((Nat.mod (a.val/256^3) 256 + 256 * Nat.mod (b.val/256^3) 256): ZMod 4139),
+     c] ⌝
+  ⦄ := by
+  intros Hbv1 Hbv2 Hbv3 Hxor Hstate Htrue
+  unfold map_f_to_bv at Hbv1 Hbv2 Hbv3
+  dsimp at Hbv1
+  dsimp at Hbv2
+  dsimp at Hbv3
+  split_ifs at Hbv1 with h
+  split_ifs at Hbv2 with h1
+  split_ifs at Hbv3 with h2
+  injection Hbv1 with Hbv1
+  injection Hbv2 with Hbv2
+  injection Hbv3 with Hbv3
+  unfold RTYPE_pure64_RISCV_XOR at Hxor
+  unfold xor_circuit
+  simp only [XOR_32_4_16]
+  simp only [mkComposedLookupTable]
+  simp only [XOR_16]
+  simp only [lookup]
+  simp only [bind, pure]
+  simp only [eval_circuit]
+  simp only [constrainEq]
+  unfold StateT.bind StateT.pure StateT.get StateT.set
+  unfold semantics
+  simp only [ComposedLookupTable]
+  simp only [pure, subtableFromMLE, Subtable.SubtableMLE, ZKExpr.Lookup]
+  sorry
+
+
+-- prove a lemma running XOR lookup table iff
+-- XOR Is first chunk of bitvectors?
+--- x1[0-8] XOR x1[8-16] = bv3[0-8]
+theorem xor_mle_first_chunk[ZKField f]  (a b : ZMod 4139) :
+  map_f_to_bv a = some bv1 →
+  map_f_to_bv b = some bv2 →
+  RTYPE_pure64_RISCV_XOR bv1 bv2 = bv3 →
+  --bv3[0-8] := →
+  ⦃ λ _s => True ⦄
+    lookup XOR_32_4_16 #v[x1, x2, x3, x4]
+  ⦃⇓ _r s =>
+    ⌜ eval_circuit s [
+       ((Nat.mod a.val 256+ 256 * Nat.mod b.val 256 ): ZMod 4139),
+        ((Nat.mod (a.val/256) 256 + 256 * Nat.mod (b.val/256) 256):ZMod 4139),
+       ((Nat.mod (a.val/256^2) 256 + 256 * Nat.mod (b.val/256^2) 256): ZMod 4139),
+       ((Nat.mod (a.val/256^3) 256 + 256 * Nat.mod (b.val/256^3) 256): ZMod 4139),
+     c] ⌝
+  ⦄ := by
+
+
+
+
+  unfold ZKExpr.eval ComposedLookupTable.eval Subtable.eval Subtable.evalFn Subtable.evalFnAt subtableFromMLE
+
+  unfold ZKExpr.Lookup at *
+
+
+
+   [ZKExpr.Lookup, ComposedLookupTable.Table, Subtable.SubtableMLE]
+  , Subtable.evalFn, Subtable.evalFnAt]
+
+   Vector.get, Vector.toList]
+  simp only [Finset.range, Finset.sum]
+
+
+
+
+-- non MLE version of XOR_EQUIV
+theorem XOR_EQUIV (rs2_val : ZMod 4139)  (rs1_val : ZMod 4139):
+    forall result resultf bv1 bv2, some bv1 = map_f_to_bv rs2_val
+    -> some bv2 = map_f_to_bv rs1_val
+    -> result = RTYPE_pure64_RISCV_XOR bv1 bv2
+    -> some result = map_f_to_bv resultf
+    -> run_circuit xor_circuit default [rs2_val, rs1_val, rs2_val, rs1_val, resultf] := by
+    intros result resultf bv1 bv2 Hbv1 Hbv2 Hres Hresf
+    -- simplify BV definitions
+    unfold map_f_to_bv at Hbv1 Hbv2 Hresf
+    dsimp at Hbv1
+    dsimp at Hbv2
+    dsimp at Hresf
+    split_ifs at Hbv1 with h
+    split_ifs at Hbv2 with h1
+    split_ifs at Hresf with h2
+    injection Hbv1 with Hbv1
+    injection Hbv2 with Hbv2
+    injection Hresf with Hresf
+    rw [Hres] at Hresf
+    unfold RTYPE_pure64_RISCV_XOR at Hresf
+    -- simplify Jolt definitions
+    unfold run_circuit xor_circuit
+    unfold lookup
+    unfold pure
+    unfold Applicative.toPure
+    unfold Monad.toApplicative
+    unfold StateT.instMonad
+    simp only [ZKExpr.Lookup]
+    unfold ZKExpr.Lookup
+    unfold XOR_32_4_16
+    simp only [XOR_32_4_16]
+    simp only [mkComposedLookupTable]
+    simp only [XOR_16]
+  simp only [lookup]
+  simp only [bind, pure]
+  simp only [eval_circuit]
+  simp only [constrainEq]
+
+
+
+
+
+    unfold Witnessable.witness
+    unfold instWitnessableZKExpr
+    simp
+    unfold StateT.run
+    unfold constrainEq
+    unfold StateT.get
+    unfold StateT.set
+    unfold bind
+    unfold Monad.toBind
+    unfold witnessf
+    unfold StateT.instMonad
+    unfold pure
+    unfold StateT.bind
+    unfold StateT.pure
+    unfold default
+    unfold
+
+
+
+
+
+
+
+
+    obtain ⟨a, s₁⟩ := StateT.run (Witnessable.witness : ZKBuilder (ZMod 4139) (ZMod 4139)) default
+    have h_constr₁ : constrainEq a rs2_val s₁ = pure () := by simp
+have h_constr₂ : constrainEq b rs1_val s₂ = pure () := by simp
+have h_constr₃ : constrainEq aa rs2_val s₃ = pure () := by simp
+have h_constr₄ : constrainEq bb rs1_val s₄ = pure () := by simp
+have h_constr₅ : constrainEq c resultf s₅ = pure () := by simp
+
+
+
+
+
+
+
+
+    set comp := do
+    let a ← Witnessable.witness
+    let b ← Witnessable.witness
+    let aa ← Witnessable.witness
+    let bb ← Witnessable.witness
+    let c ← Witnessable.witness
+    let res ← lookup XOR_32_4_16 #v[a, aa, bb, b]
+    constrainEq res c
+
+  -- Run the StateT monad on the default state
+  set result_state := StateT.run comp default
+    unfold StateT.run
+    cases
+
+
+
+    with state
+    cases
+
+
+    unfold Witnessable.witness
+    unfold instWitnessableZKExpr
+    unfold witnessf
+    unfold StateT.get
+    unfold StateT.set
+
+
+
+
+    simp Hresf
+
+  -- You now have the entire computation in terms of base definitions.
+  -- Try to compute or reduce further using simp or rfl
+    simp
+
+
+    -- under vs over constrained
+    -- under if circuit then BV to prove not go other direction
+    -- over if BV then circuit
+
+
+--Question Circuits are not supposed to have any side effects so how do we
+-- put lookup tables in the circuits or do we not do that?
+
+-- MPL setting access to builder state
+--- holds a ZK state (ZK builder)
