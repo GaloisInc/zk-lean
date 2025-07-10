@@ -780,11 +780,44 @@ lemma sample_attempt (x y : f):
 --       128 * ((1 - fv1[0]) * fv2[0] + fv1[0] * (1 - fv2[0]))
 lemma bool_to_bv_leads_to_binary (x : f) (bv : BitVec 8) (i : ℕ) (hi : i < 8) :
     some (bool_to_bv bv[i]) = map_f_to_bv x →
-    x.val < 2 := by sorry
+    x.val < 2 := by
+    unfold map_f_to_bv
+    dsimp
+    split_ifs with leq
+    intros H
+    injection H with H
+    unfold bool_to_bv at H
+    split_ifs at H
+    injection H with Hx
+    injection Hx with Hx'
+    rw [Nat.mod_eq_of_lt leq] at Hx'
+    rw [Nat.mod_eq_of_lt] at Hx'
+    exact (Hx'.symm ▸ Nat.zero_lt_succ 1)
+    simp
+    injection H with Hx
+    injection Hx with Hx'
+    rw [Nat.mod_eq_of_lt leq] at Hx'
+    rw [Nat.mod_eq_of_lt] at Hx'
+    rw [←Hx']
+    simp
+    norm_num
+    simp
 
-lemma split_cases_ff (x : f) :
-    x.val < 2  ↔ (x.val = 0 ∨ x.val = 1)
-   := by sorry
+
+
+
+    dsimp Hx
+    unfold BitVec.ofNat at H
+    have h_fin := congrArg BitVec.toFin H
+    simp only [BitVec.toFin, BitVec.zero] at h_fin
+    unfold BitVec.toFin at h_fin
+
+
+    rw [BitVec.ofNat_eq_zero] at H
+    have hx : ZMod.val x = 0 := by
+      rw [H]
+      simp only [BitVec.ofNat_eq_zero]
+    simp
 
 lemma ZMod.eq_iff_val_bitvec  (a b : ZMod ff) :
   a = b ↔ BitVec.ofNat 8 a.val = BitVec.ofNat 8 b.val := by sorry
