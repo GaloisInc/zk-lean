@@ -154,37 +154,16 @@ partial def applyZModValRecursively (mvarId : MVarId) : TacticM (List MVarId) :=
           let subgoals ← getMainGoal >>= fun g => g.apply (mkConst ``ZMod.val_add)
           logInfo m!"Applied ZMod.val_add, new subgoals: {subgoals.length}"
           return ← List.flatten <$> subgoals.mapM applyZModValRecursively
-          -- for sg in subgoals do
-          --   try
-          --     applyZModValRecursively sg
-          --   catch err =>
-          --     logInfo m!" Skipping subgoal: {← ppExpr (← sg.getType)}"
-          --     logInfo m!"   Reason: {err.toMessageData}"
-          --     pure ()
       | (``HMul.hMul, args) => do
-          logInfo m!"Matched HAdd. Applying ZMod.val_mul..."
+          logInfo m!"Matched HMul. Applying ZMod.val_mul..."
           let subgoals ← getMainGoal >>= fun g => g.apply (mkConst ``ZMod.val_mul)
           logInfo m!"Applied ZMod.val_add, new subgoals: {subgoals.length}"
           return ← List.flatten <$> subgoals.mapM applyZModValRecursively
-          -- for sg in subgoals do
-          --   try
-          --     applyZModValRecursively sg
-          --   catch err =>
-          --     logInfo m!" Skipping subgoal: {← ppExpr (← sg.getType)}"
-          --     logInfo m!"   Reason: {err.toMessageData}"
-          --     pure ()
        | (``HSub.hSub, args) => do
-          logInfo m!"Matched HAdd. Applying ZMod.val_mul..."
-          let subgoals ← getMainGoal >>= fun g => g.apply (mkConst ``ZMod.val_sub)
+          logInfo m!"Matched HSub. Applying ZMod.val_mul..."
+          let subgoals ← getMainGoal >>= fun g => g.apply (mkConst ``ZMod.val_sub ``_)
           logInfo m!"Applied ZMod.val_sub, new subgoals: {subgoals.length}"
           return ← List.flatten <$> subgoals.mapM applyZModValRecursively
-          -- for sg in subgoals do
-          --   try
-          --     applyZModValRecursively sg
-          --   catch err =>
-          --     logInfo m!" Skipping subgoal: {← ppExpr (← sg.getType)}"
-          --     logInfo m!"   Reason: {err.toMessageData}"
-          --     pure ()
       | _ =>
         logInfo m!" Not an HAdd inside val: {← ppExpr sumExpr}"
         return [mvarId]
@@ -194,9 +173,6 @@ partial def applyZModValRecursively (mvarId : MVarId) : TacticM (List MVarId) :=
   | none =>
     logInfo m!" Goal is not an equality"
     return [mvarId]
-
-
-
 
 
 elab "val_add_rec" : tactic => do
@@ -213,11 +189,18 @@ example (a b c d : ZMod 17) :
   val_add_rec
 
 
-example (x y z : ZMod 17) :
-  ((1- y)*z).val = (((1 - y.val) % 17) * z.val %17):= by
-  apply Eq.trans (ZMod.val_mul (1 - y) z)
+example (x y z : ZMod 17) (h: y.val <= x.val ) :
+  ((x- y)*z).val = ( (x.val - y.val) * z.val ) %17 := by
+
+  apply Eq.trans (ZMod.val_mul (x - y) z)
+  apply congrArg (fun a => a * z.val % 17) (ZMod.val_sub _)
+  -- Apply function to both sides
 
 
-example (y : ZMod 11) :
-  (1- y).val = 1 - y.val:= by
+example (y z: ZMod 11) :
+  (1- y).val = (1 - y.val) := by
   val_add_rec
+
+
+-- Next Steps:
+-- how do we propagate range analysis
