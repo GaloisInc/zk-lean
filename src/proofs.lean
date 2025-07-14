@@ -127,8 +127,11 @@ lemma bool_to_bv_leads_to_binary (x : f) (bv : BitVec 8) (i : ℕ) (hi : i < 8) 
     simp
 
 
-lemma ZMod.eq_iff_val_bitvec  (a b : ZMod ff) :
-  a = b ↔ BitVec.ofNat 8 a.val = BitVec.ofNat 8 b.val := by sorry
+lemma ZMod.eq_iff_val  (a b : ZMod ff) :
+  a = b -> a.val = b.val := by
+    intro ha
+    rw [ZMod.val a b] at ha
+
 
 lemma ZMod.val_drop_mod (a : ZMod ff) (n:ℕ):
  (a.val % ff = a.val) := by
@@ -160,7 +163,21 @@ lemma ZMod_XOR_drop_mod (a b: ZMod ff) :
    (a.val <= ZMod.val (1 : ZMod ff)) -> (b.val <= ZMod.val (1 : ZMod ff))  -> ( ((1 - a.val) * b.val) % ff + (a.val * (1 - b.val)) % ff) =  (1 - a.val) * b.val + a.val * (1 - b.val) := by sorry
 
 lemma xor_sum_bound {x y : ℕ} (hx : x <= 1) (hy : y <= 1) :
-  (1 - x) * y + x * (1 - y) ≤ 1 := by sorry
+  (1 - x) * y + x * (1 - y) ≤ 1 := by
+  cases x: x with
+    | zero =>
+      cases y: y with
+        | zero => norm_num
+        | succ n => cases n with
+          | zero => norm_num
+          | succ m => exfalso
+                      rw[y] at hy
+                      linarith
+    | succ n => cases n with
+      | zero => norm_num
+      | succ m => exfalso
+                  rw[x] at hx
+                  linarith
 
 lemma BitVec.ofNat_sub{w a b : ℕ} :
   BitVec.ofNat w (a - b) =
@@ -169,9 +186,19 @@ lemma BitVec.ofNat_sub{w a b : ℕ} :
   sorry
 
  lemma bit_to_bv { a : ℕ} (w : ℕ) :
-  a <= ZMod.val (1 : ZMod ff) ↔ (BitVec.ofNat w a  = 0#w ∨ BitVec.ofNat w a = 1#w)
+  (a <= ZMod.val (1 : ZMod ff)) -> (BitVec.ofNat w a  = 0#w ∨ BitVec.ofNat w a = 1#w)
      := by
-  sorry
+  intro ha
+  rw [ZMod.val_one] at ha
+  cases a : a with
+    | zero => norm_num
+    | succ n => cases n with
+      | zero => right
+                simp
+      | succ m => exfalso
+                  subst a
+                  linarith
+
 set_option maxHeartbeats 2000000
 
 def XOR_16 [Field f] : Subtable f 16 :=
@@ -180,6 +207,15 @@ def XOR_16 [Field f] : Subtable f 16 :=
 def XOR_32_4_16 [Field f] : ComposedLookupTable f 16 4
   := mkComposedLookupTable #[ (XOR_16, 0), (XOR_16, 1), (XOR_16, 2), (XOR_16, 3) ].toVector (fun x => 0 + 1*x[3] + 1*256*x[2] + 1*256*256*x[1] + 1*256*256*256*x[0])
 
+--- lemmas I use ---
+-- xor_sum_bound PROVED
+-- bool_to_bv_leads_to_binary PROVED
+ -- bit_to_bv PROVED
+-- ZMod_XOR_drop_mod NOTPROVED
+-- BitVec.ofNat_sub NOTPROVED
+-- BitVec.ofNat_mul NOTPROVED
+-- ZMod.eq_iff_val_bitvec CANNOT BE PROVED
+    -- sol: split into 2 lemmas
 
 
 lemma xor_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
@@ -260,7 +296,6 @@ lemma xor_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f
     simp [ZMod.val_ofNat]
     simp [ZMod.val_one]
     norm_num
-
     have h0_ineq : (1 - ZMod.val fv1[0]) * ZMod.val fv2[0] + ZMod.val fv1[0] * (1 - ZMod.val fv2[0]) ≤ 1 := by apply xor_sum_bound h2_le h10_le
     have h1_ineq : (1 - ZMod.val fv1[1]) * ZMod.val fv2[1] + ZMod.val fv1[1] * (1 - ZMod.val fv2[1]) ≤ 1 := by apply xor_sum_bound h3_le h11_le
     have h2_ineq : (1 - ZMod.val fv1[2]) * ZMod.val fv2[2] + ZMod.val fv1[2] * (1 - ZMod.val fv2[2]) ≤ 1 := by apply xor_sum_bound h4_le h12_le
