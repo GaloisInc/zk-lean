@@ -160,3 +160,7 @@ def ram_write (ram : RAM f) (addr : ZKExpr f) (value : ZKExpr f) : ZKBuilder f P
   let old_state <- StateT.get
   let ram_op := RamOp.Write ram.id addr value
   StateT.set { old_state with ram_ops := Array.push old_state.ram_ops ram_op }
+
+
+
+-- Liza attempts at XOR 

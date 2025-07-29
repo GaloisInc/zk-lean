@@ -168,3 +168,6 @@ def semantics [ZKField f] (witness: List f) (state: ZKBuilderState f) : Bool :=
   else
     -- If the RAM values are not valid, we return
     false
+
+
+--- 
