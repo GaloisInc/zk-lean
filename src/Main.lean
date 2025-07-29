@@ -476,23 +476,23 @@ theorem constrainEq3Transitive [ZKField f] (a b c:ZKExpr f) (witness: List f) :
 --------- SET UP TO EVALUATE  CIRCUITS ---------------
 --instance : Fact (Nat.Prime 4139) := by prime_4139
 
-instance : ZKField (ZMod 4139) where
-  hash x :=
-    match x.val with
-    | 0 => 0
-    | n + 1 => hash n
+-- instance : ZKField (ZMod 4139) where
+--   hash x :=
+--     match x.val with
+--     | 0 => 0
+--     | n + 1 => hash n
 
-  chunk_to_bits {num_bits: Nat} f :=
-    let bv : BitVec 13 := BitVec.ofFin (Fin.castSucc f)
-    -- TODO: Double check the endianess.
-    Vector.map (fun i =>
-      if _:i < 3 then
-        if bv[i] then 1 else 0
-      else
-        0
-    ) (Vector.range num_bits)
+--   chunk_to_bits {num_bits: Nat} f :=
+--     let bv : BitVec 13 := BitVec.ofFin (Fin.castSucc f)
+--     -- TODO: Double check the endianess.
+--     Vector.map (fun i =>
+--       if _:i < 3 then
+--         if bv[i] then 1 else 0
+--       else
+--         0
+--     ) (Vector.range num_bits)
 
-instance : Witnessable (ZMod 4139) (ZMod 4139) := by sorry
+-- instance : Witnessable (ZMod 4139) (ZMod 4139) := by sorry
 
 -- Full proof that 4139 is prime using Nat.prime_def_lt
 
@@ -566,6 +566,7 @@ def sub_circuit [ZKField f] : ZKBuilder f PUnit := do
 def two : ZMod 7 := 2
 def three : ZMod 7 := 3
 def four : ZMod 7 := 4
+def five : ZMod 7 := 5
 def six : ZMod 7 := 4
 
 
@@ -578,6 +579,9 @@ def six : ZMod 7 := 4
 --  (65536 * 1 + 2 ) % 7 = 5...
 -- Hypothesis because idenitity reverses things so then we actually have
 -- (65536 * 32768 + 2 * 16384) % 7 = 3...
-#eval run_circuit add_circuit default [0, 0, two, one, two]
 #eval run_circuit add_circuit default [two, 0, two, one, two]
 #eval run_circuit sub_circuit default [two, three, two, one, two]
+
+
+-- this returns false for all values inside 7...
+#eval run_circuit add_circuit default [0, 0, one, two, six]
