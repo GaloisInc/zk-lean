@@ -135,26 +135,6 @@ lemma bool_to_bv_leads_to_binary (x : f) (bv : BitVec 8) (i : ℕ) (hi : i < 8) 
 
 -- I need to think more about bounds here..
 
-lemma ZMod.eq_iff_val_bv  (a b : ZMod ff) :
-  (a = b ) <->  (BitVec.ofNat 8 a.val) = (BitVec.ofNat 8 b.val) := by
-    constructor
-    intro ha
-    subst a
-    simp
-    intro ha
-    cases a.val : a.val with
-      | zero =>  cases b.val : b.val with
-                | zero =>
-
-                unfold val at ha
-                sorry
-      | succ n =>
-    sorry
-
-
-  a < ff -> bv good
-
-
 
 
 
@@ -245,44 +225,7 @@ lemma BitVec.ofNat_sub{w a b : ℕ} :
 
 set_option maxHeartbeats 2000000
 
-def XOR_16 [Field f] : Subtable f 16 :=
-  subtableFromMLE (fun x => 0 + 1*((1 - x[7])*x[15] + x[7]*(1 - x[15])) + 2*((1 - x[6])*x[14] + x[6]*(1 - x[14])) + 4*((1 - x[5])*x[13] + x[5]*(1 - x[13])) + 8*((1 - x[4])*x[12] + x[4]*(1 - x[12])) + 16*((1 - x[3])*x[11] + x[3]*(1 - x[11])) + 32*((1 - x[2])*x[10] + x[2]*(1 - x[10])) + 64*((1 - x[1])*x[9] + x[1]*(1 - x[9])) + 128*((1 - x[0])*x[8] + x[0]*(1 - x[8])))
 
-def XOR_32_4_16 [Field f] : ComposedLookupTable f 16 4
-  := mkComposedLookupTable #[ (XOR_16, 0), (XOR_16, 1), (XOR_16, 2), (XOR_16, 3) ].toVector (fun x => 0 + 1*x[3] + 1*256*x[2] + 1*256*256*x[1] + 1*256*256*256*x[0])
-
---- lemmas I use ---
--- xor_sum_bound PROVED
--- bool_to_bv_leads_to_binary PROVED
- -- bit_to_bv PROVED
--- ZMod_XOR_drop_mod PROVED
--- ZMod.eq_iff_val_bitvec NOTPROVED (HARD)
--- BitVec.ofNat_sub NOTPROVED
--- BitVec.ofNat_mul NOTPROVED
-
-
--- lemma xor_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
---   some bvoutput = map_f_to_bv foutput ->
---    some (bool_to_bv bv1[7])  = map_f_to_bv fv1[0]  ->
---    some (bool_to_bv bv1[6]) = map_f_to_bv fv1[1]  ->
---    some (bool_to_bv bv1[5]) = map_f_to_bv fv1[2]  ->
---    some (bool_to_bv bv1[4]) = map_f_to_bv fv1[3]  ->
---    some (bool_to_bv bv1[3]) = map_f_to_bv fv1[4]  ->
---    some (bool_to_bv bv1[2]) = map_f_to_bv fv1[5]  ->
---    some (bool_to_bv bv1[1]) = map_f_to_bv fv1[6]  ->
---    some (bool_to_bv bv1[0]) = map_f_to_bv fv1[7]  ->
---   some (bool_to_bv bv2[7]) = map_f_to_bv fv2[0]  ->
---   some (bool_to_bv bv2[6]) = map_f_to_bv fv2[1]  ->
---   some (bool_to_bv bv2[5]) = map_f_to_bv fv2[2]  ->
---   some (bool_to_bv bv2[4]) = map_f_to_bv fv2[3]  ->
---   some (bool_to_bv bv2[3]) = map_f_to_bv fv2[4]  ->
---   some (bool_to_bv bv2[2]) = map_f_to_bv fv2[5]  ->
---   some (bool_to_bv bv2[1]) = map_f_to_bv fv2[6]  ->
---   some (bool_to_bv bv2[0]) = map_f_to_bv fv2[7]  ->
---   (bvoutput = BitVec.xor bv1 bv2)
---   =
---   (foutput = evalSubtable XOR_16 (Vector.append fv1 fv2))
--- := by
 --     intros h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
 --     have h2_le: ZMod.val (fv1[0]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[0] bv1 7 (by decide : 7 < 8) h2
 --     have h3_le: ZMod.val (fv1[1]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[1] bv1 6 (by decide : 6 < 8) h3
@@ -471,15 +414,53 @@ def XOR_32_4_16 [Field f] : ComposedLookupTable f 16 4
 --     simp
 --     sorry
 
+lemma extract_bv_rel{bf x} : some (bool_to_bv bf) = map_f_to_bv x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#8 else 0#8) = BitVec.ofNat 8 x.val) := by
+  unfold map_f_to_bv
+  unfold bool_to_bv
+  dsimp
+  simp
+  intros h
+  cases a : x.val with
+    | zero => norm_num
+    | succ n => cases n with
+      | zero => norm_num
+      | succ m => exfalso
+                  rw [a] at h
+                  cases g : bf with
+                    | true =>
+                      rw [g] at h
+                      simp at h
+                      rw [BitVec.ofNat] at h
+                      injection h with h_eq
+                      dsimp at h_eq
+                      norm_cast at h_eq
+                      zify at h_eq
+                      simp at h_eq
+                      sorry
+                    | false =>
+                      sorry
+
+
+lemma ZMod.eq_if_val (a b : ZMod ff) :
+  (a = b ) <->  a.val = b.val := by
+  apply Iff.intro
+  intros h
+  rw [h]
+  intros h
+  apply ZMod.val_injective at h
+  exact h
+
+
+lemma BitVec.ofNat_eq_iff {x y : ℕ} (hx : x < 2^8) (hy : y < 2^8) :
+  (x = y)  <-> (BitVec.ofNat 8 x = BitVec.ofNat 8 y):= by
+  sorry
 
 def AND_16 [Field f] : Subtable f 16 :=
   subtableFromMLE (fun x => 0 + 1*x[7]*x[15] + 2*x[6]*x[14] + 4*x[5]*x[13] + 8*x[4]*x[12] + 16*x[3]*x[11] + 32*x[2]*x[10] + 64*x[1]*x[9] + 128*x[0]*x[8])
 
 
 
-
-
-lemma add_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
+lemma and_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
   some bvoutput = map_f_to_bv foutput ->
    some (bool_to_bv bv1[7])  = map_f_to_bv fv1[0]  ->
    some (bool_to_bv bv1[6]) = map_f_to_bv fv1[1]  ->
@@ -501,30 +482,30 @@ lemma add_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f
   =
   (foutput = evalSubtable AND_16 (Vector.append fv1 fv2))
  := by
+    -- set up hypothesis
     intros h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
-    have h2_le: ZMod.val (fv1[0]) ≤ 1 := bool_to_bv_leads_to_binary fv1[0] bv1 7 (by decide : 7 < 8) h2
-    have h3_le: ZMod.val (fv1[1]) ≤ 1 := bool_to_bv_leads_to_binary fv1[1] bv1 6 (by decide : 6 < 8) h3
-    have h4_le: ZMod.val (fv1[2]) ≤ 1 := bool_to_bv_leads_to_binary fv1[2] bv1 5 (by decide : 5 < 8) h4
-    have h5_le: ZMod.val (fv1[3]) ≤ 1 := bool_to_bv_leads_to_binary fv1[3] bv1 4 (by decide : 4 < 8) h5
-    have h6_le: ZMod.val (fv1[4]) ≤ 1 := bool_to_bv_leads_to_binary fv1[4] bv1 3 (by decide : 3 < 8) h6
-    have h7_le: ZMod.val (fv1[5]) ≤ 1 := bool_to_bv_leads_to_binary fv1[5] bv1 2 (by decide : 2 < 8) h7
-    have h8_le: ZMod.val (fv1[6]) ≤ 1 := bool_to_bv_leads_to_binary fv1[6] bv1 1 (by decide : 1 < 8) h8
-    have h9_le: ZMod.val (fv1[7]) ≤ 1 := bool_to_bv_leads_to_binary fv1[7] bv1 0 (by decide : 0 < 8) h9
-    have h10_le: ZMod.val (fv2[0]) ≤ 1:= bool_to_bv_leads_to_binary fv2[0] bv2 7 (by decide : 7 < 8) h10
-    have h11_le: ZMod.val (fv2[1]) ≤ 1 := bool_to_bv_leads_to_binary fv2[1] bv2 6 (by decide : 6 < 8) h11
-    have h12_le: ZMod.val (fv2[2]) ≤ 1 := bool_to_bv_leads_to_binary fv2[2] bv2 5 (by decide : 5 < 8) h12
-    have h13_le: ZMod.val (fv2[3]) ≤ 1 := bool_to_bv_leads_to_binary fv2[3] bv2 4 (by decide : 4 < 8) h13
-    have h14_le: ZMod.val (fv2[4]) ≤ 1 := bool_to_bv_leads_to_binary fv2[4] bv2 3 (by decide : 3 < 8) h14
-    have h15_le: ZMod.val (fv2[5]) ≤ 1:= bool_to_bv_leads_to_binary fv2[5] bv2 2 (by decide : 2 < 8) h15
-    have h16_le: ZMod.val (fv2[6]) ≤ 1 := bool_to_bv_leads_to_binary fv2[6] bv2 1 (by decide : 1 < 8) h16
-    have h17_le: ZMod.val (fv2[7]) ≤ 1 := bool_to_bv_leads_to_binary fv2[7] bv2 0 (by decide : 0 < 8) h17
-    --rw [split_cases_ff] at h2_le h3_le h4_le h5_le h6_le h7_le h8_le h9_le h10_le h11_le h12_le h13_le  h14_le h15_le h16_le h17_le
+    rw [extract_bv_rel] at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
+    rcases h2 with ⟨h2_1, h2_2⟩
+    rcases h3 with ⟨h3_1, h3_2⟩
+    rcases h4 with ⟨h4_1, h4_2⟩
+    rcases h5 with ⟨h5_1, h5_2⟩
+    rcases h6 with ⟨h6_1, h6_2⟩
+    rcases h7 with ⟨h7_1, h7_2⟩
+    rcases h8 with ⟨h8_1, h8_2⟩
+    rcases h9 with ⟨h9_1, h9_2⟩
+    rcases h10 with ⟨h10_1, h10_2⟩
+    rcases h11 with ⟨h11_1, h11_2⟩
+    rcases h12 with ⟨h12_1, h12_2⟩
+    rcases h13 with ⟨h13_1, h13_2⟩
+    rcases h14 with ⟨h14_1, h14_2⟩
+    rcases h15 with ⟨h15_1, h15_2⟩
+    rcases h16 with ⟨h16_1, h16_2⟩
+    rcases h17 with ⟨h17_1, h17_2⟩
     unfold map_f_to_bv at h1
-    dsimp at h1
-    split_ifs at h1 with h
-    injection h1 with h1'
-    rw [h1']
-    rw [ZMod.eq_iff_val_bv]
+    simp at h1
+    rcases h1 with ⟨h1_1, h1_2⟩
+    -- apply val and unfold subtables
+    rw [ZMod.eq_if_val]
     unfold AND_16
     unfold evalSubtable
     simp
@@ -532,18 +513,14 @@ lemma add_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f
     simp
     unfold Vector.append
     simp
+    --- zmod to nat
     valify
     simp
     rw [Nat.mod_eq_of_lt]
+    rw [BitVec.ofNat_eq_iff]
+    -- apply bv and nat to zmod
     bvify
-    unfold map_f_to_bv at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
-    dsimp at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
-    split_ifs at h2 h3 h4 h5
-    split_ifs at h6 h7 h8 h9
-    split_ifs at h10 h11 h12 h13
-    split_ifs at h14 h15 h16 h17
-    simp at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
-    unfold bool_to_bv at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
+    -- necessary because of Lean version this can do away
     set a := foutput.val
     set b10:= ZMod.val fv1[0]
     set b11 := ZMod.val fv1[1]
@@ -563,4 +540,220 @@ lemma add_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f
     set b27 := ZMod.val fv2[7]
     bv_normalize
     bv_decide
-    try_apply_lemma_hyps [h2_le, h3_le, h4_le, h5_le, h6_le, h7_le, h8_le, h9_le, h10_le, h11_le, h12_le, h13_le, h14_le, h15_le, h16_le, h17_le, h16]
+    exact h1_1
+    --norm_num
+    --- range analysis tactic
+    try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_2]
+    try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_2]
+
+    -- it is dumb that we have to do this twice maybe we can have some sort of lemma that combines the two different rewrites that assume?
+
+
+
+
+def bf : BitVec 8 := 0
+#eval bf[0]
+-- in lean 0 == false :)
+
+
+def XOR_16 [Field f] : Subtable f 16 :=
+  subtableFromMLE (fun x => 0 + 1*((1 - x[7])*x[15] + x[7]*(1 - x[15])) + 2*((1 - x[6])*x[14] + x[6]*(1 - x[14])) + 4*((1 - x[5])*x[13] + x[5]*(1 - x[13])) + 8*((1 - x[4])*x[12] + x[4]*(1 - x[12])) + 16*((1 - x[3])*x[11] + x[3]*(1 - x[11])) + 32*((1 - x[2])*x[10] + x[2]*(1 - x[10])) + 64*((1 - x[1])*x[9] + x[1]*(1 - x[9])) + 128*((1 - x[0])*x[8] + x[0]*(1 - x[8])))
+
+def XOR_32_4_16 [Field f] : ComposedLookupTable f 16 4
+  := mkComposedLookupTable #[ (XOR_16, 0), (XOR_16, 1), (XOR_16, 2), (XOR_16, 3) ].toVector (fun x => 0 + 1*x[3] + 1*256*x[2] + 1*256*256*x[1] + 1*256*256*256*x[0])
+
+
+
+lemma xor_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
+  some bvoutput = map_f_to_bv foutput ->
+   some (bool_to_bv bv1[7])  = map_f_to_bv fv1[0]  ->
+   some (bool_to_bv bv1[6]) = map_f_to_bv fv1[1]  ->
+   some (bool_to_bv bv1[5]) = map_f_to_bv fv1[2]  ->
+   some (bool_to_bv bv1[4]) = map_f_to_bv fv1[3]  ->
+   some (bool_to_bv bv1[3]) = map_f_to_bv fv1[4]  ->
+   some (bool_to_bv bv1[2]) = map_f_to_bv fv1[5]  ->
+   some (bool_to_bv bv1[1]) = map_f_to_bv fv1[6]  ->
+   some (bool_to_bv bv1[0]) = map_f_to_bv fv1[7]  ->
+  some (bool_to_bv bv2[7]) = map_f_to_bv fv2[0]  ->
+  some (bool_to_bv bv2[6]) = map_f_to_bv fv2[1]  ->
+  some (bool_to_bv bv2[5]) = map_f_to_bv fv2[2]  ->
+  some (bool_to_bv bv2[4]) = map_f_to_bv fv2[3]  ->
+  some (bool_to_bv bv2[3]) = map_f_to_bv fv2[4]  ->
+  some (bool_to_bv bv2[2]) = map_f_to_bv fv2[5]  ->
+  some (bool_to_bv bv2[1]) = map_f_to_bv fv2[6]  ->
+  some (bool_to_bv bv2[0]) = map_f_to_bv fv2[7]  ->
+  (bvoutput = BitVec.xor bv1 bv2)
+  =
+  (foutput = evalSubtable XOR_16 (Vector.append fv1 fv2))
+:= by
+   -- set up hypothesis
+    intros h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
+    rw [extract_bv_rel] at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
+    rcases h2 with ⟨h2_1, h2_2⟩
+    rcases h3 with ⟨h3_1, h3_2⟩
+    rcases h4 with ⟨h4_1, h4_2⟩
+    rcases h5 with ⟨h5_1, h5_2⟩
+    rcases h6 with ⟨h6_1, h6_2⟩
+    rcases h7 with ⟨h7_1, h7_2⟩
+    rcases h8 with ⟨h8_1, h8_2⟩
+    rcases h9 with ⟨h9_1, h9_2⟩
+    rcases h10 with ⟨h10_1, h10_2⟩
+    rcases h11 with ⟨h11_1, h11_2⟩
+    rcases h12 with ⟨h12_1, h12_2⟩
+    rcases h13 with ⟨h13_1, h13_2⟩
+    rcases h14 with ⟨h14_1, h14_2⟩
+    rcases h15 with ⟨h15_1, h15_2⟩
+    rcases h16 with ⟨h16_1, h16_2⟩
+    rcases h17 with ⟨h17_1, h17_2⟩
+    unfold map_f_to_bv at h1
+    simp at h1
+    rcases h1 with ⟨h1_1, h1_2⟩
+    -- apply val and unfold subtables
+    rw [ZMod.eq_if_val]
+    unfold XOR_16
+    unfold evalSubtable
+    simp
+    unfold subtableFromMLE
+    simp
+    unfold Vector.append
+    simp
+    --- zmod to nat
+    valify [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
+    simp
+    rw [Nat.mod_eq_of_lt]
+    rw [BitVec.ofNat_eq_iff]
+    -- apply bv and nat to zmod
+    bvify
+    -- necessary because of Lean version this can do away
+    set a := foutput.val
+    set b10:= ZMod.val fv1[0]
+    set b11 := ZMod.val fv1[1]
+    set b12 := ZMod.val fv1[2]
+    set b13 := ZMod.val fv1[3]
+    set b14 := ZMod.val fv1[4]
+    set b15 := ZMod.val fv1[5]
+    set b16 := ZMod.val fv1[6]
+    set b17 := ZMod.val fv1[7]
+    set b20:= ZMod.val fv2[0]
+    set b21 := ZMod.val fv2[1]
+    set b22 := ZMod.val fv2[2]
+    set b23 := ZMod.val fv2[3]
+    set b24 := ZMod.val fv2[4]
+    set b25 := ZMod.val fv2[5]
+    set b26 := ZMod.val fv2[6]
+    set b27 := ZMod.val fv2[7]
+    bv_normalize
+    bv_decide
+    exact h1_1
+    --- range analysis tactic
+    try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
+    try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
+
+    -- it is dumb that we have to do this twice maybe we can have some sort of lemma that combines the two different rewrites that assume?
+
+   #eval 1 * 1 + 1 * 1 + 2 * (1 * 1 + 1 * 1) + 4 * (1 * 1 + 1 * 1) + 8 * (1 * 1 + 1 * 1) + 16 * (1 * 1 + 1 * 1) +
+        32 * (1 * 1 + 1 * 1) +
+      64 * (1 * 1 + 1 * 1) +
+    128 * (1 * 1 + 1 * 1)
+
+
+#eval 1 * 1 + 1 * 1 + 2 * (1 * 1 + 1 * 1) + 4 * (1 * 1 + 1 * 1) + 8 * (1 * 1 + 1 * 1) + 16 * (1 * 1 + 1 * 1) +
+        32 * (1 * 1 + 1 * 1) +
+      64 * (1 * 1 + 1 * 1) +
+    128 * (1 * 1 + 1 * 1)
+
+#eval  1 * 1 + 2 * 1 * 1 + 4 * 1 * 1 + 8 * 1 * 1 + 16 * 1 * 1 + 32 * 1 * 1 + 64 * 1 * 1 + 128 * 1 * 1 < 2 ^ 8
+
+
+ def EQ_16 [Field f] : Subtable f 16 :=
+  subtableFromMLE (fun x => 1*(x[0]*x[8] + (1 - x[0])*(1 - x[8]))*(x[1]*x[9] + (1 - x[1])*(1 - x[9]))*(x[2]*x[10] + (1 - x[2])*(1 - x[10]))*(x[3]*x[11] + (1 - x[3])*(1 - x[11]))*(x[4]*x[12] + (1 - x[4])*(1 - x[12]))*(x[5]*x[13] + (1 - x[5])*(1 - x[13]))*(x[6]*x[14] + (1 - x[6])*(1 - x[14]))*(x[7]*x[15] + (1 - x[7])*(1 - x[15])))
+
+lemma eq_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
+  some bvoutput = map_f_to_bv foutput ->
+   some (bool_to_bv bv1[7])  = map_f_to_bv fv1[0]  ->
+   some (bool_to_bv bv1[6]) = map_f_to_bv fv1[1]  ->
+   some (bool_to_bv bv1[5]) = map_f_to_bv fv1[2]  ->
+   some (bool_to_bv bv1[4]) = map_f_to_bv fv1[3]  ->
+   some (bool_to_bv bv1[3]) = map_f_to_bv fv1[4]  ->
+  some (bool_to_bv bv1[2]) = map_f_to_bv fv1[5]  ->
+   some (bool_to_bv bv1[1]) = map_f_to_bv fv1[6]  ->
+   some (bool_to_bv bv1[0]) = map_f_to_bv fv1[7]  ->
+  some (bool_to_bv bv2[7]) = map_f_to_bv fv2[0]  ->
+  some (bool_to_bv bv2[6]) = map_f_to_bv fv2[1]  ->
+  some (bool_to_bv bv2[5]) = map_f_to_bv fv2[2]  ->
+  some (bool_to_bv bv2[4]) = map_f_to_bv fv2[3]  ->
+  some (bool_to_bv bv2[3]) = map_f_to_bv fv2[4]  ->
+  some (bool_to_bv bv2[2]) = map_f_to_bv fv2[5]  ->
+  some (bool_to_bv bv2[1]) = map_f_to_bv fv2[6]  ->
+  some (bool_to_bv bv2[0]) = map_f_to_bv fv2[7]  ->
+  (bvoutput = bool_to_bv (bv1 == bv2))
+  =
+  (foutput = evalSubtable EQ_16 (Vector.append fv1 fv2))
+ := by
+    intros h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
+    rw [extract_bv_rel] at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
+    rcases h2 with ⟨h2_1, h2_2⟩
+    rcases h3 with ⟨h3_1, h3_2⟩
+    rcases h4 with ⟨h4_1, h4_2⟩
+    rcases h5 with ⟨h5_1, h5_2⟩
+    rcases h6 with ⟨h6_1, h6_2⟩
+    rcases h7 with ⟨h7_1, h7_2⟩
+    rcases h8 with ⟨h8_1, h8_2⟩
+    rcases h9 with ⟨h9_1, h9_2⟩
+    rcases h10 with ⟨h10_1, h10_2⟩
+    rcases h11 with ⟨h11_1, h11_2⟩
+    rcases h12 with ⟨h12_1, h12_2⟩
+    rcases h13 with ⟨h13_1, h13_2⟩
+    rcases h14 with ⟨h14_1, h14_2⟩
+    rcases h15 with ⟨h15_1, h15_2⟩
+    rcases h16 with ⟨h16_1, h16_2⟩
+    rcases h17 with ⟨h17_1, h17_2⟩
+    unfold map_f_to_bv at h1
+    simp at h1
+    rcases h1 with ⟨h1_1, h1_2⟩
+    -- apply val and unfold subtables
+    rw [ZMod.eq_if_val]
+    unfold EQ_16
+    unfold evalSubtable
+    simp
+    unfold subtableFromMLE
+    simp
+    unfold Vector.append
+    simp
+    --- zmod to nat
+    valify [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
+    simp
+    rw [Nat.mod_eq_of_lt]
+    rw [BitVec.ofNat_eq_iff]
+    -- apply bv and nat to zmod
+    bvify
+    -- necessary because of Lean version this can do away
+    set a := foutput.val
+    set b10:= ZMod.val fv1[0]
+    set b11 := ZMod.val fv1[1]
+    set b12 := ZMod.val fv1[2]
+    set b13 := ZMod.val fv1[3]
+    set b14 := ZMod.val fv1[4]
+    set b15 := ZMod.val fv1[5]
+    set b16 := ZMod.val fv1[6]
+    set b17 := ZMod.val fv1[7]
+    set b20:= ZMod.val fv2[0]
+    set b21 := ZMod.val fv2[1]
+    set b22 := ZMod.val fv2[2]
+    set b23 := ZMod.val fv2[3]
+    set b24 := ZMod.val fv2[4]
+    set b25 := ZMod.val fv2[5]
+    set b26 := ZMod.val fv2[6]
+    set b27 := ZMod.val fv2[7]
+    bv_normalize
+    sorry
+    --bv_decide
+    exact h1_1
+    --- range analysis tactic
+    try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
+    try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
+
+
+    #eval (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) *
+      (1 * 1 + 1 * 1) *
+    (1 * 1 + 1 * 1)

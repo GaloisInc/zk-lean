@@ -47,6 +47,7 @@ elab_rules : tactic
     (← `(Nat.mul_le_mul), "Nat.mul_le_mul"),
   ]
   let mut first_lemma := true
+  let mut random := false
   while progress do
     progress := false
     let goals ← getGoals
@@ -64,11 +65,11 @@ elab_rules : tactic
        -- Focus on one goal at a time
       setGoals [g]
       let goalType ← g.getType
-      logInfo m!"🧪 Solving goal {g}"
+      --logInfo m!"🧪 Solving goal {g}"
       let mut applied := false
       for hName in hyps do
           unless applied do
-          logInfo m!"🧪 Trying hypothesis {hName}"
+          --logInfo m!"🧪 Trying hypothesis {hName}"
           try
         let subgoals ← g.withContext do
           let lctx ← getLCtx
@@ -82,7 +83,8 @@ elab_rules : tactic
         handled := true
         progress := true
       catch err =>
-        logInfo m!"❌ Failed to apply {hName}: {← err.toMessageData.toString}"
+        random := false
+        --logInfo m!"❌ Failed to apply {hName}: {← err.toMessageData.toString}"
       let (fn, args) := goalType.getAppFnArgs
       if !applied && args.size > 3 then
         let g ← getMainGoal
@@ -90,8 +92,8 @@ elab_rules : tactic
         let (fn, args) := goalType.getAppFnArgs
         let unfolded := ← withTransparency .reducible (whnf args[2]!) -- ✅ still allowed here
         let fn3 := unfolded.getAppFn
-        logInfo m!"SOS: looking at {args}"
-        logInfo m!"SOS: looking at {fn3}"
+        --logInfo m!"SOS: looking at {args}"
+       --logInfo m!"SOS: looking at {fn3}"
         let mut lemmaMatch := none
         if (first_lemma) then
           first_lemma := false
@@ -122,24 +124,32 @@ elab_rules : tactic
         match lemmaMatch with
         | some (name, stx) =>
             try
-              logInfo m!"Looking at lemma {name}"
+              --logInfo m!"Looking at lemma {name}"
               let e ← elabTerm stx goalType
               let subgoals ← g.apply e
-              logInfo m!"✅ Applied lemma {name} to goal {← PrettyPrinter.ppExpr goalType}"
+              --logInfo m!"✅ Applied lemma {name} to goal {← PrettyPrinter.ppExpr goalType}"
               updatedGoals := updatedGoals ++ subgoals
               handled := true
               progress := true
               applied := true
             catch err =>
-              logInfo m!"❌ Failed to apply lemma {name} to goal {← PrettyPrinter.ppExpr goalType}: {← err.toMessageData.toString}"
+              random := false
+              --logInfo m!"❌ Failed to apply lemma {name} to goal {← PrettyPrinter.ppExpr goalType}: {← err.toMessageData.toString}"
         | none =>
-            logInfo m!"❌ Failed to find a lemma for {fn} and args {args}"
+            random := false
+            --logInfo m!"❌ Failed to find a lemma for {fn} and args {args}"
       if not applied then
         try
           evalTactic (← `(tactic| norm_num))
           if ← g.isAssigned then
-            logInfo m!"✅ Solved goal {g} using norm_num"
-            progress := true
+            let remaining ← getUnsolvedGoals
+            if remaining.contains g then
+              logInfo m!"➖ norm_num modified goal {g}, but did not fully solve it"
+            else
+              logInfo m!"✅ Fully solved goal {g} using norm_num"
+              updatedGoals := updatedGoals ++ [g]
+              applied := true
+              handled := true
           else
             logInfo m!"❌ did not solve the goal? {g}"
             updatedGoals := updatedGoals ++ [g]
