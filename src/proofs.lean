@@ -15,6 +15,7 @@ import Std.Tactic.BVDecide
 import Mathlib.Tactic.Linarith
 import ZkLean.valify
 import ZkLean.range_analysis
+import ZkLean.bvify
 
 
 
@@ -27,7 +28,7 @@ open Lean Meta Elab Term
 open Std
 
 
-def bool_to_bv (b: Bool) : (BitVec 8) := if b == true then  0 else 1
+def bool_to_bv (b: Bool) : (BitVec 8) := if b == true then 1 else 0
 --if b == false then 1
 
 instance : Fact (Nat.Prime 4139) := by sorry
@@ -534,15 +535,32 @@ lemma add_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f
     valify
     simp
     rw [Nat.mod_eq_of_lt]
-    sorry
+    bvify
+    unfold map_f_to_bv at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
+    dsimp at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
+    split_ifs at h2 h3 h4 h5
+    split_ifs at h6 h7 h8 h9
+    split_ifs at h10 h11 h12 h13
+    split_ifs at h14 h15 h16 h17
+    simp at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
+    unfold bool_to_bv at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
+    set a := foutput.val
+    set b10:= ZMod.val fv1[0]
+    set b11 := ZMod.val fv1[1]
+    set b12 := ZMod.val fv1[2]
+    set b13 := ZMod.val fv1[3]
+    set b14 := ZMod.val fv1[4]
+    set b15 := ZMod.val fv1[5]
+    set b16 := ZMod.val fv1[6]
+    set b17 := ZMod.val fv1[7]
+    set b20:= ZMod.val fv2[0]
+    set b21 := ZMod.val fv2[1]
+    set b22 := ZMod.val fv2[2]
+    set b23 := ZMod.val fv2[3]
+    set b24 := ZMod.val fv2[4]
+    set b25 := ZMod.val fv2[5]
+    set b26 := ZMod.val fv2[6]
+    set b27 := ZMod.val fv2[7]
+    bv_normalize
+    bv_decide
     try_apply_lemma_hyps [h2_le, h3_le, h4_le, h5_le, h6_le, h7_le, h8_le, h9_le, h10_le, h11_le, h12_le, h13_le, h14_le, h15_le, h16_le, h17_le, h16]
-
-
-
-
-
-
-
-
-
-    sorry
