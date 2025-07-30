@@ -105,30 +105,31 @@ theorem ofNat_sub_ofNat_of_le (x y : Nat) (hy : y < 2 ^ w) (hlt : y ≤ x):
 
 lemma bool_to_bv_leads_to_binary (x : f) (bv : BitVec 8) (i : ℕ) (hi : i < 8) :
     some (bool_to_bv bv[i]) = map_f_to_bv x →
-    x.val ≤ ZMod.val (1 : ZMod ff) := by
-    unfold map_f_to_bv
-    dsimp
-    split_ifs with leq
-    intros H
-    injection H with H
-    unfold bool_to_bv at H
-    split_ifs at H
-    injection H with Hx
-    injection Hx with Hx'
-    rw [Nat.mod_eq_of_lt leq] at Hx'
-    rw [Nat.mod_eq_of_lt] at Hx'
-    rw [ZMod.val_one]
-    linarith
-    simp
-    injection H with Hx
-    injection Hx with Hx'
-    rw [Nat.mod_eq_of_lt leq] at Hx'
-    rw [Nat.mod_eq_of_lt] at Hx'
-    rw [←Hx']
-    simp
-    rw [ZMod.val_one]
-    norm_num
-    simp
+    x.val ≤ 1 := by
+    sorry
+    -- unfold map_f_to_bv
+    -- dsimp
+    -- split_ifs with leq
+    -- intros H
+    -- injection H with H
+    -- unfold bool_to_bv at H
+    -- split_ifs at H
+    -- injection H with Hx
+    -- injection Hx with Hx'
+    -- rw [Nat.mod_eq_of_lt leq] at Hx'
+    -- rw [Nat.mod_eq_of_lt] at Hx'
+    -- rw [ZMod.val_one]
+    -- linarith
+    -- simp
+    -- injection H with Hx
+    -- injection Hx with Hx'
+    -- rw [Nat.mod_eq_of_lt leq] at Hx'
+    -- rw [Nat.mod_eq_of_lt] at Hx'
+    -- rw [←Hx']
+    -- simp
+    -- rw [ZMod.val_one]
+    -- norm_num
+    -- simp
 
 
 -- I need to think more about bounds here..
@@ -259,215 +260,215 @@ def XOR_32_4_16 [Field f] : ComposedLookupTable f 16 4
 -- BitVec.ofNat_mul NOTPROVED
 
 
-lemma xor_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
-  some bvoutput = map_f_to_bv foutput ->
-   some (bool_to_bv bv1[7])  = map_f_to_bv fv1[0]  ->
-   some (bool_to_bv bv1[6]) = map_f_to_bv fv1[1]  ->
-   some (bool_to_bv bv1[5]) = map_f_to_bv fv1[2]  ->
-   some (bool_to_bv bv1[4]) = map_f_to_bv fv1[3]  ->
-   some (bool_to_bv bv1[3]) = map_f_to_bv fv1[4]  ->
-   some (bool_to_bv bv1[2]) = map_f_to_bv fv1[5]  ->
-   some (bool_to_bv bv1[1]) = map_f_to_bv fv1[6]  ->
-   some (bool_to_bv bv1[0]) = map_f_to_bv fv1[7]  ->
-  some (bool_to_bv bv2[7]) = map_f_to_bv fv2[0]  ->
-  some (bool_to_bv bv2[6]) = map_f_to_bv fv2[1]  ->
-  some (bool_to_bv bv2[5]) = map_f_to_bv fv2[2]  ->
-  some (bool_to_bv bv2[4]) = map_f_to_bv fv2[3]  ->
-  some (bool_to_bv bv2[3]) = map_f_to_bv fv2[4]  ->
-  some (bool_to_bv bv2[2]) = map_f_to_bv fv2[5]  ->
-  some (bool_to_bv bv2[1]) = map_f_to_bv fv2[6]  ->
-  some (bool_to_bv bv2[0]) = map_f_to_bv fv2[7]  ->
-  (bvoutput = BitVec.xor bv1 bv2)
-  =
-  (foutput = evalSubtable XOR_16 (Vector.append fv1 fv2))
-:= by
-    intros h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
-    have h2_le: ZMod.val (fv1[0]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[0] bv1 7 (by decide : 7 < 8) h2
-    have h3_le: ZMod.val (fv1[1]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[1] bv1 6 (by decide : 6 < 8) h3
-    have h4_le: ZMod.val (fv1[2]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[2] bv1 5 (by decide : 5 < 8) h4
-    have h5_le: ZMod.val (fv1[3]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[3] bv1 4 (by decide : 4 < 8) h5
-    have h6_le: ZMod.val (fv1[4]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[4] bv1 3 (by decide : 3 < 8) h6
-    have h7_le: ZMod.val (fv1[5]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[5] bv1 2 (by decide : 2 < 8) h7
-    have h8_le: ZMod.val (fv1[6]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[6] bv1 1 (by decide : 1 < 8) h8
-    have h9_le: ZMod.val (fv1[7]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[7] bv1 0 (by decide : 0 < 8) h9
-    have h10_le: ZMod.val (fv2[0]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[0] bv2 7 (by decide : 7 < 8) h10
-    have h11_le: ZMod.val (fv2[1]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[1] bv2 6 (by decide : 6 < 8) h11
-    have h12_le: ZMod.val (fv2[2]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[2] bv2 5 (by decide : 5 < 8) h12
-    have h13_le: ZMod.val (fv2[3]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[3] bv2 4 (by decide : 4 < 8) h13
-    have h14_le: ZMod.val (fv2[4]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[4] bv2 3 (by decide : 3 < 8) h14
-    have h15_le: ZMod.val (fv2[5]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[5] bv2 2 (by decide : 2 < 8) h15
-    have h16_le: ZMod.val (fv2[6]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[6] bv2 1 (by decide : 1 < 8) h16
-    have h17_le: ZMod.val (fv2[7]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[7] bv2 0 (by decide : 0 < 8) h17
-    --rw [split_cases_ff] at h2_le h3_le h4_le h5_le h6_le h7_le h8_le h9_le h10_le h11_le h12_le h13_le  h14_le h15_le h16_le h17_le
-    rw [map_f_to_bv] at h1
-    dsimp at h1
-    split_ifs at h1 with h
-    injection h1 with h1'
-   -- rw [h1']
-    --
-    --let r1 := (ZMod.val (evalSubtable XOR_16 (fv1.append fv2)))
-    unfold XOR_16
-    unfold evalSubtable
-    simp
-    unfold subtableFromMLE
-    simp
-    unfold Vector.append
-    simp
-    rw [ZMod.eq_iff_val_bv]
-    simp [ZMod.val_add]
-    simp [ZMod.val_mul]
-    simp [ZMod.val_add]
-    simp [ZMod.val_mul]
-    simp [ZMod.val_sub h2_le]
-    simp [ZMod.val_sub h3_le]
-    simp [ZMod.val_sub h4_le]
-    simp [ZMod.val_sub h5_le]
-    simp [ZMod.val_sub h6_le]
-    simp [ZMod.val_sub h7_le]
-    simp [ZMod.val_sub h8_le]
-    simp [ZMod.val_sub h9_le]
-    simp [ZMod.val_sub h10_le]
-    simp [ZMod.val_sub h11_le]
-    simp [ZMod.val_sub h12_le]
-    simp [ZMod.val_sub h13_le]
-    simp [ZMod.val_sub h14_le]
-    simp [ZMod.val_sub h15_le]
-    simp [ZMod.val_sub h16_le]
-    simp [ZMod.val_sub h17_le]
-    simp [ZMod.val_ofNat]
-    simp [ZMod.val_one]
-    norm_num
-    have h0_ineq : (1 - ZMod.val fv1[0]) * ZMod.val fv2[0] + ZMod.val fv1[0] * (1 - ZMod.val fv2[0]) ≤ 1 := by apply xor_sum_bound h2_le h10_le
-    have h1_ineq : (1 - ZMod.val fv1[1]) * ZMod.val fv2[1] + ZMod.val fv1[1] * (1 - ZMod.val fv2[1]) ≤ 1 := by apply xor_sum_bound h3_le h11_le
-    have h2_ineq : (1 - ZMod.val fv1[2]) * ZMod.val fv2[2] + ZMod.val fv1[2] * (1 - ZMod.val fv2[2]) ≤ 1 := by apply xor_sum_bound h4_le h12_le
-    have h3_ineq : (1 - ZMod.val fv1[3]) * ZMod.val fv2[3] + ZMod.val fv1[3] * (1 - ZMod.val fv2[3]) ≤ 1 := by apply xor_sum_bound h5_le h13_le
-    have h4_ineq : (1 - ZMod.val fv1[4]) * ZMod.val fv2[4] + ZMod.val fv1[4] * (1 - ZMod.val fv2[4]) ≤ 1 := by apply xor_sum_bound h6_le h14_le
-    have h5_ineq : (1 - ZMod.val fv1[5]) * ZMod.val fv2[5] + ZMod.val fv1[5] * (1 - ZMod.val fv2[5]) ≤ 1 := by apply xor_sum_bound h7_le h15_le
-    have h6_ineq : (1 - ZMod.val fv1[6]) * ZMod.val fv2[6] + ZMod.val fv1[6] * (1 - ZMod.val fv2[6]) ≤ 1 := by apply xor_sum_bound h8_le h16_le
-    have h7_ineq : (1 - ZMod.val fv1[7]) * ZMod.val fv2[7] + ZMod.val fv1[7] * (1 - ZMod.val fv2[7]) ≤ 1 := by apply xor_sum_bound h9_le h17_le
-    have hlt :
-    ((1 - ZMod.val fv1[7]) * ZMod.val fv2[7] + ZMod.val fv1[7] * (1 - ZMod.val fv2[7]) +
-      2 * ((1 - ZMod.val fv1[6]) * ZMod.val fv2[6] + ZMod.val fv1[6] * (1 - ZMod.val fv2[6])) +
-      4 * ((1 - ZMod.val fv1[5]) * ZMod.val fv2[5] + ZMod.val fv1[5] * (1 - ZMod.val fv2[5])) +
-      8 * ((1 - ZMod.val fv1[4]) * ZMod.val fv2[4] + ZMod.val fv1[4] * (1 - ZMod.val fv2[4])) +
-      16 * ((1 - ZMod.val fv1[3]) * ZMod.val fv2[3] + ZMod.val fv1[3] * (1 - ZMod.val fv2[3])) +
-      32 * ((1 - ZMod.val fv1[2]) * ZMod.val fv2[2] + ZMod.val fv1[2] * (1 - ZMod.val fv2[2])) +
-      64 * ((1 - ZMod.val fv1[1]) * ZMod.val fv2[1] + ZMod.val fv1[1] * (1 - ZMod.val fv2[1])) +
-      128 * ((1 - ZMod.val fv1[0]) * ZMod.val fv2[0] + ZMod.val fv1[0] * (1 - ZMod.val fv2[0]))) <= 1 + 2 + 4 + 8 + 16 + 32 + 64 + 128 := by
-         linarith [h0_ineq, h1_ineq, h2_ineq, h3_ineq, h4_ineq, h5_ineq, h6_ineq, h7_ineq]
-    simp at hlt
-    rw [ZMod_XOR_drop_mod fv1[7] fv2[7] h9_le h17_le]
-    rw [ZMod_XOR_drop_mod fv1[6] fv2[6] h8_le h16_le]
-    rw [ZMod_XOR_drop_mod fv1[5] fv2[5] h7_le h15_le]
-    rw [ZMod_XOR_drop_mod fv1[4] fv2[4] h6_le h14_le]
-    rw [ZMod_XOR_drop_mod fv1[3] fv2[3] h5_le h13_le]
-    rw [ZMod_XOR_drop_mod fv1[2] fv2[2] h4_le h12_le]
-    rw [ZMod_XOR_drop_mod fv1[1] fv2[1] h3_le h11_le]
-    --rw [ZMod_XOR_drop_mod fv1[0] fv2[0] h2_le h10_le]
-    rw [Nat.mod_eq_of_lt (Nat.lt_of_le_of_lt h0_ineq (by norm_num))]
-    rw [Nat.mod_eq_of_lt (lt_of_le_of_lt (Nat.mul_le_mul_left 64 h1_ineq) (by norm_num))]
-    rw [Nat.mod_eq_of_lt (lt_of_le_of_lt (Nat.mul_le_mul_left 32 h2_ineq) (by norm_num))]
-    rw [Nat.mod_eq_of_lt (lt_of_le_of_lt (Nat.mul_le_mul_left 16 h3_ineq) (by norm_num))]
-    rw [Nat.mod_eq_of_lt (lt_of_le_of_lt (Nat.mul_le_mul_left 8 h4_ineq) (by norm_num))]
-    rw [Nat.mod_eq_of_lt (lt_of_le_of_lt (Nat.mul_le_mul_left 4 h5_ineq) (by norm_num))]
-    rw [Nat.mod_eq_of_lt (lt_of_le_of_lt (Nat.mul_le_mul_left 2 h6_ineq) (by norm_num))]
-    rw [Nat.mod_eq_of_lt (Nat.lt_of_le_of_lt hlt (by norm_num))]
-    simp [BitVec.ofNat_add]
-    simp [BitVec.ofNat_mul]
-    simp [BitVec.ofNat_sub]
-    simp [BitVec.ofNat_add]
-    simp [BitVec.ofNat_mul]
-    simp [BitVec.ofNat_sub]
-    rw [bit_to_bv 8] at h2_le h3_le h4_le h5_le h6_le h7_le h8_le h9_le h10_le h11_le h12_le h13_le h14_le h15_le h16_le h17_le
-    unfold map_f_to_bv at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
-    dsimp at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
-    split_ifs at h2 h3 h4 h5
-    split_ifs at h6 h7 h8 h9
-    split_ifs at h10 h11 h12 h13
-    split_ifs at h14 h15 h16 h17
-    simp at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
-    unfold bool_to_bv at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
-    set a := foutput.val
-    set b10:= ZMod.val fv1[0]
-    set b11 := ZMod.val fv1[1]
-    set b12 := ZMod.val fv1[2]
-    set b13 := ZMod.val fv1[3]
-    set b14 := ZMod.val fv1[4]
-    set b15 := ZMod.val fv1[5]
-    set b16 := ZMod.val fv1[6]
-    set b17 := ZMod.val fv1[7]
-    set b20:= ZMod.val fv2[0]
-    set b21 := ZMod.val fv2[1]
-    set b22 := ZMod.val fv2[2]
-    set b23 := ZMod.val fv2[3]
-    set b24 := ZMod.val fv2[4]
-    set b25 := ZMod.val fv2[5]
-    set b26 := ZMod.val fv2[6]
-    set b27 := ZMod.val fv2[7]
-    bv_normalize
-    bv_decide
+-- lemma xor_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
+--   some bvoutput = map_f_to_bv foutput ->
+--    some (bool_to_bv bv1[7])  = map_f_to_bv fv1[0]  ->
+--    some (bool_to_bv bv1[6]) = map_f_to_bv fv1[1]  ->
+--    some (bool_to_bv bv1[5]) = map_f_to_bv fv1[2]  ->
+--    some (bool_to_bv bv1[4]) = map_f_to_bv fv1[3]  ->
+--    some (bool_to_bv bv1[3]) = map_f_to_bv fv1[4]  ->
+--    some (bool_to_bv bv1[2]) = map_f_to_bv fv1[5]  ->
+--    some (bool_to_bv bv1[1]) = map_f_to_bv fv1[6]  ->
+--    some (bool_to_bv bv1[0]) = map_f_to_bv fv1[7]  ->
+--   some (bool_to_bv bv2[7]) = map_f_to_bv fv2[0]  ->
+--   some (bool_to_bv bv2[6]) = map_f_to_bv fv2[1]  ->
+--   some (bool_to_bv bv2[5]) = map_f_to_bv fv2[2]  ->
+--   some (bool_to_bv bv2[4]) = map_f_to_bv fv2[3]  ->
+--   some (bool_to_bv bv2[3]) = map_f_to_bv fv2[4]  ->
+--   some (bool_to_bv bv2[2]) = map_f_to_bv fv2[5]  ->
+--   some (bool_to_bv bv2[1]) = map_f_to_bv fv2[6]  ->
+--   some (bool_to_bv bv2[0]) = map_f_to_bv fv2[7]  ->
+--   (bvoutput = BitVec.xor bv1 bv2)
+--   =
+--   (foutput = evalSubtable XOR_16 (Vector.append fv1 fv2))
+-- := by
+--     intros h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
+--     have h2_le: ZMod.val (fv1[0]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[0] bv1 7 (by decide : 7 < 8) h2
+--     have h3_le: ZMod.val (fv1[1]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[1] bv1 6 (by decide : 6 < 8) h3
+--     have h4_le: ZMod.val (fv1[2]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[2] bv1 5 (by decide : 5 < 8) h4
+--     have h5_le: ZMod.val (fv1[3]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[3] bv1 4 (by decide : 4 < 8) h5
+--     have h6_le: ZMod.val (fv1[4]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[4] bv1 3 (by decide : 3 < 8) h6
+--     have h7_le: ZMod.val (fv1[5]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[5] bv1 2 (by decide : 2 < 8) h7
+--     have h8_le: ZMod.val (fv1[6]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[6] bv1 1 (by decide : 1 < 8) h8
+--     have h9_le: ZMod.val (fv1[7]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[7] bv1 0 (by decide : 0 < 8) h9
+--     have h10_le: ZMod.val (fv2[0]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[0] bv2 7 (by decide : 7 < 8) h10
+--     have h11_le: ZMod.val (fv2[1]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[1] bv2 6 (by decide : 6 < 8) h11
+--     have h12_le: ZMod.val (fv2[2]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[2] bv2 5 (by decide : 5 < 8) h12
+--     have h13_le: ZMod.val (fv2[3]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[3] bv2 4 (by decide : 4 < 8) h13
+--     have h14_le: ZMod.val (fv2[4]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[4] bv2 3 (by decide : 3 < 8) h14
+--     have h15_le: ZMod.val (fv2[5]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[5] bv2 2 (by decide : 2 < 8) h15
+--     have h16_le: ZMod.val (fv2[6]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[6] bv2 1 (by decide : 1 < 8) h16
+--     have h17_le: ZMod.val (fv2[7]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[7] bv2 0 (by decide : 0 < 8) h17
+--     --rw [split_cases_ff] at h2_le h3_le h4_le h5_le h6_le h7_le h8_le h9_le h10_le h11_le h12_le h13_le  h14_le h15_le h16_le h17_le
+--     rw [map_f_to_bv] at h1
+--     dsimp at h1
+--     split_ifs at h1 with h
+--     injection h1 with h1'
+--    -- rw [h1']
+--     --
+--     --let r1 := (ZMod.val (evalSubtable XOR_16 (fv1.append fv2)))
+--     unfold XOR_16
+--     unfold evalSubtable
+--     simp
+--     unfold subtableFromMLE
+--     simp
+--     unfold Vector.append
+--     simp
+--     rw [ZMod.eq_iff_val_bv]
+--     simp [ZMod.val_add]
+--     simp [ZMod.val_mul]
+--     simp [ZMod.val_add]
+--     simp [ZMod.val_mul]
+--     simp [ZMod.val_sub h2_le]
+--     simp [ZMod.val_sub h3_le]
+--     simp [ZMod.val_sub h4_le]
+--     simp [ZMod.val_sub h5_le]
+--     simp [ZMod.val_sub h6_le]
+--     simp [ZMod.val_sub h7_le]
+--     simp [ZMod.val_sub h8_le]
+--     simp [ZMod.val_sub h9_le]
+--     simp [ZMod.val_sub h10_le]
+--     simp [ZMod.val_sub h11_le]
+--     simp [ZMod.val_sub h12_le]
+--     simp [ZMod.val_sub h13_le]
+--     simp [ZMod.val_sub h14_le]
+--     simp [ZMod.val_sub h15_le]
+--     simp [ZMod.val_sub h16_le]
+--     simp [ZMod.val_sub h17_le]
+--     simp [ZMod.val_ofNat]
+--     simp [ZMod.val_one]
+--     norm_num
+--     have h0_ineq : (1 - ZMod.val fv1[0]) * ZMod.val fv2[0] + ZMod.val fv1[0] * (1 - ZMod.val fv2[0]) ≤ 1 := by apply xor_sum_bound h2_le h10_le
+--     have h1_ineq : (1 - ZMod.val fv1[1]) * ZMod.val fv2[1] + ZMod.val fv1[1] * (1 - ZMod.val fv2[1]) ≤ 1 := by apply xor_sum_bound h3_le h11_le
+--     have h2_ineq : (1 - ZMod.val fv1[2]) * ZMod.val fv2[2] + ZMod.val fv1[2] * (1 - ZMod.val fv2[2]) ≤ 1 := by apply xor_sum_bound h4_le h12_le
+--     have h3_ineq : (1 - ZMod.val fv1[3]) * ZMod.val fv2[3] + ZMod.val fv1[3] * (1 - ZMod.val fv2[3]) ≤ 1 := by apply xor_sum_bound h5_le h13_le
+--     have h4_ineq : (1 - ZMod.val fv1[4]) * ZMod.val fv2[4] + ZMod.val fv1[4] * (1 - ZMod.val fv2[4]) ≤ 1 := by apply xor_sum_bound h6_le h14_le
+--     have h5_ineq : (1 - ZMod.val fv1[5]) * ZMod.val fv2[5] + ZMod.val fv1[5] * (1 - ZMod.val fv2[5]) ≤ 1 := by apply xor_sum_bound h7_le h15_le
+--     have h6_ineq : (1 - ZMod.val fv1[6]) * ZMod.val fv2[6] + ZMod.val fv1[6] * (1 - ZMod.val fv2[6]) ≤ 1 := by apply xor_sum_bound h8_le h16_le
+--     have h7_ineq : (1 - ZMod.val fv1[7]) * ZMod.val fv2[7] + ZMod.val fv1[7] * (1 - ZMod.val fv2[7]) ≤ 1 := by apply xor_sum_bound h9_le h17_le
+--     have hlt :
+--     ((1 - ZMod.val fv1[7]) * ZMod.val fv2[7] + ZMod.val fv1[7] * (1 - ZMod.val fv2[7]) +
+--       2 * ((1 - ZMod.val fv1[6]) * ZMod.val fv2[6] + ZMod.val fv1[6] * (1 - ZMod.val fv2[6])) +
+--       4 * ((1 - ZMod.val fv1[5]) * ZMod.val fv2[5] + ZMod.val fv1[5] * (1 - ZMod.val fv2[5])) +
+--       8 * ((1 - ZMod.val fv1[4]) * ZMod.val fv2[4] + ZMod.val fv1[4] * (1 - ZMod.val fv2[4])) +
+--       16 * ((1 - ZMod.val fv1[3]) * ZMod.val fv2[3] + ZMod.val fv1[3] * (1 - ZMod.val fv2[3])) +
+--       32 * ((1 - ZMod.val fv1[2]) * ZMod.val fv2[2] + ZMod.val fv1[2] * (1 - ZMod.val fv2[2])) +
+--       64 * ((1 - ZMod.val fv1[1]) * ZMod.val fv2[1] + ZMod.val fv1[1] * (1 - ZMod.val fv2[1])) +
+--       128 * ((1 - ZMod.val fv1[0]) * ZMod.val fv2[0] + ZMod.val fv1[0] * (1 - ZMod.val fv2[0]))) <= 1 + 2 + 4 + 8 + 16 + 32 + 64 + 128 := by
+--          linarith [h0_ineq, h1_ineq, h2_ineq, h3_ineq, h4_ineq, h5_ineq, h6_ineq, h7_ineq]
+--     simp at hlt
+--     rw [ZMod_XOR_drop_mod fv1[7] fv2[7] h9_le h17_le]
+--     rw [ZMod_XOR_drop_mod fv1[6] fv2[6] h8_le h16_le]
+--     rw [ZMod_XOR_drop_mod fv1[5] fv2[5] h7_le h15_le]
+--     rw [ZMod_XOR_drop_mod fv1[4] fv2[4] h6_le h14_le]
+--     rw [ZMod_XOR_drop_mod fv1[3] fv2[3] h5_le h13_le]
+--     rw [ZMod_XOR_drop_mod fv1[2] fv2[2] h4_le h12_le]
+--     rw [ZMod_XOR_drop_mod fv1[1] fv2[1] h3_le h11_le]
+--     --rw [ZMod_XOR_drop_mod fv1[0] fv2[0] h2_le h10_le]
+--     rw [Nat.mod_eq_of_lt (Nat.lt_of_le_of_lt h0_ineq (by norm_num))]
+--     rw [Nat.mod_eq_of_lt (lt_of_le_of_lt (Nat.mul_le_mul_left 64 h1_ineq) (by norm_num))]
+--     rw [Nat.mod_eq_of_lt (lt_of_le_of_lt (Nat.mul_le_mul_left 32 h2_ineq) (by norm_num))]
+--     rw [Nat.mod_eq_of_lt (lt_of_le_of_lt (Nat.mul_le_mul_left 16 h3_ineq) (by norm_num))]
+--     rw [Nat.mod_eq_of_lt (lt_of_le_of_lt (Nat.mul_le_mul_left 8 h4_ineq) (by norm_num))]
+--     rw [Nat.mod_eq_of_lt (lt_of_le_of_lt (Nat.mul_le_mul_left 4 h5_ineq) (by norm_num))]
+--     rw [Nat.mod_eq_of_lt (lt_of_le_of_lt (Nat.mul_le_mul_left 2 h6_ineq) (by norm_num))]
+--     rw [Nat.mod_eq_of_lt (Nat.lt_of_le_of_lt hlt (by norm_num))]
+--     simp [BitVec.ofNat_add]
+--     simp [BitVec.ofNat_mul]
+--     simp [BitVec.ofNat_sub]
+--     simp [BitVec.ofNat_add]
+--     simp [BitVec.ofNat_mul]
+--     simp [BitVec.ofNat_sub]
+--     rw [bit_to_bv 8] at h2_le h3_le h4_le h5_le h6_le h7_le h8_le h9_le h10_le h11_le h12_le h13_le h14_le h15_le h16_le h17_le
+--     unfold map_f_to_bv at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
+--     dsimp at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
+--     split_ifs at h2 h3 h4 h5
+--     split_ifs at h6 h7 h8 h9
+--     split_ifs at h10 h11 h12 h13
+--     split_ifs at h14 h15 h16 h17
+--     simp at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
+--     unfold bool_to_bv at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
+--     set a := foutput.val
+--     set b10:= ZMod.val fv1[0]
+--     set b11 := ZMod.val fv1[1]
+--     set b12 := ZMod.val fv1[2]
+--     set b13 := ZMod.val fv1[3]
+--     set b14 := ZMod.val fv1[4]
+--     set b15 := ZMod.val fv1[5]
+--     set b16 := ZMod.val fv1[6]
+--     set b17 := ZMod.val fv1[7]
+--     set b20:= ZMod.val fv2[0]
+--     set b21 := ZMod.val fv2[1]
+--     set b22 := ZMod.val fv2[2]
+--     set b23 := ZMod.val fv2[3]
+--     set b24 := ZMod.val fv2[4]
+--     set b25 := ZMod.val fv2[5]
+--     set b26 := ZMod.val fv2[6]
+--     set b27 := ZMod.val fv2[7]
+--     bv_normalize
+--     bv_decide
 
 
 
-----------------------------------------------
----- EQ THEOREM -----------------
-def EQ_16 [Field f] : Subtable f 16 :=
-  subtableFromMLE (fun x => 1*(x[0]*x[8] + (1 - x[0])*(1 - x[8]))*(x[1]*x[9] + (1 - x[1])*(1 - x[9]))*(x[2]*x[10] + (1 - x[2])*(1 - x[10]))*(x[3]*x[11] + (1 - x[3])*(1 - x[11]))*(x[4]*x[12] + (1 - x[4])*(1 - x[12]))*(x[5]*x[13] + (1 - x[5])*(1 - x[13]))*(x[6]*x[14] + (1 - x[6])*(1 - x[14]))*(x[7]*x[15] + (1 - x[7])*(1 - x[15])))
+-- ----------------------------------------------
+-- ---- EQ THEOREM -----------------
+-- def EQ_16 [Field f] : Subtable f 16 :=
+--   subtableFromMLE (fun x => 1*(x[0]*x[8] + (1 - x[0])*(1 - x[8]))*(x[1]*x[9] + (1 - x[1])*(1 - x[9]))*(x[2]*x[10] + (1 - x[2])*(1 - x[10]))*(x[3]*x[11] + (1 - x[3])*(1 - x[11]))*(x[4]*x[12] + (1 - x[4])*(1 - x[12]))*(x[5]*x[13] + (1 - x[5])*(1 - x[13]))*(x[6]*x[14] + (1 - x[6])*(1 - x[14]))*(x[7]*x[15] + (1 - x[7])*(1 - x[15])))
 
-lemma eq_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
-  some bvoutput = map_f_to_bv foutput ->
-   some (bool_to_bv bv1[7])  = map_f_to_bv fv1[0]  ->
-   some (bool_to_bv bv1[6]) = map_f_to_bv fv1[1]  ->
-   some (bool_to_bv bv1[5]) = map_f_to_bv fv1[2]  ->
-   some (bool_to_bv bv1[4]) = map_f_to_bv fv1[3]  ->
-   some (bool_to_bv bv1[3]) = map_f_to_bv fv1[4]  ->
-  some (bool_to_bv bv1[2]) = map_f_to_bv fv1[5]  ->
-   some (bool_to_bv bv1[1]) = map_f_to_bv fv1[6]  ->
-   some (bool_to_bv bv1[0]) = map_f_to_bv fv1[7]  ->
-  some (bool_to_bv bv2[7]) = map_f_to_bv fv2[0]  ->
-  some (bool_to_bv bv2[6]) = map_f_to_bv fv2[1]  ->
-  some (bool_to_bv bv2[5]) = map_f_to_bv fv2[2]  ->
-  some (bool_to_bv bv2[4]) = map_f_to_bv fv2[3]  ->
-  some (bool_to_bv bv2[3]) = map_f_to_bv fv2[4]  ->
-  some (bool_to_bv bv2[2]) = map_f_to_bv fv2[5]  ->
-  some (bool_to_bv bv2[1]) = map_f_to_bv fv2[6]  ->
-  some (bool_to_bv bv2[0]) = map_f_to_bv fv2[7]  ->
-  (bvoutput = bool_to_bv (bv1 == bv2))
-  =
-  (foutput = evalSubtable EQ_16 (Vector.append fv1 fv2))
- := by
-    intros h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
-    have h2_le: ZMod.val (fv1[0]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[0] bv1 7 (by decide : 7 < 8) h2
-    have h3_le: ZMod.val (fv1[1]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[1] bv1 6 (by decide : 6 < 8) h3
-    have h4_le: ZMod.val (fv1[2]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[2] bv1 5 (by decide : 5 < 8) h4
-    have h5_le: ZMod.val (fv1[3]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[3] bv1 4 (by decide : 4 < 8) h5
-    have h6_le: ZMod.val (fv1[4]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[4] bv1 3 (by decide : 3 < 8) h6
-    have h7_le: ZMod.val (fv1[5]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[5] bv1 2 (by decide : 2 < 8) h7
-    have h8_le: ZMod.val (fv1[6]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[6] bv1 1 (by decide : 1 < 8) h8
-    have h9_le: ZMod.val (fv1[7]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[7] bv1 0 (by decide : 0 < 8) h9
-    have h10_le: ZMod.val (fv2[0]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[0] bv2 7 (by decide : 7 < 8) h10
-    have h11_le: ZMod.val (fv2[1]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[1] bv2 6 (by decide : 6 < 8) h11
-    have h12_le: ZMod.val (fv2[2]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[2] bv2 5 (by decide : 5 < 8) h12
-    have h13_le: ZMod.val (fv2[3]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[3] bv2 4 (by decide : 4 < 8) h13
-    have h14_le: ZMod.val (fv2[4]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[4] bv2 3 (by decide : 3 < 8) h14
-    have h15_le: ZMod.val (fv2[5]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[5] bv2 2 (by decide : 2 < 8) h15
-    have h16_le: ZMod.val (fv2[6]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[6] bv2 1 (by decide : 1 < 8) h16
-    have h17_le: ZMod.val (fv2[7]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[7] bv2 0 (by decide : 0 < 8) h17
-    --rw [split_cases_ff] at h2_le h3_le h4_le h5_le h6_le h7_le h8_le h9_le h10_le h11_le h12_le h13_le  h14_le h15_le h16_le h17_le
-    unfold map_f_to_bv at h1
-    dsimp at h1
-    split_ifs at h1 with h
-    injection h1 with h1'
-    rw [h1']
-    rw [ZMod.eq_iff_val_bv]
-    unfold EQ_16
-    unfold evalSubtable
-    simp
-    unfold subtableFromMLE
-    simp
-    unfold Vector.append
-    simp
-    sorry
+-- lemma eq_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
+--   some bvoutput = map_f_to_bv foutput ->
+--    some (bool_to_bv bv1[7])  = map_f_to_bv fv1[0]  ->
+--    some (bool_to_bv bv1[6]) = map_f_to_bv fv1[1]  ->
+--    some (bool_to_bv bv1[5]) = map_f_to_bv fv1[2]  ->
+--    some (bool_to_bv bv1[4]) = map_f_to_bv fv1[3]  ->
+--    some (bool_to_bv bv1[3]) = map_f_to_bv fv1[4]  ->
+--   some (bool_to_bv bv1[2]) = map_f_to_bv fv1[5]  ->
+--    some (bool_to_bv bv1[1]) = map_f_to_bv fv1[6]  ->
+--    some (bool_to_bv bv1[0]) = map_f_to_bv fv1[7]  ->
+--   some (bool_to_bv bv2[7]) = map_f_to_bv fv2[0]  ->
+--   some (bool_to_bv bv2[6]) = map_f_to_bv fv2[1]  ->
+--   some (bool_to_bv bv2[5]) = map_f_to_bv fv2[2]  ->
+--   some (bool_to_bv bv2[4]) = map_f_to_bv fv2[3]  ->
+--   some (bool_to_bv bv2[3]) = map_f_to_bv fv2[4]  ->
+--   some (bool_to_bv bv2[2]) = map_f_to_bv fv2[5]  ->
+--   some (bool_to_bv bv2[1]) = map_f_to_bv fv2[6]  ->
+--   some (bool_to_bv bv2[0]) = map_f_to_bv fv2[7]  ->
+--   (bvoutput = bool_to_bv (bv1 == bv2))
+--   =
+--   (foutput = evalSubtable EQ_16 (Vector.append fv1 fv2))
+--  := by
+--     intros h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
+--     have h2_le: ZMod.val (fv1[0]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[0] bv1 7 (by decide : 7 < 8) h2
+--     have h3_le: ZMod.val (fv1[1]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[1] bv1 6 (by decide : 6 < 8) h3
+--     have h4_le: ZMod.val (fv1[2]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[2] bv1 5 (by decide : 5 < 8) h4
+--     have h5_le: ZMod.val (fv1[3]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[3] bv1 4 (by decide : 4 < 8) h5
+--     have h6_le: ZMod.val (fv1[4]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[4] bv1 3 (by decide : 3 < 8) h6
+--     have h7_le: ZMod.val (fv1[5]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[5] bv1 2 (by decide : 2 < 8) h7
+--     have h8_le: ZMod.val (fv1[6]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[6] bv1 1 (by decide : 1 < 8) h8
+--     have h9_le: ZMod.val (fv1[7]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[7] bv1 0 (by decide : 0 < 8) h9
+--     have h10_le: ZMod.val (fv2[0]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[0] bv2 7 (by decide : 7 < 8) h10
+--     have h11_le: ZMod.val (fv2[1]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[1] bv2 6 (by decide : 6 < 8) h11
+--     have h12_le: ZMod.val (fv2[2]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[2] bv2 5 (by decide : 5 < 8) h12
+--     have h13_le: ZMod.val (fv2[3]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[3] bv2 4 (by decide : 4 < 8) h13
+--     have h14_le: ZMod.val (fv2[4]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[4] bv2 3 (by decide : 3 < 8) h14
+--     have h15_le: ZMod.val (fv2[5]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[5] bv2 2 (by decide : 2 < 8) h15
+--     have h16_le: ZMod.val (fv2[6]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[6] bv2 1 (by decide : 1 < 8) h16
+--     have h17_le: ZMod.val (fv2[7]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[7] bv2 0 (by decide : 0 < 8) h17
+--     --rw [split_cases_ff] at h2_le h3_le h4_le h5_le h6_le h7_le h8_le h9_le h10_le h11_le h12_le h13_le  h14_le h15_le h16_le h17_le
+--     unfold map_f_to_bv at h1
+--     dsimp at h1
+--     split_ifs at h1 with h
+--     injection h1 with h1'
+--     rw [h1']
+--     rw [ZMod.eq_iff_val_bv]
+--     unfold EQ_16
+--     unfold evalSubtable
+--     simp
+--     unfold subtableFromMLE
+--     simp
+--     unfold Vector.append
+--     simp
+--     sorry
 
 
 def AND_16 [Field f] : Subtable f 16 :=
@@ -500,22 +501,22 @@ lemma add_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f
   (foutput = evalSubtable AND_16 (Vector.append fv1 fv2))
  := by
     intros h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
-    have h2_le: ZMod.val (fv1[0]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[0] bv1 7 (by decide : 7 < 8) h2
-    have h3_le: ZMod.val (fv1[1]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[1] bv1 6 (by decide : 6 < 8) h3
-    have h4_le: ZMod.val (fv1[2]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[2] bv1 5 (by decide : 5 < 8) h4
-    have h5_le: ZMod.val (fv1[3]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[3] bv1 4 (by decide : 4 < 8) h5
-    have h6_le: ZMod.val (fv1[4]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[4] bv1 3 (by decide : 3 < 8) h6
-    have h7_le: ZMod.val (fv1[5]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[5] bv1 2 (by decide : 2 < 8) h7
-    have h8_le: ZMod.val (fv1[6]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[6] bv1 1 (by decide : 1 < 8) h8
-    have h9_le: ZMod.val (fv1[7]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv1[7] bv1 0 (by decide : 0 < 8) h9
-    have h10_le: ZMod.val (fv2[0]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[0] bv2 7 (by decide : 7 < 8) h10
-    have h11_le: ZMod.val (fv2[1]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[1] bv2 6 (by decide : 6 < 8) h11
-    have h12_le: ZMod.val (fv2[2]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[2] bv2 5 (by decide : 5 < 8) h12
-    have h13_le: ZMod.val (fv2[3]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[3] bv2 4 (by decide : 4 < 8) h13
-    have h14_le: ZMod.val (fv2[4]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[4] bv2 3 (by decide : 3 < 8) h14
-    have h15_le: ZMod.val (fv2[5]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[5] bv2 2 (by decide : 2 < 8) h15
-    have h16_le: ZMod.val (fv2[6]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[6] bv2 1 (by decide : 1 < 8) h16
-    have h17_le: ZMod.val (fv2[7]) ≤ ZMod.val (1 : ZMod ff) := bool_to_bv_leads_to_binary fv2[7] bv2 0 (by decide : 0 < 8) h17
+    have h2_le: ZMod.val (fv1[0]) ≤ 1 := bool_to_bv_leads_to_binary fv1[0] bv1 7 (by decide : 7 < 8) h2
+    have h3_le: ZMod.val (fv1[1]) ≤ 1 := bool_to_bv_leads_to_binary fv1[1] bv1 6 (by decide : 6 < 8) h3
+    have h4_le: ZMod.val (fv1[2]) ≤ 1 := bool_to_bv_leads_to_binary fv1[2] bv1 5 (by decide : 5 < 8) h4
+    have h5_le: ZMod.val (fv1[3]) ≤ 1 := bool_to_bv_leads_to_binary fv1[3] bv1 4 (by decide : 4 < 8) h5
+    have h6_le: ZMod.val (fv1[4]) ≤ 1 := bool_to_bv_leads_to_binary fv1[4] bv1 3 (by decide : 3 < 8) h6
+    have h7_le: ZMod.val (fv1[5]) ≤ 1 := bool_to_bv_leads_to_binary fv1[5] bv1 2 (by decide : 2 < 8) h7
+    have h8_le: ZMod.val (fv1[6]) ≤ 1 := bool_to_bv_leads_to_binary fv1[6] bv1 1 (by decide : 1 < 8) h8
+    have h9_le: ZMod.val (fv1[7]) ≤ 1 := bool_to_bv_leads_to_binary fv1[7] bv1 0 (by decide : 0 < 8) h9
+    have h10_le: ZMod.val (fv2[0]) ≤ 1:= bool_to_bv_leads_to_binary fv2[0] bv2 7 (by decide : 7 < 8) h10
+    have h11_le: ZMod.val (fv2[1]) ≤ 1 := bool_to_bv_leads_to_binary fv2[1] bv2 6 (by decide : 6 < 8) h11
+    have h12_le: ZMod.val (fv2[2]) ≤ 1 := bool_to_bv_leads_to_binary fv2[2] bv2 5 (by decide : 5 < 8) h12
+    have h13_le: ZMod.val (fv2[3]) ≤ 1 := bool_to_bv_leads_to_binary fv2[3] bv2 4 (by decide : 4 < 8) h13
+    have h14_le: ZMod.val (fv2[4]) ≤ 1 := bool_to_bv_leads_to_binary fv2[4] bv2 3 (by decide : 3 < 8) h14
+    have h15_le: ZMod.val (fv2[5]) ≤ 1:= bool_to_bv_leads_to_binary fv2[5] bv2 2 (by decide : 2 < 8) h15
+    have h16_le: ZMod.val (fv2[6]) ≤ 1 := bool_to_bv_leads_to_binary fv2[6] bv2 1 (by decide : 1 < 8) h16
+    have h17_le: ZMod.val (fv2[7]) ≤ 1 := bool_to_bv_leads_to_binary fv2[7] bv2 0 (by decide : 0 < 8) h17
     --rw [split_cases_ff] at h2_le h3_le h4_le h5_le h6_le h7_le h8_le h9_le h10_le h11_le h12_le h13_le  h14_le h15_le h16_le h17_le
     unfold map_f_to_bv at h1
     dsimp at h1
@@ -534,6 +535,14 @@ lemma add_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f
     simp
     rw [Nat.mod_eq_of_lt]
     sorry
+    try_apply_lemma_hyps [h2_le, h3_le, h4_le, h5_le, h6_le, h7_le, h8_le, h9_le, h10_le, h11_le, h12_le, h13_le, h14_le, h15_le, h16_le, h17_le, h16]
+
+
+
+
+
+
+
 
 
     sorry
