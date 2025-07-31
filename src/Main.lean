@@ -498,90 +498,90 @@ theorem constrainEq3Transitive [ZKField f] (a b c:ZKExpr f) (witness: List f) :
 
 ---------------------- SAMPLE XOR CIRCUIT --------------------
 
-def XOR_16 [Field f] : Subtable f 16 :=
-  subtableFromMLE (fun x => 0 + 1*((1 - x[7])*x[15] + x[7]*(1 - x[15])) + 2*((1 - x[6])*x[14] + x[6]*(1 - x[14])) + 4*((1 - x[5])*x[13] + x[5]*(1 - x[13])) + 8*((1 - x[4])*x[12] + x[4]*(1 - x[12])) + 16*((1 - x[3])*x[11] + x[3]*(1 - x[11])) + 32*((1 - x[2])*x[10] + x[2]*(1 - x[10])) + 64*((1 - x[1])*x[9] + x[1]*(1 - x[9])) + 128*((1 - x[0])*x[8] + x[0]*(1 - x[8])))
+-- def XOR_16 [Field f] : Subtable f 16 :=
+--   subtableFromMLE (fun x => 0 + 1*((1 - x[7])*x[15] + x[7]*(1 - x[15])) + 2*((1 - x[6])*x[14] + x[6]*(1 - x[14])) + 4*((1 - x[5])*x[13] + x[5]*(1 - x[13])) + 8*((1 - x[4])*x[12] + x[4]*(1 - x[12])) + 16*((1 - x[3])*x[11] + x[3]*(1 - x[11])) + 32*((1 - x[2])*x[10] + x[2]*(1 - x[10])) + 64*((1 - x[1])*x[9] + x[1]*(1 - x[9])) + 128*((1 - x[0])*x[8] + x[0]*(1 - x[8])))
 
-def XOR_32_4_16 [Field f] : ComposedLookupTable f 16 4
-  := mkComposedLookupTable #[ (XOR_16, 0), (XOR_16, 1), (XOR_16, 2), (XOR_16, 3) ].toVector (fun x => 0 + 1*x[3] + 1*256*x[2] + 1*256*256*x[1] + 1*256*256*256*x[0])
-
-
-
-set_option diagnostics true
-
-def xor_circuit [ZKField f] : ZKBuilder f PUnit := do
-  let a <- Witnessable.witness
-  let b <- Witnessable.witness
-  let aa <- Witnessable.witness
-  let bb <- Witnessable.witness
-  let c <- Witnessable.witness
-  let res <- lookup XOR_32_4_16 #v[a, aa, bb, b]
-  constrainEq res c
-
--- xor circuit
-
-#eval run_circuit xor_circuit default [0, one, one, one, 0]
+-- def XOR_32_4_16 [Field f] : ComposedLookupTable f 16 4
+--   := mkComposedLookupTable #[ (XOR_16, 0), (XOR_16, 1), (XOR_16, 2), (XOR_16, 3) ].toVector (fun x => 0 + 1*x[3] + 1*256*x[2] + 1*256*256*x[1] + 1*256*256*256*x[0])
 
 
 
----------------------- TESTS FOR ADD & SUB --------------------
+-- set_option diagnostics true
+
+-- def xor_circuit [ZKField f] : ZKBuilder f PUnit := do
+--   let a <- Witnessable.witness
+--   let b <- Witnessable.witness
+--   let aa <- Witnessable.witness
+--   let bb <- Witnessable.witness
+--   let c <- Witnessable.witness
+--   let res <- lookup XOR_32_4_16 #v[a, aa, bb, b]
+--   constrainEq res c
+
+-- -- xor circuit
+
+-- #eval run_circuit xor_circuit default [0, one, one, one, 0]
 
 
+
+-- ---------------------- TESTS FOR ADD & SUB --------------------
 
 
 
 
 
-def IDENTITY_16 [Field f] : Subtable f 16 :=
-  subtableFromMLE (fun x => 0 + 1*x[15] + 2*x[14] + 4*x[13] + 8*x[12] + 16*x[11] + 32*x[10] + 64*x[9] + 128*x[8] + 256*x[7] + 512*x[6] + 1024*x[5] + 2048*x[4] + 4096*x[3] + 8192*x[2] + 16384*x[1] + 32768*x[0])
-
-def ADD_32_4_16 [Field f] : ComposedLookupTable f 16 4
- := mkComposedLookupTable #[ (IDENTITY_16, 2), (IDENTITY_16, 3) ].toVector (fun x => 0 + 1*x[1] + 1*65536*x[0])
-def SUB_32_4_16 [Field f] : ComposedLookupTable f 16 4
- := mkComposedLookupTable #[ (IDENTITY_16, 2), (IDENTITY_16, 3) ].toVector (fun x => 0 + 1*x[1] + 1*65536*x[0])
 
 
- def add_circuit [ZKField f] : ZKBuilder f PUnit := do
-  let a <- Witnessable.witness
-  let b <- Witnessable.witness
-  let aa <- Witnessable.witness
-  let bb <- Witnessable.witness
-  let c <- Witnessable.witness
-  let res <- lookup ADD_32_4_16 #v[a, b, aa, bb]
-  constrainEq res c
+-- def IDENTITY_16 [Field f] : Subtable f 16 :=
+--   subtableFromMLE (fun x => 0 + 1*x[15] + 2*x[14] + 4*x[13] + 8*x[12] + 16*x[11] + 32*x[10] + 64*x[9] + 128*x[8] + 256*x[7] + 512*x[6] + 1024*x[5] + 2048*x[4] + 4096*x[3] + 8192*x[2] + 16384*x[1] + 32768*x[0])
+
+-- def ADD_32_4_16 [Field f] : ComposedLookupTable f 16 4
+--  := mkComposedLookupTable #[ (IDENTITY_16, 2), (IDENTITY_16, 3) ].toVector (fun x => 0 + 1*x[1] + 1*65536*x[0])
+-- def SUB_32_4_16 [Field f] : ComposedLookupTable f 16 4
+--  := mkComposedLookupTable #[ (IDENTITY_16, 2), (IDENTITY_16, 3) ].toVector (fun x => 0 + 1*x[1] + 1*65536*x[0])
 
 
-
-def sub_circuit [ZKField f] : ZKBuilder f PUnit := do
-  let a <- Witnessable.witness
-  let b <- Witnessable.witness
-  let aa <- Witnessable.witness
-  let bb <- Witnessable.witness
-  let c <- Witnessable.witness
-  let res <- lookup SUB_32_4_16 #v[a, b, aa, bb]
-  constrainEq res c
+--  def add_circuit [ZKField f] : ZKBuilder f PUnit := do
+--   let a <- Witnessable.witness
+--   let b <- Witnessable.witness
+--   let aa <- Witnessable.witness
+--   let bb <- Witnessable.witness
+--   let c <- Witnessable.witness
+--   let res <- lookup ADD_32_4_16 #v[a, b, aa, bb]
+--   constrainEq res c
 
 
 
-
-def two : ZMod 7 := 2
-def three : ZMod 7 := 3
-def four : ZMod 7 := 4
-def five : ZMod 7 := 5
-def six : ZMod 7 := 4
-
-
---- (65536 * 1 + 1 ) % 7 = 3
-#eval run_circuit add_circuit default [0, 0, one, one, three]
-#eval run_circuit sub_circuit default [0, 0, one, one, three]
+-- def sub_circuit [ZKField f] : ZKBuilder f PUnit := do
+--   let a <- Witnessable.witness
+--   let b <- Witnessable.witness
+--   let aa <- Witnessable.witness
+--   let bb <- Witnessable.witness
+--   let c <- Witnessable.witness
+--   let res <- lookup SUB_32_4_16 #v[a, b, aa, bb]
+--   constrainEq res c
 
 
---why is this true ???
---  (65536 * 1 + 2 ) % 7 = 5...
--- Hypothesis because idenitity reverses things so then we actually have
--- (65536 * 32768 + 2 * 16384) % 7 = 3...
-#eval run_circuit add_circuit default [two, 0, two, one, two]
-#eval run_circuit sub_circuit default [two, three, two, one, two]
 
 
--- this returns false for all values inside 7...
-#eval run_circuit add_circuit default [0, 0, one, two, six]
+-- def two : ZMod 7 := 2
+-- def three : ZMod 7 := 3
+-- def four : ZMod 7 := 4
+-- def five : ZMod 7 := 5
+-- def six : ZMod 7 := 4
+
+
+-- --- (65536 * 1 + 1 ) % 7 = 3
+-- #eval run_circuit add_circuit default [0, 0, one, one, three]
+-- #eval run_circuit sub_circuit default [0, 0, one, one, three]
+
+
+-- --why is this true ???
+-- --  (65536 * 1 + 2 ) % 7 = 5...
+-- -- Hypothesis because idenitity reverses things so then we actually have
+-- -- (65536 * 32768 + 2 * 16384) % 7 = 3...
+-- #eval run_circuit add_circuit default [two, 0, two, one, two]
+-- #eval run_circuit sub_circuit default [two, three, two, one, two]
+
+
+-- -- this returns false for all values inside 7...
+-- #eval run_circuit add_circuit default [0, 0, one, two, six]

@@ -715,6 +715,7 @@ lemma eq_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 
     rw [ZMod.eq_if_val]
     unfold EQ_16
     unfold evalSubtable
+    unfold bool_to_bv
     simp
     unfold subtableFromMLE
     simp
@@ -746,14 +747,23 @@ lemma eq_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 
     set b26 := ZMod.val fv2[6]
     set b27 := ZMod.val fv2[7]
     bv_normalize
-    sorry
+    bv_decide
     --bv_decide
     exact h1_1
     --- range analysis tactic
-    try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
+    sorry
     try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
 
 
-    #eval (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) *
+#eval (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) *
       (1 * 1 + 1 * 1) *
     (1 * 1 + 1 * 1)
+
+
+#eval 1*(1*1 + (1 - 1)*(1 -1))*(1*1 + (1 - 1)*(1 - 1))*(1*1 + (1 - 1)*(1 - 1))*(1*1+ (1 - 1)*(1 - 1))*(1*1 + (1 - 1)*(1 - 1))*(1*1 + (1 - 1)*(1 - 1))*(1*1 + (1 - 1)*(1 - 1))*(1*1 + (1 - 1)*(1 - 1))
+
+
+def bf1 : BitVec 8 := 1
+def bf2 : BitVec 8 := 1
+
+#eval (bool_to_bv ( bf1 = bf2))

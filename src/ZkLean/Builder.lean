@@ -1,6 +1,6 @@
-import Std.Do
 import Std.Data.HashMap.Basic
-
+import Std.Do
+import Std.Tactic.Do
 import ZkLean.AST
 import ZkLean.FreeMonad
 import ZkLean.LookupTable
