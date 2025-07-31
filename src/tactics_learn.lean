@@ -126,34 +126,47 @@ elab "val_add_rec" : tactic => do
 
 
 --- Tests
-example (a b c d : ZMod 17) :
-  (a + b).val = (a.val + b.val) % 17 := by
-  val_add_rec
+-- example (a b c d : ZMod 17) :
+--   (a + b).val = (a.val + b.val) % 17 := by
+--   val_add_rec
 
-example (a b c d : ZMod 17) :
-  (( a + b + c) * d).val = (((((a.val + b.val) % 17 + c.val) % 17 )* d.val) % 17) := by
-  val_add_rec
-
-
-example (x y z : ZMod 17) (h: y.val <= x.val ) :
-  ((x- y)*z).val = ( (x.val - y.val) * z.val ) %17 := by
-  val_add_rec
+-- example (a b c d : ZMod 17) :
+--   (( a + b + c) * d).val = (((((a.val + b.val) % 17 + c.val) % 17 )* d.val) % 17) := by
+--   val_add_rec
 
 
-  apply Eq.trans (ZMod.val_mul (x - y) z)
-  apply congrArg (fun a => a * z.val % 17) (ZMod.val_sub _)
-  -- Apply function to both sides
+-- example (x y z : ZMod 17) (h: y.val <= x.val ) :
+--   ((x- y)*z).val = ( (x.val - y.val) * z.val ) %17 := by
+--   val_add_rec
 
 
-example (y z: ZMod 11) :
-  (1- y).val = (1 - y.val) := by
-  trivial
+--   apply Eq.trans (ZMod.val_mul (x - y) z)
+--   apply congrArg (fun a => a * z.val % 17) (ZMod.val_sub _)
+--   -- Apply function to both sides
 
 
-example (y z: ZMod 11) (h: y.val <= 1) :
-  (1- y).val = (1 - y.val) := by
-  rw [ZMod.val_sub]
-  rw [ZMod.val_one]
+-- example (y z: ZMod 11) :
+--   (1- y).val = (1 - y.val) := by
+--   trivial
+
+
+-- example (y z: ZMod 11) (h: y.val <= 1) :
+--   (1- y).val = (1 - y.val) := by
+--   rw [ZMod.val_sub]
+--   rw [ZMod.val_one]
 
 -- Next Steps:
 -- how do we propagate range analysis
+elab "dump_named_hyps" hname:ident : tactic => do
+  let mvarId ← getMainGoal
+  mvarId.withContext do
+    let lctx ← getLCtx
+    let targetName := hname.getId
+    let some decl := lctx.findFromUserName? targetName
+      | throwError m!"Could not find a hypothesis named `{targetName}`"
+    logInfo m!"📌 {decl.userName} : {decl.type}"
+
+example (x y z : ZMod 17) :
+  (((x + y) + z).val = 5 → x.val + y.val + z.val = 5) := by
+  intros h
+  dump_named_hyps h

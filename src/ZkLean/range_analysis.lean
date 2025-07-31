@@ -1,6 +1,7 @@
 import Lean
 import Mathlib.Data.Nat.Basic
 import Mathlib.Tactic
+import Mathlib.Tactic.Eval
 
 open Lean Meta Elab Tactic
 
@@ -142,6 +143,9 @@ elab_rules : tactic
         try
           evalTactic (← `(tactic| norm_num))
           if ← g.isAssigned then
+            let newType ← g.getType
+            let t ← Meta.inferType (mkMVar g)
+    -- you can also choose to restore the goal or stop here
             let remaining ← getUnsolvedGoals
             if remaining.contains g then
               logInfo m!"➖ norm_num modified goal {g}, but did not fully solve it"
@@ -187,5 +191,12 @@ example (x y : ℕ):  (h1 : x ≤ 1) -> (h2 : y ≤ 1) -> 2 * (1 - y) + 4 * (1-x
   intros h2
   try_apply_lemma_hyps [h1,h2]
 
+
+-- We need a way of catching when norm_num returns false
+--
+example (x y : ℕ):  (h1 : x ≤ 1) -> (h2 : y ≤ 1) -> 2 *(x * (1 - y) + y * (1-x)) < 3 := by
+  intros h1
+  intros h2
+  try_apply_lemma_hyps [h1,h2]
 
   --try_apply_lemma_hyps [h1,h2]
