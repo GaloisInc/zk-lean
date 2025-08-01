@@ -24,7 +24,9 @@ open Std
 
 
 
-
+set_option auto.smt true
+set_option trace.auto.smt.printCommands true
+set_option trace.auto.smt.result true
 
 def bool_to_bv (b: Bool) : (BitVec 8) := if b == true then 1 else 0
 --if b == false then 1
@@ -772,7 +774,7 @@ def bf2 : BitVec 8 := 1
 -- Different examples ZMod, natural numbers, integers
 -- auto fails on all of them
 -- linarith succeeds on all
-set_option auto.smt true
+
 example (x: ZMod 4139) (x: ZMod 4139) (h1: ZMod.val x  <= 1) (h2: ZMod.val y <= 1) :
   (ZMod.val x+ ZMod.val y) <= 2:= by
   auto
@@ -782,17 +784,21 @@ example (x: ZMod 4139) (x: ZMod 4139) (h1: ZMod.val x  <= 1) (h2: ZMod.val y <= 
 example (x:ℕ)  (y:ℕ) (h1: x  <= 1) (h2: y <= 1) :
   (x+ y) <= 3:= by
   auto
-  linarith
 
+set_option auto.smt true in
 example (x:Int)  (y:Int) (h1: x <= 1) (h2: y <= 1) :
   (x+ y) <= 3:= by
   auto
-  linarith
 
 -- non linear so linarith fails
 example (x: ZMod 4139) (x: ZMod 4139) (h1: ZMod.val x  <= 1) (h2: ZMod.val y <= 1) :
   (ZMod.val y)*(1- ZMod.val x)+ (ZMod.val x)*(1-ZMod.val y) <= 1:= by
-  --auto
+  auto
   --linarith
   --ring_nf
   --omega
+
+
+example (fv1 : Vector f 8)  (h1: ZMod.val fv1[0]  <= 1) (h2: ZMod.val fv1[1] <= 1) :
+  (ZMod.val y)*(1- ZMod.val x)+ (ZMod.val x)*(1-ZMod.val y) <= 1:= by
+  auto
