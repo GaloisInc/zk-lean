@@ -19,8 +19,6 @@ import Mathlib.Control.Fold
 import Mathlib.Data.Nat.Prime.Defs
 import Mathlib.Data.ZMod.Defs
 import Mathlib.Algebra.Order.Kleene
-import MPL
-import MPL.Triple
 import ZkLean
 import Std.Data.HashMap.Basic
 import Lean.Meta.Basic

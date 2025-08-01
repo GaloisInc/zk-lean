@@ -194,9 +194,9 @@ example (x y : ℕ):  (h1 : x ≤ 1) -> (h2 : y ≤ 1) -> 2 * (1 - y) + 4 * (1-x
 
 -- We need a way of catching when norm_num returns false
 --
-example (x y : ℕ):  (h1 : x ≤ 1) -> (h2 : y ≤ 1) -> 2 *(x * (1 - y) + y * (1-x)) < 3 := by
-  intros h1
-  intros h2
-  try_apply_lemma_hyps [h1,h2]
+-- example (x y : ℕ):  (h1 : x ≤ 1) -> (h2 : y ≤ 1) -> 2 *(x * (1 - y) + y * (1-x)) < 3 := by
+--   intros h1
+--   intros h2
+--   try_apply_lemma_hyps [h1,h2]
 
   --try_apply_lemma_hyps [h1,h2]

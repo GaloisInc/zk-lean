@@ -2,8 +2,9 @@ import Std.Data.HashMap.Basic
 import ZkLean.AST
 import ZkLean.LookupTable
 import ZkLean.FreeMonad
-import Std.Do
-import Std.Tactic.Do
+--import Std.Do
+--import Std.Tactic.Do
+import MPL
 
 /-- Type for RAM operations (Read and Write) -/
 inductive RamOp (f : Type) where
@@ -211,7 +212,8 @@ instance [Witnessable f a]: Witnessable f (Vector a n) where
     do
       helper n
 
-open Std.Do
+--open Std.Do
+open MPL
 /-- `ZKBuilder` admits a weakest‐precondition interpretation in terms of the
 `MPL` predicate–transformer semantics.  A builder computation manipulates an
 implicit `ZKBuilderState`; therefore its predicate shape is `PostShape.arg
@@ -220,7 +222,7 @@ implicit `ZKBuilderState`; therefore its predicate shape is `PostShape.arg
 The interpretation simply executes the computation with `runFold` and feeds the
 result to the post-condition. -/
 
-instance [Zero f] : WP (ZKBuilder f) (.arg (ZKBuilderState f) .pure) where
+instance [Zero f] : MPL.WP (ZKBuilder f) (.arg (ZKBuilderState f) .pure) where
   wp {α} (x : ZKBuilder f α) :=
     -- We reuse the `StateT` instance for predicate transformers: run the
     -- builder starting from an initial state and hand the resulting

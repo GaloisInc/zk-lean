@@ -12,10 +12,15 @@ root = "Main"
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
-rev = "v4.22.0-rc4"
+rev = "v4.21.0"
 
 
 [[require]]
 name = "auto"
 git = "https://github.com/leanprover-community/lean-auto"
-rev = "main"
+rev = "32b0e4d"
+
+[[require]]
+name = "mpl"
+git = "https://github.com/sgraf812/mpl"
+rev = "52e8300"

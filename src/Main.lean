@@ -4,8 +4,10 @@ import Mathlib.Control.Fold
 import Mathlib.Data.Nat.Prime.Defs
 import Mathlib.Data.ZMod.Defs
 import Mathlib.Algebra.Order.Kleene
-import Std.Do
-import Std.Do.Triple
+--import Std.Do
+--import Std.Do.Triple
+import MPL
+import MPL.Triple
 import ZkLean
 import Std.Data.HashMap.Basic
 import Lean.Meta.Basic
@@ -18,7 +20,7 @@ import Mathlib.Tactic.Linarith
 
 open Lean Meta Elab Term
 open Std
-open Std.Do
+--open Std.Do
 
 def main : IO Unit :=
   IO.println s!"Hello!"
@@ -399,13 +401,13 @@ theorem constrainEq2Sound' [ZKField f] (a b:ZKExpr f) (witness: List f) :
   unfold constrainEq2
   unfold ZKBuilder.constrainR1CS
   simp
-  unfold Triple
-  simp [SPred.entails]
+  unfold MPL.Triple
+  simp [MPL.SPred.entails]
   intro s'
-  unfold PredTrans.apply
-  unfold wp
+  unfold MPL.PredTrans.apply
+  unfold MPL.wp
   unfold instWPZKBuilderArgZKBuilderStatePureOfZero
-  unfold PredTrans.pure
+  unfold MPL.PredTrans.pure
   simp [runFold]
   simp [eval_circuit, FreeM.foldM, ZKOpInterp, eval_exprf, semantics, semantics_constraints]
   unfold ZKBuilderState.ram_sizes

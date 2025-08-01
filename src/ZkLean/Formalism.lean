@@ -1,7 +1,7 @@
 
 import Mathlib.Control.Traversable.Basic
-import Std.Do
-
+--import Std.Do
+import MPL
 import ZkLean.AST
 import ZkLean.Builder
 import ZkLean.LookupTable
@@ -28,7 +28,8 @@ def eval_exprf [ZKField f] (expr: ZKExpr f) (state: ZKBuilderState f) (witness: 
 def eval_traversable_expr {t: Type -> Type} [Traversable t] [ZKField f] (expr: t (ZKExpr f)) (state: ZKBuilderState f) (witness: List f) : Option (t f) :=
   traverse (eval_exprf · state witness) expr
 
-open Std.Do
+open MPL
+--open Std.Do
 /-- If a circuit fails at a given state then it must fail for subsequent state. -/
 lemma failure_propagates [ZKField f] (m : ZKBuilder f a) (witness: List f) :
  -- TODO: Lawful m
