@@ -9,6 +9,38 @@ open Lean Meta Elab Tactic
 lemma Nat.lt_sub (a :ℕ) (h: a <= 1) :
   (1 - a) <= 1 := by sorry
 
+def ignoredConsts : NameSet :=
+  #[``Nat, ``instLTNat, ``instLENat, ``HAdd.hAdd, ``HMul.hMul, ``HSub.hSub].foldl
+    (init := {}) fun s n => s.insert n
+
+partial def collectVarsAppAndConst (e : Expr) (acc : NameSet := {}) : MetaM NameSet := do
+  --logInfo m!"🔍 Visiting: {← ppExpr e}"
+  let mut acc := acc
+
+  let e ← instantiateMVars e
+  if e.isFVar then
+    let fvarId := e.fvarId!
+    let lctx ← getLCtx
+    if let some decl := lctx.find? fvarId then
+      logInfo m!"✅ Found local var: {decl.userName}"
+      acc := acc.insert decl.userName
+    else
+      logInfo m!"❌ Skipping local var"
+      return acc
+  if e.isApp then
+    let args := e.getAppArgs
+    for arg in args do
+      acc ← collectVarsAppAndConst arg acc
+    return acc
+  else
+    return acc
+
+-- Main function: check if the 3rd argument has exactly two distinct names
+def thirdExprHasTwoVarsAppAndConst (args : Expr) : MetaM Bool := do
+  logInfo m!"Args: {args}"
+  let vars ← collectVarsAppAndConst args
+  return vars.size == 2
+
 
 private def tryApplyLemma (g : MVarId) (goalType : Expr) (stx : TSyntax `term) (name : String) : TacticM Bool := do
   try
@@ -91,10 +123,11 @@ elab_rules : tactic
         let g ← getMainGoal
         let goalType ← g.getType
         let (fn, args) := goalType.getAppFnArgs
-        let unfolded := ← withTransparency .reducible (whnf args[2]!) -- ✅ still allowed here
+        let unfolded := ← withTransparency .reducible (whnf args[2]!)
         let fn3 := unfolded.getAppFn
-        --logInfo m!"SOS: looking at {args}"
-       --logInfo m!"SOS: looking at {fn3}"
+        logInfo m!"SOS: looking at {goalType}"
+        let result ← thirdExprHasTwoVarsAppAndConst goalType
+        logInfo m!"result: {result}"
         let mut lemmaMatch := none
         if (first_lemma) then
           first_lemma := false
@@ -176,27 +209,58 @@ elab_rules : tactic
 
 
 
-example (x y : ℕ) (h1 : x ≤ 1) (h2 : y ≤ 1) : (1 - x) + (1 - y) * x < 17 := by
-   try_apply_lemma_hyps [h1,h2]
+-- example (x y : ℕ) (h1 : x ≤ 1) (h2 : y ≤ 1) : (1 - x) + (1 - y) * x < 17 := by
+--    try_apply_lemma_hyps [h1,h2]
 
 
 
 
-example (x y : ℕ) (h1 : x ≤ 1) (h2 : y ≤ 1) : (1 - x) * (1 - y) * x < 17 := by
-  try_apply_lemma_hyps [h1,h2]
+-- example (x y : ℕ) (h1 : x ≤ 1) (h2 : y ≤ 1) : (1 - x) * (1 - y) * x < 17 := by
+--   try_apply_lemma_hyps [h1,h2]
 
 
-example (x y : ℕ):  (h1 : x ≤ 1) -> (h2 : y ≤ 1) -> 2 * (1 - y) + 4 * (1-x) < 17 := by
-  intros h1
-  intros h2
-  try_apply_lemma_hyps [h1,h2]
-
-
--- We need a way of catching when norm_num returns false
---
--- example (x y : ℕ):  (h1 : x ≤ 1) -> (h2 : y ≤ 1) -> 2 *(x * (1 - y) + y * (1-x)) < 3 := by
+-- example (x y : ℕ):  (h1 : x ≤ 1) -> (h2 : y ≤ 1) -> 2 * (1 - y) + 4 * (1-x) < 17 := by
 --   intros h1
 --   intros h2
 --   try_apply_lemma_hyps [h1,h2]
 
-  --try_apply_lemma_hyps [h1,h2]
+
+-- We need a way of catching when norm_num returns false
+--
+
+
+elab "prove_lt_by_cases" : tactic => do
+  -- Step 2: insert `Nat.le_refl 1` `
+  evalTactic (← `(tactic| apply Nat.le_trans _ (by exact Nat.le_refl 1)))
+  -- Step 3: case split on x and y
+  -- evalTactic (← `(tactic|
+  --   cases x with
+  --   | zero =>
+  --     cases y with
+  --     | zero => norm_num
+  --     | succ y' =>
+  --       cases y' with
+  --       | zero => norm_num
+  --       | succ _ => contradiction
+  --   | succ x' =>
+  --     cases x' with
+  --     | zero =>
+  --       cases y with
+  --       | zero => norm_num
+  --       | succ y' =>
+  --         cases y' with
+  --         | zero => norm_num
+  --         | succ _ => contradiction
+  --     | succ _ => contradiction
+  -- ))
+
+example (x y : ℕ): (h1 : x ≤ 1) → (h2 : y ≤ 1) →  (x * (1 - y) + y * (1 - x)) < 17 := by
+  intros h1 h2
+  apply Nat.lt_of_le_of_lt
+  prove_lt_by_cases
+
+
+
+example (x y : ℕ) (hx : x ≤ 1) (hy : y ≤ 1) :
+    2 * (x * (1 - y) + y * (1 - x)) < _ := by
+  apply Nat.lt_of_lt_of_le _ (by norm_num)
