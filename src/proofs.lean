@@ -4,8 +4,6 @@ import Mathlib.Control.Fold
 import Mathlib.Data.Nat.Prime.Defs
 import Mathlib.Data.ZMod.Defs
 import Mathlib.Algebra.Order.Kleene
-import MPL
-import MPL.Triple
 import ZkLean
 import Std.Data.HashMap.Basic
 import Lean.Meta.Basic
@@ -16,6 +14,7 @@ import Mathlib.Tactic.Linarith
 import ZkLean.valify
 import ZkLean.range_analysis
 import ZkLean.bvify
+import Auto.Tactic
 
 
 
@@ -24,8 +23,7 @@ open Lean Meta Elab Term
 open Std
 
 
-open Lean Meta Elab Term
-open Std
+
 
 
 def bool_to_bv (b: Bool) : (BitVec 8) := if b == true then 1 else 0
@@ -563,6 +561,7 @@ def XOR_32_4_16 [Field f] : ComposedLookupTable f 16 4
   := mkComposedLookupTable #[ (XOR_16, 0), (XOR_16, 1), (XOR_16, 2), (XOR_16, 3) ].toVector (fun x => 0 + 1*x[3] + 1*256*x[2] + 1*256*256*x[1] + 1*256*256*256*x[0])
 
 
+set_option auto.smt true
 
 lemma xor_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
   some bvoutput = map_f_to_bv foutput ->
@@ -646,7 +645,8 @@ lemma xor_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f
     bv_decide
     exact h1_1
     --- range analysis tactic
-    try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
+    auto
+    --try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
     try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
 
     -- it is dumb that we have to do this twice maybe we can have some sort of lemma that combines the two different rewrites that assume?
@@ -767,3 +767,32 @@ def bf1 : BitVec 8 := 1
 def bf2 : BitVec 8 := 1
 
 #eval (bool_to_bv ( bf1 = bf2))
+
+
+-- Different examples ZMod, natural numbers, integers
+-- auto fails on all of them
+-- linarith succeeds on all
+set_option auto.smt true
+example (x: ZMod 4139) (x: ZMod 4139) (h1: ZMod.val x  <= 1) (h2: ZMod.val y <= 1) :
+  (ZMod.val x+ ZMod.val y) <= 2:= by
+  auto
+  linarith
+
+
+example (x:ℕ)  (y:ℕ) (h1: x  <= 1) (h2: y <= 1) :
+  (x+ y) <= 3:= by
+  auto
+  linarith
+
+example (x:Int)  (y:Int) (h1: x <= 1) (h2: y <= 1) :
+  (x+ y) <= 3:= by
+  auto
+  linarith
+
+-- non linear so linarith fails
+example (x: ZMod 4139) (x: ZMod 4139) (h1: ZMod.val x  <= 1) (h2: ZMod.val y <= 1) :
+  (ZMod.val y)*(1- ZMod.val x)+ (ZMod.val x)*(1-ZMod.val y) <= 1:= by
+  --auto
+  --linarith
+  --ring_nf
+  --omega

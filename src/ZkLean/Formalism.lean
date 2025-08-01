@@ -1,6 +1,5 @@
 import Mathlib.Control.Traversable.Basic
 import Std.Do
-
 import ZkLean.AST
 import ZkLean.Builder
 import ZkLean.LookupTable
