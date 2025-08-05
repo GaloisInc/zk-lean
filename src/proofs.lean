@@ -24,9 +24,7 @@ open Std
 
 
 
-set_option auto.smt true
-set_option trace.auto.smt.printCommands true
-set_option trace.auto.smt.result true
+
 
 def bool_to_bv (b: Bool) : (BitVec 8) := if b == true then 1 else 0
 --if b == false then 1
@@ -57,10 +55,6 @@ def map_f_to_bv (rs1_val : ZMod 4139) : Option (BitVec 8) :=
   else
     none
 
-
-abbrev ff := 4139
-abbrev f := ZMod ff
-abbrev b := Nat.log2 ff
 
 lemma add_le_ff (x y : f) (a b : ℕ):
   ( x.val < a) ∧ (y.val < b) -> (x.val + y.val < a+ b)
@@ -93,11 +87,7 @@ lemma zmod_to_bitvec_mul (x y : f):
 
  -- active TODOs
 
- lemma BitVec.ofNat_mul {w a b : ℕ} :
-  BitVec.ofNat w (a * b) =
-    (BitVec.ofNat w a) * (BitVec.ofNat w b) := by
-  -- BitVec multiplication is just modulo 2^w
-  sorry
+
 
 
 theorem ofNat_sub_ofNat_of_le (x y : Nat) (hy : y < 2 ^ w) (hlt : y ≤ x):
@@ -551,8 +541,6 @@ lemma and_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f
 
 
 
-def bf : BitVec 8 := 0
-#eval bf[0]
 -- in lean 0 == false :)
 
 
@@ -646,25 +634,8 @@ lemma xor_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f
     bv_normalize
     bv_decide
     exact h1_1
-    --- range analysis tactic
-    auto
-    --try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
-    try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
-
-    -- it is dumb that we have to do this twice maybe we can have some sort of lemma that combines the two different rewrites that assume?
-
-   #eval 1 * 1 + 1 * 1 + 2 * (1 * 1 + 1 * 1) + 4 * (1 * 1 + 1 * 1) + 8 * (1 * 1 + 1 * 1) + 16 * (1 * 1 + 1 * 1) +
-        32 * (1 * 1 + 1 * 1) +
-      64 * (1 * 1 + 1 * 1) +
-    128 * (1 * 1 + 1 * 1)
-
-
-#eval 1 * 1 + 1 * 1 + 2 * (1 * 1 + 1 * 1) + 4 * (1 * 1 + 1 * 1) + 8 * (1 * 1 + 1 * 1) + 16 * (1 * 1 + 1 * 1) +
-        32 * (1 * 1 + 1 * 1) +
-      64 * (1 * 1 + 1 * 1) +
-    128 * (1 * 1 + 1 * 1)
-
-#eval  1 * 1 + 2 * 1 * 1 + 4 * 1 * 1 + 8 * 1 * 1 + 16 * 1 * 1 + 32 * 1 * 1 + 64 * 1 * 1 + 128 * 1 * 1 < 2 ^ 8
+    try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1]
+    try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1]
 
 
  def EQ_16 [Field f] : Subtable f 16 :=
@@ -752,53 +723,60 @@ lemma eq_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 
     bv_decide
     --bv_decide
     exact h1_1
+
     --- range analysis tactic
-    sorry
-    try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
+    try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1]
+    try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1]
 
 
-#eval (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) *
-      (1 * 1 + 1 * 1) *
-    (1 * 1 + 1 * 1)
+-- Below are some attempts at using auto
+
+-- #eval (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) * (1 * 1 + 1 * 1) *
+--       (1 * 1 + 1 * 1) *
+--     (1 * 1 + 1 * 1)
 
 
-#eval 1*(1*1 + (1 - 1)*(1 -1))*(1*1 + (1 - 1)*(1 - 1))*(1*1 + (1 - 1)*(1 - 1))*(1*1+ (1 - 1)*(1 - 1))*(1*1 + (1 - 1)*(1 - 1))*(1*1 + (1 - 1)*(1 - 1))*(1*1 + (1 - 1)*(1 - 1))*(1*1 + (1 - 1)*(1 - 1))
+-- #eval 1*(1*1 + (1 - 1)*(1 -1))*(1*1 + (1 - 1)*(1 - 1))*(1*1 + (1 - 1)*(1 - 1))*(1*1+ (1 - 1)*(1 - 1))*(1*1 + (1 - 1)*(1 - 1))*(1*1 + (1 - 1)*(1 - 1))*(1*1 + (1 - 1)*(1 - 1))*(1*1 + (1 - 1)*(1 - 1))
 
 
-def bf1 : BitVec 8 := 1
-def bf2 : BitVec 8 := 1
+-- def bf1 : BitVec 8 := 1
+-- def bf2 : BitVec 8 := 1
 
-#eval (bool_to_bv ( bf1 = bf2))
-
-
--- Different examples ZMod, natural numbers, integers
--- auto fails on all of them
--- linarith succeeds on all
-
-example (x: ZMod 4139) (x: ZMod 4139) (h1: ZMod.val x  <= 1) (h2: ZMod.val y <= 1) :
-  (ZMod.val x+ ZMod.val y) <= 2:= by
-  auto
-  linarith
+-- #eval (bool_to_bv ( bf1 = bf2))
 
 
-example (x:ℕ)  (y:ℕ) (h1: x  <= 1) (h2: y <= 1) :
-  (x+ y) <= 3:= by
-  auto
+-- -- Different examples ZMod, natural numbers, integers
+-- -- auto fails on all of them
+-- -- linarith succeeds on all
 
-set_option auto.smt true in
-example (x:Int)  (y:Int) (h1: x <= 1) (h2: y <= 1) :
-  (x+ y) <= 3:= by
-  auto
+-- set_option auto.smt true
+-- set_option trace.auto.smt.printCommands true
+-- set_option trace.auto.smt.result true
 
--- non linear so linarith fails
-example (x: ZMod 4139) (x: ZMod 4139) (h1: ZMod.val x  <= 1) (h2: ZMod.val y <= 1) :
-  (ZMod.val y)*(1- ZMod.val x)+ (ZMod.val x)*(1-ZMod.val y) <= 1:= by
-  auto
-  --linarith
-  --ring_nf
-  --omega
+-- example (x: ZMod 4139) (x: ZMod 4139) (h1: ZMod.val x  <= 1) (h2: ZMod.val y <= 1) :
+--   (ZMod.val x+ ZMod.val y) <= 2:= by
+--   auto
+--   linarith
 
 
-example (fv1 : Vector f 8)  (h1: ZMod.val fv1[0]  <= 1) (h2: ZMod.val fv1[1] <= 1) :
-  (ZMod.val y)*(1- ZMod.val x)+ (ZMod.val x)*(1-ZMod.val y) <= 1:= by
-  auto
+-- example (x:ℕ)  (y:ℕ) (h1: x  <= 1) (h2: y <= 1) :
+--   (x+ y) <= 3:= by
+--   auto
+
+-- set_option auto.smt true in
+-- example (x:Int)  (y:Int) (h1: x <= 1) (h2: y <= 1) :
+--   (x+ y) <= 3:= by
+--   auto
+
+-- -- non linear so linarith fails
+-- example (x: ZMod 4139) (x: ZMod 4139) (h1: ZMod.val x  <= 1) (h2: ZMod.val y <= 1) :
+--   (ZMod.val y)*(1- ZMod.val x)+ (ZMod.val x)*(1-ZMod.val y) <= 1:= by
+--   auto
+--   --linarith
+--   --ring_nf
+--   --omega
+
+
+-- example (fv1 : Vector f 8)  (h1: ZMod.val fv1[0]  <= 1) (h2: ZMod.val fv1[1] <= 1) :
+--   (ZMod.val fv1[0])*(1- ZMod.val fv1[1])+ (ZMod.val fv1[1])*(1-ZMod.val fv1[0]) <= 1:= by
+--   auto
