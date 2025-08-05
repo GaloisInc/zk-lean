@@ -9,19 +9,29 @@ import Mathlib.Algebra.Field.ZMod
 open Lean Meta Elab Tactic
 
 lemma split_one (x : ℕ): (x <= 1) -> (x = 0 ∨ x = 1) := by
-  sorry
+  intro hx
+  cases x with
+    | zero => trivial
+    | succ n => cases n with
+      | zero =>
+        apply Or.inr
+        decide
+      | succ m => exfalso
+                  simp at hx
 
+lemma Nat.lt_sub (a :ℕ) (h: a <= 1) :
+  (1 - a) <= 1 := by
+   apply split_one at h
+   apply Or.elim h
+   simp
+   simp
 
 elab "elim2_norm_num" h1:ident h2:ident : tactic => do
   let id1 : TSyntax `ident := mkIdent h1.getId
   let id2 : TSyntax `ident := mkIdent h2.getId
-  --let loc ← `(tactic.location| $id1)
-  --let loc ← `(tactic.location| $id1)
   evalTactic (← `(tactic| apply split_one at $(id1):ident))
   evalTactic (← `(tactic| apply split_one at $(id2):ident))
   evalTactic (← `(tactic| apply Or.elim $id1))
-
-  -- Case: intro hx
   evalTactic (← `(tactic| intro hx; apply Or.elim $id2))
   evalTactic (← `(tactic| intro hy; rewrite [hx]; rewrite [hy]; norm_num;))
   try
@@ -32,8 +42,6 @@ elab "elim2_norm_num" h1:ident h2:ident : tactic => do
   try
       evalTactic (←  `(tactic|apply Nat.le_refl))
   catch _ => pure ()
-
-  -- Case: intro hx again
   evalTactic (← `(tactic| intro hx; apply Or.elim $id2))
   evalTactic (← `(tactic| intro hy; rewrite [hx]; rewrite [hy]; norm_num;))
   try
@@ -45,33 +53,22 @@ elab "elim2_norm_num" h1:ident h2:ident : tactic => do
   catch _ => pure ()
 
 
-lemma Nat.lt_sub (a :ℕ) (h: a <= 1) :
-  (1 - a) <= 1 := by sorry
-
-def ignoredConsts : NameSet :=
-  #[``Nat, ``instLTNat, ``instLENat, ``HAdd.hAdd, ``HMul.hMul, ``HSub.hSub].foldl
-    (init := {}) fun s n => s.insert n
 
 partial def collectVarsAppAndConst (e : Expr) (acc : NameSet := {}) : MetaM NameSet := do
-  --logInfo m!"🔍 Visiting: {← ppExpr e}"
   let mut acc := acc
-
   let e ← instantiateMVars e
   if e.isFVar then
     let fvarId := e.fvarId!
     let lctx ← getLCtx
     if let some decl := lctx.find? fvarId then
-      --ogInfo m!"✅ Found local var: {decl.userName}"
       acc := acc.insert decl.userName
     else
-      --logInfo m!"❌ Skipping local var"
       return acc
   if e.isApp then
     let args := e.getAppArgs
     match args with
     | #[_,_,_,_,_, arg1, arg2, _] =>
        if arg1.isFVar then
-          --logInfo m!"{e}"
           let fvarId := arg1.fvarId!
           let lctx ← getLCtx
           if let some decl := lctx.find? fvarId then
@@ -79,42 +76,14 @@ partial def collectVarsAppAndConst (e : Expr) (acc : NameSet := {}) : MetaM Name
             let idxStr := s!"{idxPretty}"
             acc:= acc.insert (Name.mkSimple s!"{decl.userName}[{idxStr}]")
             return acc
-
     | _ => pure ()
-    --logInfo m!"✅ Apss: {args}"
     for arg in args do
       acc ← collectVarsAppAndConst arg acc
     return acc
   else
     return acc
 
--- Main function: check if the 3rd argument has exactly two distinct names
-def thirdExprHasTwoVarsAppAndConst (args : Expr) : MetaM Bool := do
-  logInfo m!"Args: {args}"
-  let vars ← collectVarsAppAndConst args
-  return vars.size == 2
 
-
-private def tryApplyLemma (g : MVarId) (goalType : Expr) (stx : TSyntax `term) (name : String) : TacticM Bool := do
-  try
-    let e ← elabTerm stx goalType
-    let subgoals ← g.apply e
-    logInfo m!"✅ Applied {name} to goal {← PrettyPrinter.ppExpr goalType}"
-    setGoals subgoals
-    return true
-  catch err =>
-    logInfo m!"❌ Failed to apply {name} to goal {← PrettyPrinter.ppExpr goalType}: {← err.toMessageData.toString}"
-    return false
-
-partial def findConstHead? (e : Expr) : Option Name :=
-  match e with
-  | Expr.const name _ => some name
-  | Expr.app f _ => findConstHead? f
-  | Expr.mdata _ b => findConstHead? b
-  | Expr.proj _ _ b => findConstHead? b
-  | _ => none
-
-open Lean Meta
 
 syntax (name := tryApplyLemHyps) "try_apply_lemma_hyps" ppSpace "[" ident,* "]" : tactic
 
@@ -298,14 +267,6 @@ elab_rules : tactic
           handled := true
           applied := true
     setGoals updatedGoals
-
-open Lean.Parser.Tactic
-
-
-
-  --elim2_norm_num h1 h2
-
-
 
 example (x y : ℕ): (h1 : (x <= 1) ) → (h1 : (y <= 1) ) → ( (z <= 1) ) -> ( (x * (1 - y) + y * (1 - x)) + (z * (1 - y) + y * (1 - z))) < 3 := by
   intros h1 h2 h3
