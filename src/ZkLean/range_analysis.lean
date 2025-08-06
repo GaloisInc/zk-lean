@@ -273,23 +273,23 @@ example (x y : ℕ): (h1 : (x <= 1) ) → (h1 : (y <= 1) ) → ( (z <= 1) ) -> (
   try_apply_lemma_hyps [h1, h2, h3]
 
 
-abbrev ff := 4139
-abbrev f := ZMod ff
-abbrev b := Nat.log2 ff
+-- abbrev ff := 4139
+-- abbrev f := ZMod ff
+-- abbrev b := Nat.log2 ff
 
 
-example (fv1 fv2: Vector f 8) :  (ZMod.val fv1[0]  <= 1) -> ( ZMod.val fv2[1] <= 1) -> ( ZMod.val fv2[0] <= 1) ->
-  ((ZMod.val fv1[0])*(1- ZMod.val fv2[1]) + (ZMod.val fv2[1])*(1-ZMod.val fv1[0])) +
-  ((ZMod.val fv1[0])*(1- ZMod.val fv2[0]) + (ZMod.val fv2[0])*(1-ZMod.val fv1[0])) < 7 := by
-  intros h1 h2 h3
-  try_apply_lemma_hyps [h1, h2, h3]
+-- example (fv1 fv2: Vector f 8) :  (ZMod.val fv1[0]  <= 1) -> ( ZMod.val fv2[1] <= 1) -> ( ZMod.val fv2[0] <= 1) ->
+--   ((ZMod.val fv1[0])*(1- ZMod.val fv2[1]) + (ZMod.val fv2[1])*(1-ZMod.val fv1[0])) +
+--   ((ZMod.val fv1[0])*(1- ZMod.val fv2[0]) + (ZMod.val fv2[0])*(1-ZMod.val fv1[0])) < 7 := by
+--   intros h1 h2 h3
+--   try_apply_lemma_hyps [h1, h2, h3]
 
- example (x y : ℕ) : (x <= 4) -> (y <= 4)  ->  x* (x+y) < 100 := by
-     intros h1 h2
-     apply Nat.lt_of_le_of_lt
-     apply Nat.mul_le_mul
-     apply h1
-     apply Nat.add_le_add
-     apply h1
-     apply h2
-     decide
+--  example (x y : ℕ) : (x <= 4) -> (y <= 4)  ->  x* (x+y) < 100 := by
+--      intros h1 h2
+--      apply Nat.lt_of_le_of_lt
+--      apply Nat.mul_le_mul
+--      apply h1
+--      apply Nat.add_le_add
+--      apply h1
+--      apply h2
+--      decide
