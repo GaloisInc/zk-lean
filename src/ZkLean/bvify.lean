@@ -49,20 +49,59 @@ open Lean.Meta
 open Lean.Parser.Tactic
 open Lean.Elab.Tactic
 
+open Fin
 
  lemma BitVec.ofNat_mul {w a b : ℕ} :
   BitVec.ofNat w (a * b) =
     (BitVec.ofNat w a) * (BitVec.ofNat w b) := by
+    rw [BitVec.ofNat, BitVec.ofNat, BitVec.ofNat]
+    rw [Fin.ofNat, Fin.ofNat,  Fin.ofNat]
+    apply congrArg
+    simp_all
+    apply Fin.eq_of_val_eq
+    simp_all
+
+lemma split_one (x : ℕ): (x <= 1) -> (x = 0 ∨ x = 1) := by
+  intro hx
+  cases x with
+    | zero => trivial
+    | succ n => cases n with
+      | zero =>
+        apply Or.inr
+        decide
+      | succ m => exfalso
+                  simp at hx
+
+lemma Nat.lt_sub (a :ℕ) (h: a <= 1) :
+  (1 - a) <= 1 := by
+   apply split_one at h
+   apply Or.elim h
+   simp
+   simp
+
+lemma BitVec.ofNat_sub{ b : ℕ} (h: 1 >= b) :
+  BitVec.ofNat 8 (1 - b) =
+    (BitVec.ofNat 8 1) - (BitVec.ofNat 8 b) := by
+    unfold BitVec.ofNat
+    rw [Fin.ofNat, Fin.ofNat,  Fin.ofNat]
+    apply congrArg
+    simp_all
+    apply Fin.eq_of_val_eq
+    simp_all
+    cases b with
+      | zero => simp
+      | succ n => cases n with
+         | zero => simp_all
+         | succ m =>
+            exfalso
+            simp at h
+
+
+
+
+    --rw [Nat.mod_sub_eq]
+
   -- BitVec multiplication is just modulo 2^w
-  sorry
-
-
-
-lemma BitVec.ofNat_sub{w a b : ℕ} :
-  BitVec.ofNat w (a - b) =
-    (BitVec.ofNat w a) - (BitVec.ofNat w b) := by
-  -- BitVec multiplication is just modulo 2^w
-  sorry
 
 /--
 Hello.
