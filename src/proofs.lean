@@ -379,9 +379,9 @@ lemma eq_abs_mle_one_chunk [ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 
   some (bool_to_bv bv2[2]) = map_f_to_bv fv2[5]  ->
   some (bool_to_bv bv2[1]) = map_f_to_bv fv2[6]  ->
   some (bool_to_bv bv2[0]) = map_f_to_bv fv2[7]  ->
-  (bvoutput = bool_to_bv (bv1.abs = bv2.abs))
+  (bvoutput = bool_to_bv (BitVec.and bv1 127 <= BitVec.and bv2 127))
   =
-  (foutput = evalSubtable EQ_ABS_16 (Vector.append fv1 fv2))
+  (foutput = evalSubtable LT_ABS_16 (Vector.append fv1 fv2))
  := by
     intros h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
     rw [extract_bv_rel] at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
@@ -406,7 +406,7 @@ lemma eq_abs_mle_one_chunk [ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 
     rcases h1 with ⟨h1_1, h1_2⟩
     -- apply val and unfold subtables
     rw [ZMod.eq_if_val]
-    unfold EQ_ABS_16
+    unfold LT_ABS_16
     unfold evalSubtable
     unfold bool_to_bv
     simp
@@ -450,10 +450,24 @@ lemma eq_abs_mle_one_chunk [ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 
 
 def bv2 := 7#8
 def bv1 := 249#8
-#eval bool_to_bv (bv2.abs = bv1.abs)
-#eval bool_to_bv (bv2.abs = bv1.abs)
 
-lemma left_msb_mle_one_chunk [ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
+--11111001
+-- 0
+#eval bool_to_bv (bv2.abs = bv1.abs)
+#eval bool_to_bv (bv2[0])
+#eval bool_to_bv (bv1[0])
+
+#eval (bool_to_bv bv1[6] * bool_to_bv bv2[6]+ (1#8 - bool_to_bv bv1[6]) * (1#8 - bool_to_bv bv2[6])) *
+                (bool_to_bv bv1[5]  * bool_to_bv bv2[5]  + (1#8 - bool_to_bv bv1[5]) * (1#8 - bool_to_bv bv2[5])) *
+              (bool_to_bv bv1[4] * bool_to_bv bv2[4] + (1#8 - bool_to_bv bv1[4]) * (1#8 - bool_to_bv bv2[4])) *
+            (bool_to_bv bv1[3] * bool_to_bv bv2[3] + (1#8 - bool_to_bv bv1[3]) * (1#8 - bool_to_bv bv2[3])) *
+          (bool_to_bv bv1[2] * bool_to_bv bv2[2]  + (1#8 -bool_to_bv bv1[2]) * (1#8 - bool_to_bv bv2[2])) *
+        (bool_to_bv bv1[1] * bool_to_bv bv2[1] + (1#8 -bool_to_bv bv1[1]) * (1#8 - bool_to_bv bv2[1])) *
+      (bool_to_bv bv1[0] * bool_to_bv bv2[0]  + (1#8 - bool_to_bv bv1[0]) * (1#8 -bool_to_bv bv2[0]))
+
+
+
+lemma right_msb_mle_one_chunk [ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
   some bvoutput = map_f_to_bv foutput ->
    some (bool_to_bv bv1[7])  = map_f_to_bv fv1[0]  ->
    some (bool_to_bv bv1[6]) = map_f_to_bv fv1[1]  ->
@@ -471,9 +485,9 @@ lemma left_msb_mle_one_chunk [ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector 
   some (bool_to_bv bv2[2]) = map_f_to_bv fv2[5]  ->
   some (bool_to_bv bv2[1]) = map_f_to_bv fv2[6]  ->
   some (bool_to_bv bv2[0]) = map_f_to_bv fv2[7]  ->
-  (bvoutput = bool_to_bv (BitVec.msb b1))
+  (bvoutput = bool_to_bv (BitVec.msb bv2))
   =
-  (foutput = evalSubtable LEFT_MSB_16 (Vector.append fv1 fv2))
+  (foutput = evalSubtable RIGHT_MSB_16 (Vector.append fv1 fv2))
  := by
     intros h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
     rw [extract_bv_rel] at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
@@ -498,7 +512,7 @@ lemma left_msb_mle_one_chunk [ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector 
     rcases h1 with ⟨h1_1, h1_2⟩
     -- apply val and unfold subtables
     rw [ZMod.eq_if_val]
-    unfold LEFT_MSB_16
+    unfold RIGHT_MSB_16
     unfold evalSubtable
     unfold bool_to_bv
     simp
@@ -537,11 +551,9 @@ lemma left_msb_mle_one_chunk [ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector 
 
     --- range analysis tactic
     try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1]
-    try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1]
 
 
-def bv1 := 127#8
-#eval bv1[7]
+
 
 lemma eq_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
   some bvoutput = map_f_to_bv foutput ->
@@ -649,9 +661,9 @@ lemma identity_mle_one_chunk[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f
   some (bool_to_bv bv2[2]) = map_f_to_bv fv2[5]  ->
   some (bool_to_bv bv2[1]) = map_f_to_bv fv2[6]  ->
   some (bool_to_bv bv2[0]) = map_f_to_bv fv2[7]  ->
-  (bvoutput =   (BitVec.or bv1 bv2))
+  (bvoutput =  bool_to_bv ( bv2 = 0#8))
   =
-  (foutput = evalSubtable OR_16 (Vector.append fv1 fv2))
+  (foutput = evalSubtable RIGHT_IS_ZERO_16 (Vector.append fv1 fv2))
  := by
     intros h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
     rw [extract_bv_rel] at h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
@@ -676,13 +688,14 @@ lemma identity_mle_one_chunk[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f
     rcases h1 with ⟨h1_1, h1_2⟩
     -- apply val and unfold subtables
     rw [ZMod.eq_if_val]
-    unfold OR_16
+    unfold  RIGHT_IS_ZERO_16
     unfold evalSubtable
     simp
     unfold subtableFromMLE
     simp
     unfold Vector.append
     simp
+    unfold bool_to_bv
     --- zmod to nat
     valify [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
     simp
@@ -710,7 +723,6 @@ lemma identity_mle_one_chunk[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f
     set b27 := ZMod.val fv2[7]
     bv_normalize
     bv_decide
-    --bv_decide
     exact h1_1
 
     --- range analysis tactic
@@ -720,7 +732,7 @@ lemma identity_mle_one_chunk[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f
 
 
 
-lemma lsb_mle_one_chunk[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
+lemma DIV_BY_ZERO_mle_one_chunk[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
   some bvoutput = map_f_to_bv foutput ->
    some (bool_to_bv bv1[7])  = map_f_to_bv fv1[0]  ->
    some (bool_to_bv bv1[6]) = map_f_to_bv fv1[1]  ->
@@ -738,9 +750,9 @@ lemma lsb_mle_one_chunk[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
   some (bool_to_bv bv2[2]) = map_f_to_bv fv2[5]  ->
   some (bool_to_bv bv2[1]) = map_f_to_bv fv2[6]  ->
   some (bool_to_bv bv2[0]) = map_f_to_bv fv2[7]  ->
-  (bvoutput = bool_to_bv (BitVec.getLsb' bv2 0))
+  (bvoutput = bool_to_bv (bv1 = 0#8 && bv2 = 255#8) )
   =
-  (foutput = evalSubtable LSB_16 (Vector.append fv1 fv2))
+  (foutput = evalSubtable DIV_BY_ZERO_16 (Vector.append fv1 fv2))
  := by
     -- set up hypothesis
     intros h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17
@@ -766,17 +778,20 @@ lemma lsb_mle_one_chunk[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
     rcases h1 with ⟨h1_1, h1_2⟩
     -- apply val and unfold subtables
     rw [ZMod.eq_if_val]
-    unfold LSB_16
+    unfold DIV_BY_ZERO_16
     unfold evalSubtable
-    unfold bool_to_bv
     simp
     unfold subtableFromMLE
     simp
     unfold Vector.append
     simp
-
-
+    valify [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
+    simp
+    rw [Nat.mod_eq_of_lt]
     rw [BitVec.ofNat_eq_iff]
+    -- apply bv and nat to zmod
+    bvify [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_1]
+    unfold bool_to_bv
     -- apply bv and nat to zmod
     -- necessary because of Lean version this can do away
     set a := foutput.val
@@ -797,9 +812,29 @@ lemma lsb_mle_one_chunk[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
     set b26 := ZMod.val fv2[6]
     set b27 := ZMod.val fv2[7]
     --grind
+    --bv_decide
     bv_decide
     exact h1_1
     --norm_num
     --- range analysis tactic
-
     try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_2]
+    try_apply_lemma_hyps [h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, h8_1, h9_1, h10_1, h11_1, h12_1, h13_1, h14_1, h15_1, h16_1, h17_1, h16_2]
+
+example (bv1 bv2 : BitVec 8):
+  bv1 = bv2 -> bv1.abs = bv2.abs := by
+  bv_normalize
+  bv_decide
+
+
+-- example (bv1 bv2 : BitVec 8):
+--   bv1.msb = bv2.msb -> bv1[0] = bv2[1] := by
+--   bv_normalize
+--   bv_decide
+example (x: ZMod ff) (h: ZMod.val x ≤ 1)  (h1: ZMod.val y ≤ 1):
+  ((1-  y)- x).val = ((1- y.val) - x.val):= by
+  rw [ZMod.val_sub]
+  rw [ZMod.val_sub]
+  rw [ZMod.val_one]
+  valify [h1]
+  valify [h1]
+  elim2_norm_num h h1
