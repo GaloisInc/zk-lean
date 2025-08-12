@@ -28,6 +28,7 @@ import Std.Tactic.BVDecide
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Bound
 import Mathlib.Tactic.Positivity
+import Mathlib.Data.Fin.Basic
 
 
 
@@ -61,7 +62,7 @@ macro_rules
 | `(tactic| valify $[[$simpArgs,*]]? $[at $location]?) =>
   let args := simpArgs.map (·.getElems) |>.getD #[]
   `(tactic|
-    simp -decide only [ZMod.val_sub, ZMod.val_add, ZMod.val_mul, ZMod.val_one, ZMod.val_ofNat, push_cast, norm_num, $args,*] $[at $location]? )
+    simp -decide only [ZMod.val_sub, ZMod.val_add, ZMod.val_mul, ZMod.val_one, ZMod.val_ofNat, push_cast, $args,*] $[at $location]? )
 
 
 
@@ -72,7 +73,7 @@ def mkZifyContext (simpArgs : Option (Syntax.TSepArray `Lean.Parser.Tactic.simpS
     TacticM MkSimpContextResult := do
   let args := simpArgs.map (·.getElems) |>.getD #[]
   mkSimpContext
-    (← `(tactic| simp -decide only  [ZMod.val_sub, ZMod.val_add, ZMod.val_mul, ZMod.val_one, ZMod.val_ofNat, push_cast, norm_num, $args,*] )) false
+    (← `(tactic| simp -decide only  [ZMod.val_sub, ZMod.val_add, ZMod.val_mul, ZMod.val_one, ZMod.val_ofNat, push_cast, $args,*] )) false
 
 /-- A variant of `applySimpResultToProp` that cannot close the goal, but does not need a meta
 variable and returns a tuple of a proof and the corresponding simplified proposition. -/
@@ -98,8 +99,3 @@ def zifyProof (simpArgs : Option (Syntax.TSepArray `Lean.Parser.Tactic.simpStar 
 end Valify
 
 end Mathlib.Tactic
-
-
-example (x: ZMod 4139) (h: ZMod.val x ≤ ZMod.val (4 : ZMod ff)):
-  (4 * x).val = (4 * x.val) % 4139:= by
-  valify
