@@ -33,30 +33,68 @@ elab "elim2_norm_num" h1:ident h2:ident : tactic => do
   evalTactic (← `(tactic| apply split_one at $(id2):ident))
   evalTactic (← `(tactic| apply Or.elim $id1))
   evalTactic (← `(tactic| intro hx; apply Or.elim $id2))
-  evalTactic (← `(tactic| intro hy; rewrite [hx]; rewrite [hy]; norm_num;))
+  evalTactic (← `(tactic| intro hy; rewrite [hx]; rewrite [hy]; simp;))
   try
       evalTactic (←  `(tactic|apply Nat.le_refl))
   catch _ => pure ()
 
-  evalTactic (← `(tactic| intro hy; rewrite [hy]; rewrite [hx]; norm_num;))
+  evalTactic (← `(tactic| intro hy; rewrite [hy]; rewrite [hx]; simp;))
   try
       evalTactic (←  `(tactic|apply Nat.le_refl))
   catch _ => pure ()
   evalTactic (← `(tactic| intro hx; apply Or.elim $id2))
-  evalTactic (← `(tactic| intro hy; rewrite [hx]; rewrite [hy]; norm_num;))
+  evalTactic (← `(tactic| intro hy; rewrite [hx]; rewrite [hy]; simp;))
   try
       evalTactic (←  `(tactic|apply Nat.le_refl))
   catch _ => pure ()
-  evalTactic (← `(tactic| intro hy; rewrite [hy]; rewrite [hx]; norm_num;))
+  evalTactic (← `(tactic| intro hy; rewrite [hy]; rewrite [hx]; simp;))
   try
       evalTactic (←  `(tactic|apply Nat.le_refl))
   catch _ => pure ()
 
+
+
+partial def containsSub (e : Expr) :  MetaM Bool := do
+  let e <- instantiateMVars e
+  if e.isApp then
+    let args := e.getAppArgs
+    let f := e.getAppFn
+    if f.isConstOf ``HSub.hSub then
+      return true
+    --   | _ => logInfo m!"Failed on args of const"
+    match args with
+    | #[_,_,_,_,_, arg1, arg2, _] =>
+       if arg1.isFVar then
+          return false
+    | _ => for arg in args do
+              if ← containsSub arg then
+           return true
+  return false
 
 
 partial def collectVarsAppAndConst (e : Expr) (acc : NameSet := {}) : MetaM NameSet := do
   let mut acc := acc
+  let old_e := e
   let e ← instantiateMVars e
+
+  -- let (fn, args) := old_e.getAppFnArgs
+  -- logInfo m!"Name: {old_e}"
+  -- match fn  with
+  --   | name =>
+  --     match name with
+  --     | ``Nat => logInfo m!"Nat agrs{args}"
+  --     | _ => logInfo m! "No"
+  let f := e.getAppFn
+  --logInfo m!"Func: {f}"
+  -- if f.isConstOf ``OfNat.ofNat then
+  --   let args := e.getAppArgs
+  --   match args with
+  --     | #[_, .lit (.natVal n), _ ]  =>
+  --       if n > 1 then
+  --         let idxPretty ← PrettyPrinter.ppExpr f
+  --         let idxStr := s!"{idxPretty}"
+  --         acc:= acc.insert (Name.mkSimple s!"{idxStr}")
+  --     | _ => pure ()
   if e.isFVar then
     let fvarId := e.fvarId!
     let lctx ← getLCtx
@@ -66,6 +104,15 @@ partial def collectVarsAppAndConst (e : Expr) (acc : NameSet := {}) : MetaM Name
       return acc
   if e.isApp then
     let args := e.getAppArgs
+    let f := e.getAppFn
+    -- if f.isConstOf ``OfNat.ofNat then
+    --   match args with
+    --   | #[_, .lit (.natVal n), _ ]  =>
+    --     if n > 1 then
+    --       let idxPretty ← PrettyPrinter.ppExpr f
+    --       let idxStr := s!"{idxPretty}"
+    --       acc:= acc.insert (Name.mkSimple s!"{idxStr}")
+    --   | _ => logInfo m!"Failed on args of const"
     match args with
     | #[_,_,_,_,_, arg1, arg2, _] =>
        if arg1.isFVar then
@@ -76,10 +123,9 @@ partial def collectVarsAppAndConst (e : Expr) (acc : NameSet := {}) : MetaM Name
             let idxStr := s!"{idxPretty}"
             acc:= acc.insert (Name.mkSimple s!"{decl.userName}[{idxStr}]")
             return acc
-    | _ => pure ()
-    for arg in args do
-      acc ← collectVarsAppAndConst arg acc
-    return acc
+    | _ => for arg in args do
+              acc ← collectVarsAppAndConst arg acc
+          return acc
   else
     return acc
 
@@ -148,7 +194,7 @@ elab_rules : tactic
         let resultList := result.toList
         --logInfo m!"result: {resultList}"
         let mut lemmaMatch := none
-        if result.size == 2 then
+        if result.size == 2 && (<- containsSub goalType) then
           --logInfo m!"Searching for bounds :)"
           let bounds ← g.withContext do
             let lctx ← getLCtx
@@ -186,56 +232,56 @@ elab_rules : tactic
                 if remaining.contains g then
                   logInfo m!"➖ elim2 modified goal {g}, but did not fully solve it"
                 else
-                  --logInfo m!"✅ Fully solved goal {g} using elim2"
+                  logInfo m!"✅ Fully solved goal {goalType} using elim2"
                   updatedGoals := updatedGoals ++ [g]
                   applied := true
                   handled := true
                   progress := true
-            catch err => pure ()
-              --logInfo m!"❌ elim2_norm_num failed: {← err.toMessageData.toString}"
+            catch err => logInfo m!"❌ elim2_norm_num failed {err.toMessageData}"
           else
             logInfo m!"❌ Did not find two appropriate bounds to run elim2_norm_num for {resultList}"
-        if (first_lemma) then
-          first_lemma := false
-          lemmaMatch :=
-            match fn with
-            | name =>
-              match name with
-              | ``LT.lt => some ("Nat.lt_of_le_of_lt", lt)
-              | _ => none
-        else
-          lemmaMatch :=
-            match fn with
-            | name =>
-              match name with
-              | ``LE.le =>
-                match fn3 with
-                | Expr.const name _ =>
-                  match name with
-                    | ``HSub.hSub => some ("Nat.lt_sub", sub)
-                    | ``HAdd.hAdd => some ("Nat.add_le_add", add)
-                    | ``HMul.hMul => some ("Nat.mul_le_mul", mul)
-                    | ``OfNat.ofNat => some ("@OfNat.ofNat", rfl)
-                    | _ => none
+        if (not applied) then
+          if (first_lemma) then
+            first_lemma := false
+            lemmaMatch :=
+              match fn with
+              | name =>
+                match name with
+                | ``LT.lt => some ("Nat.lt_of_le_of_lt", lt)
                 | _ => none
-              | _ => none
-        match lemmaMatch with
-        | some (name, stx) =>
-            try
-              --logInfo m!"Looking at lemma {name}"
-              let e ← elabTerm stx goalType
-              let subgoals ← g.apply e
-              --logInfo m!"✅ Applied lemma {name} to goal {← PrettyPrinter.ppExpr goalType}"
-              updatedGoals := updatedGoals ++ subgoals
-              handled := true
-              progress := true
-              applied := true
-            catch err =>
+          else
+            lemmaMatch :=
+              match fn with
+              | name =>
+                match name with
+                | ``LE.le =>
+                  match fn3 with
+                  | Expr.const name _ =>
+                    match name with
+                      | ``HSub.hSub => some ("Nat.lt_sub", sub)
+                      | ``HAdd.hAdd => some ("Nat.add_le_add", add)
+                      | ``HMul.hMul => some ("Nat.mul_le_mul", mul)
+                      | ``OfNat.ofNat => some ("@OfNat.ofNat", rfl)
+                      | _ => none
+                  | _ => none
+                | _ => none
+          match lemmaMatch with
+          | some (name, stx) =>
+              try
+                --logInfo m!"Looking at lemma {name}"
+                let e ← elabTerm stx goalType
+                let subgoals ← g.apply e
+                --logInfo m!"✅ Applied lemma {name} to goal {← PrettyPrinter.ppExpr goalType}"
+                updatedGoals := updatedGoals ++ subgoals
+                handled := true
+                progress := true
+                applied := true
+              catch err =>
+                random := false
+                logInfo m!"❌ Failed to apply lemma {name} to goal {← PrettyPrinter.ppExpr goalType}: {← err.toMessageData.toString}"
+          | none =>
               random := false
-              --logInfo m!"❌ Failed to apply lemma {name} to goal {← PrettyPrinter.ppExpr goalType}: {← err.toMessageData.toString}"
-        | none =>
-            random := false
-            --logInfo m!"❌ Failed to find a lemma for {fn} and args {args}"
+              logInfo m!"❌ Failed to find a lemma for {fn} and args {args}"
       if not applied then
       -- TODO Need to figure out how
         try
@@ -278,11 +324,34 @@ example (x y : ℕ): (h1 : (x <= 1) ) → (h1 : (y <= 1) ) → ( (z <= 1) ) -> (
 -- abbrev b := Nat.log2 ff
 
 
+-- example ( fv2: Vector f 8) :  (ZMod.val fv2[7]  <= 1) -> ( ZMod.val fv2[6] <= 1)  ->
+--   (ZMod.val fv2[7]  + ZMod.val fv2[7] +  ZMod.val fv2[6] < 4) := by
+--   intros h1 h2
+--   try_apply_lemma_hyps [h1, h2]
+
+
 -- example (fv1 fv2: Vector f 8) :  (ZMod.val fv1[0]  <= 1) -> ( ZMod.val fv2[1] <= 1) -> ( ZMod.val fv2[0] <= 1) ->
---   ((ZMod.val fv1[0])*(1- ZMod.val fv2[1]) + (ZMod.val fv2[1])*(1-ZMod.val fv1[0])) +
+--   ((ZMod.val fv1[0])+(1- ZMod.val fv2[1]) + (ZMod.val fv2[1])*(1-ZMod.val fv1[0])) +
 --   ((ZMod.val fv1[0])*(1- ZMod.val fv2[0]) + (ZMod.val fv2[0])*(1-ZMod.val fv1[0])) < 7 := by
 --   intros h1 h2 h3
---   try_apply_lemma_hyps [h1, h2, h3]
+--   apply Nat.lt_of_le_of_lt
+--   apply Nat.add_le_add
+--   apply split_one at h1
+--   apply split_one at h2
+--   apply Or.elim h1
+--   intro hx
+--   apply Or.elim h2
+--   intro hy
+--   rewrite [hx]
+--   rewrite [hy]
+--   simp
+
+
+-- ;evalTactic (← `(tactic| apply Or.elim $id1))
+--   evalTactic (← `(tactic| intro hx; apply Or.elim $id2))
+--   evalTactic (← `(tactic| intro hy; rewrite [hx]; rewrite [hy]; norm_num;))
+--   elim2_norm_num
+  --try_apply_lemma_hyps [h1, h2, h3]
 
 --  example (x y : ℕ) : (x <= 4) -> (y <= 4)  ->  x* (x+y) < 100 := by
 --      intros h1 h2
