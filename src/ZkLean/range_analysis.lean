@@ -232,14 +232,14 @@ elab_rules : tactic
                 if remaining.contains g then
                   logInfo m!"➖ elim2 modified goal {g}, but did not fully solve it"
                 else
-                  logInfo m!"✅ Fully solved goal {goalType} using elim2"
+                 -- logInfo m!"✅ Fully solved goal {goalType} using elim2"
                   updatedGoals := updatedGoals ++ [g]
                   applied := true
                   handled := true
                   progress := true
             catch err => logInfo m!"❌ elim2_norm_num failed {err.toMessageData}"
-          else
-            logInfo m!"❌ Did not find two appropriate bounds to run elim2_norm_num for {resultList}"
+          --else
+            --logInfo m!"❌ Did not find two appropriate bounds to run elim2_norm_num for {resultList}"
         if (not applied) then
           if (first_lemma) then
             first_lemma := false
@@ -278,10 +278,10 @@ elab_rules : tactic
                 applied := true
               catch err =>
                 random := false
-                logInfo m!"❌ Failed to apply lemma {name} to goal {← PrettyPrinter.ppExpr goalType}: {← err.toMessageData.toString}"
+                --logInfo m!"❌ Failed to apply lemma {name} to goal {← PrettyPrinter.ppExpr goalType}: {← err.toMessageData.toString}"
           | none =>
               random := false
-              logInfo m!"❌ Failed to find a lemma for {fn} and args {args}"
+              --logInfo m!"❌ Failed to find a lemma for {fn} and args {args}"
       if not applied then
       -- TODO Need to figure out how
         try
@@ -298,17 +298,17 @@ elab_rules : tactic
             if remaining.contains g then
               logInfo m!"➖ norm_num modified goal {g}, but did not fully solve it"
             else
-              logInfo m!"✅ Fully solved goal using decide {goalType}"
+              --logInfo m!"✅ Fully solved goal using decide {goalType}"
               updatedGoals := updatedGoals ++ [g]
               applied := true
               handled := true
           else
-            logInfo m!"❌ did not solve the goal? {g}"
+            --logInfo m!"❌ did not solve the goal? {g}"
             updatedGoals := updatedGoals ++ [g]
             applied := true
             handled := true
         catch err =>
-          logInfo m!"❌ decide failed on goal {← PrettyPrinter.ppExpr goalType}: {← err.toMessageData.toString}"
+          --logInfo m!"❌ decide failed on goal {← PrettyPrinter.ppExpr goalType}: {← err.toMessageData.toString}"
           updatedGoals := updatedGoals ++ [g]
           handled := true
           applied := true

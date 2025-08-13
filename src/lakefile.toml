@@ -18,7 +18,7 @@ rev = "v4.21.0"
 [[require]]
 name = "auto"
 git = "https://github.com/leanprover-community/lean-auto"
-rev = "32b0e4d"
+rev = "9c13e67"
 
 [[require]]
 name = "mpl"

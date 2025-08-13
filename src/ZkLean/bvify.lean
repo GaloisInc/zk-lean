@@ -97,7 +97,33 @@ lemma BitVec.ofNat_sub{ b : ℕ} (h: 1 >= b) :
             simp at h
 
 
-
+lemma trust_me_bv {x y :ℕ }
+    (hx : x ≤ 1) (hy : y <= 1) :
+   BitVec.ofNat 8 (x + y - x*y)=
+   BitVec.ofNat 8 (x + y)  -  BitVec.ofNat 8 (x * y)  := by
+   apply split_one at hx
+   apply split_one at hy
+   apply Or.elim hx
+   intro hx'
+   apply Or.elim hy
+   intro hy'
+   rw [hx']
+   rw [hy']
+   decide
+   intro hy'
+   rw [hx']
+   rw [hy']
+   decide
+   intro hx'
+   apply Or.elim hy
+   intro hy'
+   rw [hx']
+   rw [hy']
+   decide
+   intro hy'
+   rw [hx']
+   rw [hy']
+   decide
 
     --rw [Nat.mod_sub_eq]
 
@@ -116,7 +142,7 @@ macro_rules
 | `(tactic| bvify $[[$simpArgs,*]]? $[at $location]?) =>
   let args := simpArgs.map (·.getElems) |>.getD #[]
   `(tactic|
-    simp -decide only [BitVec.ofNat_add, BitVec.ofNat_mul, BitVec.ofNat_sub, push_cast, $args,*] $[at $location]? )
+    simp -decide only [trust_me_bv, BitVec.ofNat_add, BitVec.ofNat_mul, BitVec.ofNat_sub, push_cast, $args,*] $[at $location]? )
 
 
 
@@ -127,7 +153,7 @@ def mkZifyContext (simpArgs : Option (Syntax.TSepArray `Lean.Parser.Tactic.simpS
     TacticM MkSimpContextResult := do
   let args := simpArgs.map (·.getElems) |>.getD #[]
   mkSimpContext
-    (← `(tactic| simp -decide only  [BitVec.ofNat_add, BitVec.ofNat_mul, BitVec.ofNat_sub, push_cast, $args,*] )) false
+    (← `(tactic| simp -decide only  [trust_me_bv, BitVec.ofNat_add, BitVec.ofNat_mul, BitVec.ofNat_sub, push_cast, $args,*] )) false
 
 /-- A variant of `applySimpResultToProp` that cannot close the goal, but does not need a meta
 variable and returns a tuple of a proof and the corresponding simplified proposition. -/

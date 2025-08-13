@@ -51,9 +51,139 @@ open Lean.Parser.Tactic
 open Lean.Elab.Tactic
 
 
-/--
+/-- evalTactic (← `(tactic| apply split_one at $(id1):ident))
+  evalTactic (← `(tactic| apply split_one at $(id2):ident))
+  evalTactic (← `(tactic| apply Or.elim $id1))
+  evalTactic (← `(tactic| intro hx; apply Or.elim $id2))
+  evalTactic (← `(tactic| intro hy; rewrite [hx]; rewrite [hy]; simp;))
+  try
+      evalTactic (←  `(tactic|apply Nat.le_refl))
+  catch _ => pure ()
+
+  evalTactic (← `(tactic| intro hy; rewrite [hy]; rewrite [hx]; simp;))
+  try
+      evalTactic (←  `(tactic|apply Nat.le_refl))
+  catch _ => pure ()
+  evalTactic (← `(tactic| intro hx; apply Or.elim $id2))
+  evalTactic (← `(tactic| intro hy; rewrite [hx]; rewrite [hy]; simp;))
+  try
+      evalTactic (←  `(tactic|apply Nat.le_refl))
+  catch _ => pure ()
+  evalTactic (← `(tactic| intro hy; rewrite [hy]; rewrite [hx]; simp;))
+  try
+      evalTactic (←  `(tactic|apply Nat.le_refl))
+  catch _ => pure ()
+
+
 Hello.
 -/
+lemma split_one (x : ℕ): (x <= 1) -> (x = 0 ∨ x = 1) := by
+  intro hx
+  cases x with
+    | zero => trivial
+    | succ n => cases n with
+      | zero =>
+        apply Or.inr
+        decide
+      | succ m => exfalso
+                  simp at hx
+
+
+--abbrev ff := 4139
+-- abbrev f := ZMod ff
+-- abbrev b := Nat.log2 ff
+
+class GtTwo (n : ℕ) : Prop :=
+  out : 2 < n
+
+lemma one_le_two_mod_of_three_le {n : ℕ} (hn : 3 ≤ n) : 1 ≤ 2 % n := by
+  have hlt : 2 < n := Nat.succ_le.mp hn
+  simp [Nat.mod_eq_of_lt hlt]
+
+
+lemma trust_me_val {n : ℕ} [h: NeZero n] [h': GtTwo n] {x y : ZMod n}
+    (hx : x.val ≤ 1) (hy : y.val <= 1) :
+  (x + y - x*y).val =
+  ((x.val + y.val)  - (x.val * y.val) )% n := by
+  have h:  (x + y).val >=  (x * y).val := by
+          simp [ZMod.val_mul]
+          simp [ZMod.val_add]
+          apply split_one at hx
+          apply split_one at hy
+          apply Or.elim hx
+          intro hx'
+          apply Or.elim hy
+          intro hy'
+          rw [hx']
+          rw [hy']
+          intro hy'
+          rw [hx']
+          rw [hy']
+          simp
+          intro hx'
+          apply Or.elim hy
+          intro hy'
+          rw [hx']
+          rw [hy']
+          simp
+          intro hy'
+          rw [hx']
+          rw [hy']
+          simp
+          cases n with
+            | zero => simp
+            | succ m => cases m with
+               | zero => simp
+               | succ m' => cases m' with
+                    | zero => simp
+                              simp at h'
+                              exact (lt_irrefl 2) h'.out
+                    | succ n' =>
+                          have h3 : 3 ≤ n' + 1 + 1 +1 := by simp
+                          have hlt : 2 < n' + 1 + 1 + 1 := by apply h3
+                          rw [Nat.mod_eq_of_lt hlt]
+                          simp
+  simp [ZMod.val_sub h]
+  simp [ZMod.val_mul]
+  simp [ZMod.val_add]
+  apply split_one at hx
+  apply split_one at hy
+  apply Or.elim hx
+  intro hx'
+  apply Or.elim hy
+  intro hy'
+  rw [hx']
+  rw [hy']
+  simp
+  intro hy'
+  rw [hx']
+  rw [hy']
+  simp
+  intro hx'
+  apply Or.elim hy
+  intro hy'
+  rw [hx']
+  rw [hy']
+  simp
+  intro hy'
+  rw [hx']
+  rw [hy']
+  simp
+  cases n with
+            | zero => simp
+            | succ m => cases m with
+               | zero => simp
+               | succ m' => cases m' with
+                    | zero => simp
+                              simp at h'
+                              exact (lt_irrefl 2) h'.out
+                    | succ n' =>
+                          have h3 : 3 ≤ n' + 1 + 1 +1 := by simp
+                          have hlt : 2 < n' + 1 + 1 + 1 := by apply h3
+                          rw [Nat.mod_eq_of_lt hlt]
+                          simp
+
+
 syntax (name := valify) "valify" (simpArgs)? (location)? : tactic
 
 
@@ -62,7 +192,7 @@ macro_rules
 | `(tactic| valify $[[$simpArgs,*]]? $[at $location]?) =>
   let args := simpArgs.map (·.getElems) |>.getD #[]
   `(tactic|
-    simp -decide only [ZMod.val_sub, ZMod.val_add, ZMod.val_mul, ZMod.val_one, ZMod.val_ofNat, push_cast, $args,*] $[at $location]? )
+    simp -decide only [trust_me_val, ZMod.val_sub, ZMod.val_add, ZMod.val_mul, ZMod.val_one, ZMod.val_ofNat, push_cast, $args,*] $[at $location]? )
 
 
 
@@ -73,7 +203,7 @@ def mkZifyContext (simpArgs : Option (Syntax.TSepArray `Lean.Parser.Tactic.simpS
     TacticM MkSimpContextResult := do
   let args := simpArgs.map (·.getElems) |>.getD #[]
   mkSimpContext
-    (← `(tactic| simp -decide only  [ZMod.val_sub, ZMod.val_add, ZMod.val_mul, ZMod.val_one, ZMod.val_ofNat, push_cast, $args,*] )) false
+    (← `(tactic| simp -decide only  [trust_me_val, ZMod.val_sub, ZMod.val_add, ZMod.val_mul, ZMod.val_one, ZMod.val_ofNat, push_cast, $args,*] )) false
 
 /-- A variant of `applySimpResultToProp` that cannot close the goal, but does not need a meta
 variable and returns a tuple of a proof and the corresponding simplified proposition. -/
