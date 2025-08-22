@@ -79,9 +79,54 @@ lemma Nat.lt_sub (a :ℕ) (h: a <= 1) :
    simp
    simp
 
-lemma BitVec.ofNat_sub{ b : ℕ} (h: 1 >= b) :
+lemma ult_bv {x y :ℕ }
+    (hx : x ≤ 1) (hy : y <= 1) :
+     (BitVec.ofNat 8 (1 - x + x * y - y)) = (BitVec.ofNat 8 (1) - BitVec.ofNat 8 x + BitVec.ofNat 8 x * BitVec.ofNat 8 y - BitVec.ofNat 8 y) := by
+    apply split_one at hx
+    apply split_one at hy
+    apply Or.elim hx
+    intro hx'
+    apply Or.elim hy
+    intro hy'
+    rw [hx']
+    rw [hy']
+    decide
+    intro hy'
+    rw [hx']
+    rw [hy']
+    decide
+    intro hx'
+    apply Or.elim hy
+    intro hy'
+    rw [hx']
+    rw [hy']
+    decide
+    intro hy'
+    rw [hx']
+    rw [hy']
+    decide
+
+
+lemma BitVec.ofNat_sub_8{ b : ℕ} (h: 1 >= b) :
   BitVec.ofNat 8 (1 - b) =
     (BitVec.ofNat 8 1) - (BitVec.ofNat 8 b) := by
+    unfold BitVec.ofNat
+    rw [Fin.ofNat, Fin.ofNat,  Fin.ofNat]
+    apply congrArg
+    simp_all
+    apply Fin.eq_of_val_eq
+    simp_all
+    cases b with
+      | zero => simp
+      | succ n => cases n with
+         | zero => simp_all
+         | succ m =>
+            exfalso
+            simp at h
+
+lemma BitVec.ofNat_sub_32{ b : ℕ} (h: 1 >= b) :
+  BitVec.ofNat 32 (1 - b) =
+    (BitVec.ofNat 32 1) - (BitVec.ofNat 32 b) := by
     unfold BitVec.ofNat
     rw [Fin.ofNat, Fin.ofNat,  Fin.ofNat]
     apply congrArg
@@ -142,7 +187,7 @@ macro_rules
 | `(tactic| bvify $[[$simpArgs,*]]? $[at $location]?) =>
   let args := simpArgs.map (·.getElems) |>.getD #[]
   `(tactic|
-    simp -decide only [trust_me_bv, BitVec.ofNat_add, BitVec.ofNat_mul, BitVec.ofNat_sub, push_cast, $args,*] $[at $location]? )
+    simp -decide only [ult_bv, trust_me_bv, BitVec.ofNat_add, BitVec.ofNat_mul, BitVec.ofNat_sub_8, BitVec.ofNat_sub_32, push_cast, $args,*] $[at $location]? )
 
 
 
@@ -153,7 +198,7 @@ def mkZifyContext (simpArgs : Option (Syntax.TSepArray `Lean.Parser.Tactic.simpS
     TacticM MkSimpContextResult := do
   let args := simpArgs.map (·.getElems) |>.getD #[]
   mkSimpContext
-    (← `(tactic| simp -decide only  [trust_me_bv, BitVec.ofNat_add, BitVec.ofNat_mul, BitVec.ofNat_sub, push_cast, $args,*] )) false
+    (← `(tactic| simp -decide only  [ult_bv, trust_me_bv, BitVec.ofNat_add, BitVec.ofNat_mul, BitVec.ofNat_sub_8, BitVec.ofNat_sub_32, push_cast, $args,*] )) false
 
 /-- A variant of `applySimpResultToProp` that cannot close the goal, but does not need a meta
 variable and returns a tuple of a proof and the corresponding simplified proposition. -/
