@@ -29,7 +29,7 @@ import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Bound
 import Mathlib.Tactic.Positivity
 import Mathlib.Data.Fin.Basic
-
+import ZkLean.range_analysis
 
 
 /-!
@@ -101,7 +101,112 @@ lemma one_le_two_mod_of_three_le {n : ℕ} (hn : 3 ≤ n) : 1 ≤ 2 % n := by
   simp [Nat.mod_eq_of_lt hlt]
 
 
-lemma trust_me_val {n : ℕ} [h: NeZero n] [h': GtTwo n] {x y : ZMod n}
+--(1 - fv1[0] - fv2[0] + fv1[0] * fv2[0] + fv1[0] * fv2[0])
+
+ lemma ult_val {n : ℕ} [h: NeZero n]  [h': GtTwo n] {x y : ZMod n}
+    (hx : x.val ≤ 1) (hy : y.val <= 1): (1 - x - y + x * y + x * y).val =
+    (1 - (x).val + (x).val * (y).val - (y).val + (x).val * (y).val)  := by
+    --sorry
+    have hz : x*y + (x*y + (1 - x - y)) = (x*y + x*y + (1 - x)) - y := by
+      simp [sub_eq_add_neg, add_assoc, add_left_comm, add_comm]
+    have k := congrArg ZMod.val hz
+    conv =>
+      lhs
+      simp  [add_comm]
+      rw [k]
+    haveI : Fact (1 < n) := ⟨(by decide : 1 < 2).trans h'.out⟩
+    have hlt: (x * y + x * y + (1 - x)).val >= y.val := by
+      simp [ZMod.val_add]
+      simp [ZMod.val_mul]
+      rw [ZMod.val_sub]
+      rw [ZMod.val_one]
+      apply split_one at hx
+      apply split_one at hy
+      apply Or.elim hx
+      intro hx'
+      apply Or.elim hy
+      intro hy'
+      rw [hx']
+      rw [hy']
+      simp
+      intro hy'
+      rw [hx']
+      rw [hy']
+      simp
+      rw [Nat.mod_eq_of_lt]
+      apply this.out
+      intro hx'
+      apply Or.elim hy
+      intro hy'
+      rw [hx']
+      rw [hy']
+      simp
+      intro hy'
+      rw [hx']
+      rw [hy']
+      simp
+      rw [Nat.mod_eq_of_lt]
+      simp
+      apply h'.out
+      rw [ZMod.val_one]
+      apply hx
+    rw [ZMod.val_sub ]
+    simp [ZMod.val_add]
+    simp [ZMod.val_mul]
+    rw [ZMod.val_sub]
+    rw [ZMod.val_one]
+
+    simp [add_assoc]
+    simp [add_left_comm, add_comm]
+    apply split_one at hx
+    apply split_one at hy
+    apply Or.elim hx
+    intro hx'
+    apply Or.elim hy
+    intro hy'
+    rw [hx']
+    rw [hy']
+    rw [Nat.mod_eq_of_lt]
+    simp
+    norm_num
+    apply this.out
+    intro hy'
+    rw [hx']
+    rw [hy']
+    simp
+    rw [Nat.mod_eq_of_lt]
+    apply this.out
+    intro hx'
+    apply Or.elim hy
+    intro hy'
+    rw [hx']
+    rw [hy']
+    simp
+    intro hy'
+    rw [hx']
+    rw [hy']
+    simp
+    rw [Nat.mod_eq_of_lt]
+    apply h'.out
+    rw [ZMod.val_one]
+    apply hx
+    apply hlt
+
+    -- cases n with
+    --   | zero => simp
+    --             simp at this
+    --             apply this.out
+    --   | succ m => cases m with
+    --             | zero => simp
+    --                       simp at h'
+    --                       exact (by decide : ¬ 2 < 1) h'.out
+    --             | succ n => simp
+    -- apply h'.out
+    -- rw [ZMod.val_one]
+    -- apply hx
+    -- apply hlt
+
+lemma or_val {n : ℕ} [h: NeZero n] [h': GtTwo n] {x y : ZMod n}
     (hx : x.val ≤ 1) (hy : y.val <= 1) :
   (x + y - x*y).val =
   ((x.val + y.val)  - (x.val * y.val) )% n := by
@@ -192,7 +297,7 @@ macro_rules
 | `(tactic| valify $[[$simpArgs,*]]? $[at $location]?) =>
   let args := simpArgs.map (·.getElems) |>.getD #[]
   `(tactic|
-    simp -decide only [trust_me_val, ZMod.val_sub, ZMod.val_add, ZMod.val_mul, ZMod.val_one, ZMod.val_ofNat, push_cast, $args,*] $[at $location]? )
+    simp only [ult_val, or_val, ZMod.val_sub, ZMod.val_add, ZMod.val_mul, ZMod.val_one, ZMod.val_ofNat, push_cast, $args,*,] $[at $location]? )
 
 
 
@@ -203,7 +308,7 @@ def mkZifyContext (simpArgs : Option (Syntax.TSepArray `Lean.Parser.Tactic.simpS
     TacticM MkSimpContextResult := do
   let args := simpArgs.map (·.getElems) |>.getD #[]
   mkSimpContext
-    (← `(tactic| simp -decide only  [trust_me_val, ZMod.val_sub, ZMod.val_add, ZMod.val_mul, ZMod.val_one, ZMod.val_ofNat, push_cast, $args,*] )) false
+    (← `(tactic| simp only  [ult_val,  or_val, ZMod.val_sub, ZMod.val_add, ZMod.val_mul, ZMod.val_one, ZMod.val_ofNat, push_cast, $args,*,] )) false
 
 /-- A variant of `applySimpResultToProp` that cannot close the goal, but does not need a meta
 variable and returns a tuple of a proof and the corresponding simplified proposition. -/
