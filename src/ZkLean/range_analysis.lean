@@ -137,7 +137,9 @@ elab_rules : tactic
       let hid : TSyntax `ident := mkIdent decl.userName
       -- Now you can run `simp at h30`
       evalTactic (← `(tactic| rw [$(hid):ident]))
-      evalTactic (← `(tactic| simp ))
+      try
+        evalTactic (← `(tactic| simp ))
+      catch _ => pure ()
       evalTactic (← `(tactic| rw [Nat.mux_if_then]))
       evalTactic (← `(tactic| split_ifs))
     | none =>
@@ -239,9 +241,10 @@ elab_rules : tactic
   let mut first_lemma := true
   let mut random := false
   try
-       evalTactic (← `(tactic| simp [Nat.mul_assoc]))
+       evalTactic (← `(tactic| all_goals simp [Nat.mul_assoc]))
    catch _ => pure ()
   let mut did_mux := false
+  let mut did_decide:= false
   while progress do
     if did_mux then
       try
@@ -254,11 +257,15 @@ elab_rules : tactic
        evalTactic (← `(tactic| intro hMux))
 
        evalTactic (← `(tactic| rw [hMux]))
-       evalTactic (← `(tactic| simp ))
-
-       evalTactic (← `(tactic| rw [Nat.mux_if_then]))
-
-       evalTactic (← `(tactic| split_ifs))
+       try
+         evalTactic (← `(tactic| simp ))
+        catch _ => pure ()
+       try
+          evalTactic (← `(tactic| rw [Nat.mux_if_then]))
+       catch _ => pure ()
+       try
+          evalTactic (← `(tactic| split_ifs))
+       catch _ => pure ()
        did_mux := false
        progress := true
     let goals ← getGoals
@@ -267,7 +274,6 @@ elab_rules : tactic
     let mut handled := false
     progress := false
     for g in goals do
-      -- goal was solved so we don't need to do it
       if ← g.isAssigned then
         updatedGoals := updatedGoals ++ [g]
         continue
@@ -290,26 +296,30 @@ elab_rules : tactic
           let hExpr := mkFVar decl.fvarId
           g.apply hExpr
         updatedGoals := updatedGoals ++ subgoals
+        logInfo m!"We applied {hName}"
         applied := true
         handled := true
         progress := true
       catch err =>
         random := false
-      let (fn, args) := goalType.getAppFnArgs
+      let e ← instantiateMVars goalType
+      let (fn, args) := e.getAppFnArgs
+      --let e ← instantiateMVars goalType
       let mut lemmaMatch := none
       let result ← collectVarsAppAndConst goalType
       let resultList := result.toList
       if !applied && args.size > 3 then
         let g ← getMainGoal
         let goalType ← g.getType
-        let (fn, args) := goalType.getAppFnArgs
+         let e ← instantiateMVars goalType
+        let (fn, args) := e.getAppFnArgs
         let unfolded := ← withTransparency .reducible (whnf args[2]!)
         let fn3 := unfolded.getAppFn
         -- First check if we are dealing with a mux
         -- now recursively split of the addition
 
         let (x, lhs, rhs) <- collectExprs args[2]!
-        --- WORKING HERE BTW
+        logInfo m!"We are here!! {lhs}, {rhs}"
         if (!lhs.isEmpty && !rhs.isEmpty) then
           --logInfo m!"We entered the desired loop with {g}"
           let a := mkAddNat lhs
@@ -453,6 +463,7 @@ elab_rules : tactic
               handled := true
               if h.length != 0 then
                 progress := true
+                did_decide := true
               else
                 progress := false
           else
@@ -532,18 +543,27 @@ elab_rules : tactic
       logInfo m!"{h}"
 
 
--- example (y x a b: ℕ) (h: x<=1 ) (h2: y<=1) (h7: z<= 1) (h3: a<= 1) (h4: b<= 1):
---       (1-x) * (1-y)* (1-z) *(2*a + b) +
---       x * (1-y) *(1-z) * (3*a + b) +
---       (1-x) * y * (1-z) *(4*a + b) +
---       x * y * (1-z) * (5*a + b) +
---       (1-x) * (1-y)* z *(6*a + b) +
---       x * (1-y) *z * (7*a + b) +
---       (1-x) * y * z *(8*a + b) +
---       x * y * z* (9*a + b)
---        < 9 := by
---        --rw [Nat.lt_of_le_of_lt]
---        try_apply_lemma_hyps [h3, h4, h2,h7,h]
+example (y x a b: ℕ) (h: x<=1 ) (h2: y<=1) (h7: z<= 1) (h3: a<= 1) (h4: b<= 1):
+      (1-x) * (1-y)* (1-z) *(2*a + b) +
+      x * (1-y) *(1-z) * (3*a + b) +
+      (1-x) * y * (1-z) *(4*a + b) +
+      x * y * (1-z) * (5*a + b) +
+      (1-x) * (1-y)* z *(6*a + b) +
+      x * (1-y) *z * (7*a + b) +
+      (1-x) * y * z *(8*a + b) +
+      x * y * z* (9*a + b)
+       < 11  /\  (1-x) * (1-y)* (1-z) *(2*a + b) +
+      x * (1-y) *(1-z) * (3*a + b) +
+      (1-x) * y * (1-z) *(4*a + b) +
+      x * y * (1-z) * (5*a + b) +
+      (1-x) * (1-y)* z *(6*a + b) +
+      x * (1-y) *z * (7*a + b) +
+      (1-x) * y * z *(8*a + b) +
+      x * y * z* (9*a + b)
+       < 12 := by
+       split_ands
+       --all_goals simp [Nat.mul_assoc]
+       try_apply_lemma_hyps [h3, h4, h2,h7,h]
 
 
 
