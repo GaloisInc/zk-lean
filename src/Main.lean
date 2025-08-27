@@ -12,6 +12,7 @@ import Std.Data.HashMap.Basic
 import Std.Do
 import Std.Tactic.BVDecide
 import ZkLean
+import ZkLean.LookUpTables
 import ZkLean.SimpSets
 
 open Lean Meta Elab Term
