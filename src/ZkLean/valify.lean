@@ -206,6 +206,8 @@ lemma one_le_two_mod_of_three_le {n : ℕ} (hn : 3 ≤ n) : 1 ≤ 2 % n := by
     -- apply hx
     -- apply hlt
 
+
+
 lemma or_val {n : ℕ} [h: NeZero n] [h': GtTwo n] {x y : ZMod n}
     (hx : x.val ≤ 1) (hy : y.val <= 1) :
   (x + y - x*y).val =

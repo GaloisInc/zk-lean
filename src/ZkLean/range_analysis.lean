@@ -105,47 +105,6 @@ def classify (x : Expr) : MetaM Expr := do
   return finalExpr
 
 
-syntax (name := factorMux) "factorMux " : tactic
-
-elab_rules : tactic
-| `(tactic| factorMux) => do
-  try
-    evalTactic (← `(tactic| simp [Nat.mul_assoc]))
-  catch _ => pure ()
-  withMainContext do
-    let g ← getMainGoal
-    let goalType ← g.getType
-    let (fn, args) := goalType.getAppFnArgs
-    let h <- classify goalType
-    let prop ← mkEq args[2]! h
-    let pr  ← mkFreshExprMVar prop
-    let gWithHyp ← g.assert `h30 prop pr
-    let (hvar,b)← gWithHyp.intro1P
-    --let hUserName ← hvar.getUserName
-    replaceMainGoal [pr.mvarId!, b]
-    focus
-      do
-        evalTactic (← `(tactic| simp))
-        try
-          evalTactic (← `(tactic| ring))
-        catch _ => pure ()
-  withMainContext do
-    let lctx ← getLCtx
-    match lctx.findFromUserName? `h30 with
-    | some decl =>
-      -- Build an `ident` for the hypothesis from its FVarId
-      let hid : TSyntax `ident := mkIdent decl.userName
-      -- Now you can run `simp at h30`
-      evalTactic (← `(tactic| rw [$(hid):ident]))
-      try
-        evalTactic (← `(tactic| simp ))
-      catch _ => pure ()
-      evalTactic (← `(tactic| rw [Nat.mux_if_then]))
-      evalTactic (← `(tactic| split_ifs))
-    | none =>
-        throwError "hypothesis `h30` not found in this goal"
-
-
 
 elab "elim2_norm_num" h1:ident h2:ident : tactic => do
   let id1 : TSyntax `ident := mkIdent h1.getId
@@ -284,7 +243,7 @@ elab_rules : tactic
        -- Focus on one goal at a time
       setGoals [g]
       let goalType ← g.getType
-      logInfo m!"🧪 Solving goal {goalType}"
+    --  logInfo m!"🧪 Solving goal {goalType}"
       let mut applied := false
       for hName in hyps do
           unless applied do
@@ -296,7 +255,7 @@ elab_rules : tactic
           let hExpr := mkFVar decl.fvarId
           g.apply hExpr
         updatedGoals := updatedGoals ++ subgoals
-        logInfo m!"We applied {hName}"
+       -- logInfo m!"We applied {hName}"
         applied := true
         handled := true
         progress := true
@@ -319,7 +278,7 @@ elab_rules : tactic
         -- now recursively split of the addition
 
         let (x, lhs, rhs) <- collectExprs args[2]!
-        logInfo m!"We are here!! {lhs}, {rhs}"
+        --logInfo m!"We are here!! {lhs}, {rhs}"
         if (!lhs.isEmpty && !rhs.isEmpty) then
           --logInfo m!"We entered the desired loop with {g}"
           let a := mkAddNat lhs
@@ -484,8 +443,8 @@ elab_rules : tactic
           --   progress := true
           -- else
           --       progress := false
-      if (!progress) then
-        logInfo m! "Why did I make no progress? {g}"
+      -- if (!progress) then
+      --   logInfo m! "Why did I make no progress? {g}"
     setGoals updatedGoals
 
 -- example (x y : ℕ): (h1 : (x <= 1) ) → (h1 : (y <= 1) ) → ( (z <= 1) ) -> ( (x * (1 - y) + y * (1 - x)) + (z * (1 - y) + y * (1 - z))) < 3 := by
@@ -514,7 +473,7 @@ partial def collectExprs2 (x : Expr) : MetaM (Expr × List Expr × List Expr) :=
     if as.isEmpty && bs.isEmpty then
         return (x, [],[])
     if (v' != v) then
-       logInfo m!"This is the issue..{v'}, {v}"
+       --logInfo m!"This is the issue..{v'}, {v}"
        return (x, [],[])
     return (v, as ++ as', bs++bs')
     | ``HMul.hMul =>
@@ -522,7 +481,7 @@ partial def collectExprs2 (x : Expr) : MetaM (Expr × List Expr × List Expr) :=
         let (fn2, args2) := args[args.size -2]!.getAppFnArgs
         -- if args2.size <3 then
         --   return (x, [], [])
-        logInfo m!"ARGS {fn}"
+       -- logInfo m!"ARGS {fn}"
         match fn2 with
           | ``HSub.hSub => return (args2[args2.size -1]!, [], [args[args.size -1]!])
           | _ => return (args[args.size -2]!, [args[args.size -1]!], [])
@@ -540,7 +499,7 @@ elab_rules : tactic
       let goalType ← g.getType
       let (fn, args) := goalType.getAppFnArgs
       let h <- collectExprs2 args[2]!
-      logInfo m!"{h}"
+     -- logInfo m!"{h}"
 
 
 example (y x a b: ℕ) (h: x<=1 ) (h2: y<=1) (h7: z<= 1) (h3: a<= 1) (h4: b<= 1):
