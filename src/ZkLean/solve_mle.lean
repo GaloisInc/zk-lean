@@ -41,13 +41,13 @@ instance : ZKField (ZMod ff) where
     | n + 1 => hash n
 
   chunk_to_bits {num_bits: Nat} f :=
-    let bv : BitVec 16 := BitVec.ofFin (Fin.castSucc f)
-    -- TODO: Double check the endianess.
+     let bv : BitVec 32 := BitVec.ofFin (Fin.castSucc 2^32)
+  --   -- TODO: Double check the endianess.
     Vector.map (fun i =>
       if _:i < 3 then
         if bv[i] then 1 else 0
       else
-        0
+         0
     ) (Vector.range num_bits)
 
 instance : Witnessable (ZMod ff) (ZMod ff) := by sorry
@@ -64,7 +64,7 @@ instance IsThisTrue: SubNegMonoid (ZMod ff) :=
   inferInstance
 
 
-def map_f_to_bv (rs1_val : ZMod ff) : Option (BitVec 8) :=
+def map_f_to_bv_8 (rs1_val : ZMod ff) : Option (BitVec 8) :=
   let n := (rs1_val.val : Nat)
   if n < 2^8 then
     some (BitVec.ofNat 8 n)
@@ -88,8 +88,8 @@ def map_f_to_bv_32 (rs1_val : ZMod ff) : Option (BitVec 32) :=
 set_option maxHeartbeats 2000000
 
 
-lemma extract_bv_rel{bf x} : some (bool_to_bv bf) = map_f_to_bv x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#8 else 0#8) = BitVec.ofNat 8 x.val) := by
-  unfold map_f_to_bv
+lemma extract_bv_rel_8{bf x} : some (bool_to_bv bf) = map_f_to_bv_8 x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#8 else 0#8) = BitVec.ofNat 8 x.val) := by
+  unfold map_f_to_bv_8
   unfold bool_to_bv
   dsimp
   simp
@@ -204,7 +204,7 @@ lemma ZMod.eq_if_val (a b : ZMod ff) :
   exact h
 
 
-lemma BitVec.ofNat_eq_iff {x y : ℕ} (hx : x < 2^8) (hy : y < 2^8) :
+lemma BitVec_ofNat_eq_iff_8 {x y : ℕ} (hx : x < 2^8) (hy : y < 2^8) :
   (x = y)  <-> (BitVec.ofNat 8 x = BitVec.ofNat 8 y):= by
   constructor
   intro h
@@ -220,7 +220,7 @@ lemma BitVec.ofNat_eq_iff {x y : ℕ} (hx : x < 2^8) (hy : y < 2^8) :
   apply hxy
   apply hx
 
-lemma BitVec.ofNat_eq_iff_16 {x y : ℕ} (hx : x < 2^16) (hy : y < 2^16) :
+lemma BitVec_ofNat_eq_iff_16 {x y : ℕ} (hx : x < 2^16) (hy : y < 2^16) :
   (x = y)  <-> (BitVec.ofNat 16 x = BitVec.ofNat 16 y):= by
   constructor
   intro h
@@ -237,7 +237,7 @@ lemma BitVec.ofNat_eq_iff_16 {x y : ℕ} (hx : x < 2^16) (hy : y < 2^16) :
   apply hx
 
 
-lemma BitVec.ofNat_eq_iff_32 {x y : ℕ} (hx : x < 2^32) (hy : y < 2^32) :
+lemma BitVec_ofNat_eq_iff_32 {x y : ℕ} (hx : x < 2^32) (hy : y < 2^32) :
   (x = y)  <-> (BitVec.ofNat 32 x = BitVec.ofNat 32 y):= by
   constructor
   intro h
@@ -254,7 +254,7 @@ lemma BitVec.ofNat_eq_iff_32 {x y : ℕ} (hx : x < 2^32) (hy : y < 2^32) :
   apply hx
 
 
-syntax (name := SolveMLE) "solveMLE " : tactic
+syntax (name := SolveMLE) "solveMLE " ident num : tactic
 
 partial def introAll (i : Nat := 0) : TacticM Unit := do
   let g ← getMainGoal
@@ -267,14 +267,12 @@ private def termFor (nm : Name) : TacticM (TSyntax `term) := withMainContext do
   | none   => pure ⟨(mkIdent nm).raw⟩
 
 
-def XOR_16 [Field f] : Subtable f 16 :=
- subtableFromMLE (fun x => 0 + 1*((1 - x[7])*x[15] + x[7]*(1 - x[15])) + 2*((1 - x[6])*x[14] + x[6]*(1 - x[14])) + 4*((1 - x[5])*x[13] + x[5]*(1 - x[13])) + 8*((1 - x[4])*x[12] + x[4]*(1 - x[12])) + 16*((1 - x[3])*x[11] + x[3]*(1 - x[11])) + 32*((1 - x[2])*x[10] + x[2]*(1 - x[10])) + 64*((1 - x[1])*x[9] + x[1]*(1 - x[9])) + 128*((1 - x[0])*x[8] + x[0]*(1 - x[8])))
-
-
+set_option maxHeartbeats  20000000000000000000
 elab_rules : tactic
-| `(tactic| solveMLE) => do
+| `(tactic| solveMLE $table:ident $N:num ) => do
   let mut newHyp := true
   let mut index := 0
+  let n := N.getNat
   let mut hyps : List Name := []
   let mut ids : List (TSyntax `ident) := []
   while newHyp do
@@ -287,57 +285,65 @@ elab_rules : tactic
   | [] => pure ()
   | first :: rest => do
       let _firstId : TSyntax `ident := mkIdent first
-      -- do stuff that needs `first` if you like
-
-      -- iterate over the tail
       index := 0
       let g ← getMainGoal
       for x in rest do
         index := index +1
-        --  let some decl := (← getLCtx).findFromUserName? x
-        --   | pure ()
         let id : TSyntax `ident ← g.withContext do
           let lctx ← getLCtx
           let some decl := lctx.findFromUserName? x
                | throwError m!"no hyp `{x}`"
           pure (mkIdent decl.userName)
-
-        evalTactic (← `(tactic| rw [extract_bv_rel] at $id:ident))
-        let n1 := Name.mkSimple s!"{x}_1"
-        let n2 := Name.mkSimple s!"{x}_2"
-        let id1 : TSyntax `ident := mkIdent n1
-        let id2 : TSyntax `ident := mkIdent n2
-        ids := ids ++ [id1]
-        evalTactic (← `(tactic| rcases $id:ident with ⟨$id1:ident, $id2:ident⟩))
+        try
+        -- we might have extra hypothesis that don't need to be rewritten
+          let extractLemma:= Name.mkSimple s!"extract_bv_rel_{n}"
+          evalTactic (← `(tactic| rw [$(mkIdent extractLemma):ident] at $id:ident))
+          let n1 := Name.mkSimple s!"{x}_1"
+          let n2 := Name.mkSimple s!"{x}_2"
+          let id1 : TSyntax `ident := mkIdent n1
+          let id2 : TSyntax `ident := mkIdent n2
+          ids := ids ++ [id1]
+          evalTactic (← `(tactic| rcases $id:ident with ⟨$id1:ident, $id2:ident⟩))
+        catch _ => pure ()
       let id : TSyntax `ident ← g.withContext do
           let lctx ← getLCtx
           let some decl := lctx.findFromUserName? hyps[0]!
                | throwError m!"no hyp"
           pure (mkIdent decl.userName)
-      -- TODO: THIS IS NOT GOOD NEEDS TO DETECT WHAT TYPE OF BITVECTORS WE ARE TALKING
-      evalTactic (← `(tactic| unfold map_f_to_bv at $id:ident; simp at $id:ident))
+      let map_f :=  Name.mkSimple s!"map_f_to_bv_{n}"
+      evalTactic (← `(tactic| unfold $(mkIdent map_f):ident at $id:ident; simp at $id:ident))
       let n1 := Name.mkSimple s!"h_1"
       let n2 := Name.mkSimple s!"h_2"
       let id1 : TSyntax `ident := mkIdent n1
       let id2 : TSyntax `ident := mkIdent n2
       evalTactic (← `(tactic| rcases $id:ident with ⟨$id1:ident, $id2:ident⟩; rw [ZMod.eq_if_val]
-     -- TODO: TABLE NAME SHOULD BE A PARAMETER
-      ; unfold XOR_16
+      ; unfold $table:ident
       ; unfold evalSubtable
-      ; simp
+      ; simp (config := { failIfUnchanged := false })
       ; unfold subtableFromMLE
-      ; simp
+      ; simp (config := { failIfUnchanged := false })
       ; unfold Vector.append
-      ; simp ))
+      ; simp (config := { failIfUnchanged := false })))
+      logInfo m!"we got here"
       let idsArr : Array (TSyntax `ident) := ids.toArray
-      evalTactic (← `(tactic| valify [$[$idsArr:ident],*]))
-      evalTactic (← `(tactic| simp;  rw [Nat.mod_eq_of_lt];
-      -- TODO: THIS IS NOT GOOD NEEDS TO DETECT WHAT TYPE OF BITVECTORS WE ARE TALKING
-      rw [BitVec.ofNat_eq_iff] ))
+      -- TODO: I don't like this but otherwise we cant solve sign extend (maybe this should also be passed in as a parameter)
+      try
+        evalTactic (← `(tactic| valify [$[$idsArr:ident],*]))
+        evalTactic (← `(tactic| simp (config := { failIfUnchanged := false });  rw [Nat.mod_eq_of_lt]))
+      catch _ => pure ()
+      let lemmaName := Name.mkSimple s!"BitVec_ofNat_eq_iff_{n}"
+      evalTactic (← `(tactic| rw [$(mkIdent lemmaName):ident]))
+      -- TODO : Should fv1 should be passed in as parameters?
       let fv1T : TSyntax `term := (← termFor `fv1)
       let fv2T : TSyntax `term := (← termFor `fv2)
       let foT  : TSyntax `term := (← termFor `foutput)
-      evalTactic (← `(tactic| bvify [$[$idsArr:ident],*]))
+      try
+        evalTactic (← `(tactic| bvify [$[$idsArr:ident],*]))
+      catch _ => pure ()
+      try
+          evalTactic (← `(tactic| unfold bool_to_bv))
+      catch _ => pure ()
+      -- TODO: I don't the number bits should be hardcoded like this
       evalTactic (← `(tactic|
         set a   := ($foT).val ;
         set b10 := ZMod.val ($fv1T)[0] ;
@@ -362,29 +368,62 @@ elab_rules : tactic
       evalTactic (← `(tactic| try_apply_lemma_hyps [$[$idsArr:ident],*]))
   -- use x
 
+-- def SRA_SIGN_16 [Field f] : Subtable f 16 :=
+--  subtableFromMLE (fun x => 0 + 1*(0*x[15] + (1 - 0)*(1 - x[15]))*(0*x[14] + (1 - 0)*(1 - x[14]))*(0*x[13] + (1 - 0)*(1 - x[13]))*(0*x[12] + (1 - 0)*(1 - x[12]))*(0*x[11] + (1 - 0)*(1 - x[11]))*0 + 1*(1*x[15] + (1 - 1)*(1 - x[15]))*(0*x[14] + (1 - 0)*(1 - x[14]))*(0*x[13] + (1 - 0)*(1 - x[13]))*(0*x[12] + (1 - 0)*(1 - x[12]))*(0*x[11] + (1 - 0)*(1 - x[11]))*(0 + 2147483648*x[0]) + 1*(0*x[15] + (1 - 0)*(1 - x[15]))*(1*x[14] + (1 - 1)*(1 - x[14]))*(0*x[13] + (1 - 0)*(1 - x[13]))*(0*x[12] + (1 - 0)*(1 - x[12]))*(0*x[11] + (1 - 0)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0]) + 1*(1*x[15] + (1 - 1)*(1 - x[15]))*(1*x[14] + (1 - 1)*(1 - x[14]))*(0*x[13] + (1 - 0)*(1 - x[13]))*(0*x[12] + (1 - 0)*(1 - x[12]))*(0*x[11] + (1 - 0)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0]) + 1*(0*x[15] + (1 - 0)*(1 - x[15]))*(0*x[14] + (1 - 0)*(1 - x[14]))*(1*x[13] + (1 - 1)*(1 - x[13]))*(0*x[12] + (1 - 0)*(1 - x[12]))*(0*x[11] + (1 - 0)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0]) + 1*(1*x[15] + (1 - 1)*(1 - x[15]))*(0*x[14] + (1 - 0)*(1 - x[14]))*(1*x[13] + (1 - 1)*(1 - x[13]))*(0*x[12] + (1 - 0)*(1 - x[12]))*(0*x[11] + (1 - 0)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0]) + 1*(0*x[15] + (1 - 0)*(1 - x[15]))*(1*x[14] + (1 - 1)*(1 - x[14]))*(1*x[13] + (1 - 1)*(1 - x[13]))*(0*x[12] + (1 - 0)*(1 - x[12]))*(0*x[11] + (1 - 0)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0]) + 1*(1*x[15] + (1 - 1)*(1 - x[15]))*(1*x[14] + (1 - 1)*(1 - x[14]))*(1*x[13] + (1 - 1)*(1 - x[13]))*(0*x[12] + (1 - 0)*(1 - x[12]))*(0*x[11] + (1 - 0)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0]) + 1*(0*x[15] + (1 - 0)*(1 - x[15]))*(0*x[14] + (1 - 0)*(1 - x[14]))*(0*x[13] + (1 - 0)*(1 - x[13]))*(1*x[12] + (1 - 1)*(1 - x[12]))*(0*x[11] + (1 - 0)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0]) + 1*(1*x[15] + (1 - 1)*(1 - x[15]))*(0*x[14] + (1 - 0)*(1 - x[14]))*(0*x[13] + (1 - 0)*(1 - x[13]))*(1*x[12] + (1 - 1)*(1 - x[12]))*(0*x[11] + (1 - 0)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0]) + 1*(0*x[15] + (1 - 0)*(1 - x[15]))*(1*x[14] + (1 - 1)*(1 - x[14]))*(0*x[13] + (1 - 0)*(1 - x[13]))*(1*x[12] + (1 - 1)*(1 - x[12]))*(0*x[11] + (1 - 0)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0]) + 1*(1*x[15] + (1 - 1)*(1 - x[15]))*(1*x[14] + (1 - 1)*(1 - x[14]))*(0*x[13] + (1 - 0)*(1 - x[13]))*(1*x[12] + (1 - 1)*(1 - x[12]))*(0*x[11] + (1 - 0)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0]) + 1*(0*x[15] + (1 - 0)*(1 - x[15]))*(0*x[14] + (1 - 0)*(1 - x[14]))*(1*x[13] + (1 - 1)*(1 - x[13]))*(1*x[12] + (1 - 1)*(1 - x[12]))*(0*x[11] + (1 - 0)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0]) + 1*(1*x[15] + (1 - 1)*(1 - x[15]))*(0*x[14] + (1 - 0)*(1 - x[14]))*(1*x[13] + (1 - 1)*(1 - x[13]))*(1*x[12] + (1 - 1)*(1 - x[12]))*(0*x[11] + (1 - 0)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0]) + 1*(0*x[15] + (1 - 0)*(1 - x[15]))*(1*x[14] + (1 - 1)*(1 - x[14]))*(1*x[13] + (1 - 1)*(1 - x[13]))*(1*x[12] + (1 - 1)*(1 - x[12]))*(0*x[11] + (1 - 0)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0]) + 1*(1*x[15] + (1 - 1)*(1 - x[15]))*(1*x[14] + (1 - 1)*(1 - x[14]))*(1*x[13] + (1 - 1)*(1 - x[13]))*(1*x[12] + (1 - 1)*(1 - x[12]))*(0*x[11] + (1 - 0)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0]) + 1*(0*x[15] + (1 - 0)*(1 - x[15]))*(0*x[14] + (1 - 0)*(1 - x[14]))*(0*x[13] + (1 - 0)*(1 - x[13]))*(0*x[12] + (1 - 0)*(1 - x[12]))*(1*x[11] + (1 - 1)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0] + 65536*x[0]) + 1*(1*x[15] + (1 - 1)*(1 - x[15]))*(0*x[14] + (1 - 0)*(1 - x[14]))*(0*x[13] + (1 - 0)*(1 - x[13]))*(0*x[12] + (1 - 0)*(1 - x[12]))*(1*x[11] + (1 - 1)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0] + 65536*x[0] + 32768*x[0]) + 1*(0*x[15] + (1 - 0)*(1 - x[15]))*(1*x[14] + (1 - 1)*(1 - x[14]))*(0*x[13] + (1 - 0)*(1 - x[13]))*(0*x[12] + (1 - 0)*(1 - x[12]))*(1*x[11] + (1 - 1)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0] + 65536*x[0] + 32768*x[0] + 16384*x[0]) + 1*(1*x[15] + (1 - 1)*(1 - x[15]))*(1*x[14] + (1 - 1)*(1 - x[14]))*(0*x[13] + (1 - 0)*(1 - x[13]))*(0*x[12] + (1 - 0)*(1 - x[12]))*(1*x[11] + (1 - 1)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0] + 65536*x[0] + 32768*x[0] + 16384*x[0] + 8192*x[0]) + 1*(0*x[15] + (1 - 0)*(1 - x[15]))*(0*x[14] + (1 - 0)*(1 - x[14]))*(1*x[13] + (1 - 1)*(1 - x[13]))*(0*x[12] + (1 - 0)*(1 - x[12]))*(1*x[11] + (1 - 1)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0] + 65536*x[0] + 32768*x[0] + 16384*x[0] + 8192*x[0] + 4096*x[0]) + 1*(1*x[15] + (1 - 1)*(1 - x[15]))*(0*x[14] + (1 - 0)*(1 - x[14]))*(1*x[13] + (1 - 1)*(1 - x[13]))*(0*x[12] + (1 - 0)*(1 - x[12]))*(1*x[11] + (1 - 1)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0] + 65536*x[0] + 32768*x[0] + 16384*x[0] + 8192*x[0] + 4096*x[0] + 2048*x[0]) + 1*(0*x[15] + (1 - 0)*(1 - x[15]))*(1*x[14] + (1 - 1)*(1 - x[14]))*(1*x[13] + (1 - 1)*(1 - x[13]))*(0*x[12] + (1 - 0)*(1 - x[12]))*(1*x[11] + (1 - 1)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0] + 65536*x[0] + 32768*x[0] + 16384*x[0] + 8192*x[0] + 4096*x[0] + 2048*x[0] + 1024*x[0]) + 1*(1*x[15] + (1 - 1)*(1 - x[15]))*(1*x[14] + (1 - 1)*(1 - x[14]))*(1*x[13] + (1 - 1)*(1 - x[13]))*(0*x[12] + (1 - 0)*(1 - x[12]))*(1*x[11] + (1 - 1)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0] + 65536*x[0] + 32768*x[0] + 16384*x[0] + 8192*x[0] + 4096*x[0] + 2048*x[0] + 1024*x[0] + 512*x[0]) + 1*(0*x[15] + (1 - 0)*(1 - x[15]))*(0*x[14] + (1 - 0)*(1 - x[14]))*(0*x[13] + (1 - 0)*(1 - x[13]))*(1*x[12] + (1 - 1)*(1 - x[12]))*(1*x[11] + (1 - 1)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0] + 65536*x[0] + 32768*x[0] + 16384*x[0] + 8192*x[0] + 4096*x[0] + 2048*x[0] + 1024*x[0] + 512*x[0] + 256*x[0]) + 1*(1*x[15] + (1 - 1)*(1 - x[15]))*(0*x[14] + (1 - 0)*(1 - x[14]))*(0*x[13] + (1 - 0)*(1 - x[13]))*(1*x[12] + (1 - 1)*(1 - x[12]))*(1*x[11] + (1 - 1)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0] + 65536*x[0] + 32768*x[0] + 16384*x[0] + 8192*x[0] + 4096*x[0] + 2048*x[0] + 1024*x[0] + 512*x[0] + 256*x[0] + 128*x[0]) + 1*(0*x[15] + (1 - 0)*(1 - x[15]))*(1*x[14] + (1 - 1)*(1 - x[14]))*(0*x[13] + (1 - 0)*(1 - x[13]))*(1*x[12] + (1 - 1)*(1 - x[12]))*(1*x[11] + (1 - 1)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0] + 65536*x[0] + 32768*x[0] + 16384*x[0] + 8192*x[0] + 4096*x[0] + 2048*x[0] + 1024*x[0] + 512*x[0] + 256*x[0] + 128*x[0] + 64*x[0]) + 1*(1*x[15] + (1 - 1)*(1 - x[15]))*(1*x[14] + (1 - 1)*(1 - x[14]))*(0*x[13] + (1 - 0)*(1 - x[13]))*(1*x[12] + (1 - 1)*(1 - x[12]))*(1*x[11] + (1 - 1)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0] + 65536*x[0] + 32768*x[0] + 16384*x[0] + 8192*x[0] + 4096*x[0] + 2048*x[0] + 1024*x[0] + 512*x[0] + 256*x[0] + 128*x[0] + 64*x[0] + 32*x[0]) + 1*(0*x[15] + (1 - 0)*(1 - x[15]))*(0*x[14] + (1 - 0)*(1 - x[14]))*(1*x[13] + (1 - 1)*(1 - x[13]))*(1*x[12] + (1 - 1)*(1 - x[12]))*(1*x[11] + (1 - 1)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0] + 65536*x[0] + 32768*x[0] + 16384*x[0] + 8192*x[0] + 4096*x[0] + 2048*x[0] + 1024*x[0] + 512*x[0] + 256*x[0] + 128*x[0] + 64*x[0] + 32*x[0] + 16*x[0]) + 1*(1*x[15] + (1 - 1)*(1 - x[15]))*(0*x[14] + (1 - 0)*(1 - x[14]))*(1*x[13] + (1 - 1)*(1 - x[13]))*(1*x[12] + (1 - 1)*(1 - x[12]))*(1*x[11] + (1 - 1)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0] + 65536*x[0] + 32768*x[0] + 16384*x[0] + 8192*x[0] + 4096*x[0] + 2048*x[0] + 1024*x[0] + 512*x[0] + 256*x[0] + 128*x[0] + 64*x[0] + 32*x[0] + 16*x[0] + 8*x[0]) + 1*(0*x[15] + (1 - 0)*(1 - x[15]))*(1*x[14] + (1 - 1)*(1 - x[14]))*(1*x[13] + (1 - 1)*(1 - x[13]))*(1*x[12] + (1 - 1)*(1 - x[12]))*(1*x[11] + (1 - 1)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0] + 65536*x[0] + 32768*x[0] + 16384*x[0] + 8192*x[0] + 4096*x[0] + 2048*x[0] + 1024*x[0] + 512*x[0] + 256*x[0] + 128*x[0] + 64*x[0] + 32*x[0] + 16*x[0] + 8*x[0] + 4*x[0]) + 1*(1*x[15] + (1 - 1)*(1 - x[15]))*(1*x[14] + (1 - 1)*(1 - x[14]))*(1*x[13] + (1 - 1)*(1 - x[13]))*(1*x[12] + (1 - 1)*(1 - x[12]))*(1*x[11] + (1 - 1)*(1 - x[11]))*(0 + 2147483648*x[0] + 1073741824*x[0] + 536870912*x[0] + 268435456*x[0] + 134217728*x[0] + 67108864*x[0] + 33554432*x[0] + 16777216*x[0] + 8388608*x[0] + 4194304*x[0] + 2097152*x[0] + 1048576*x[0] + 524288*x[0] + 262144*x[0] + 131072*x[0] + 65536*x[0] + 32768*x[0] + 16384*x[0] + 8192*x[0] + 4096*x[0] + 2048*x[0] + 1024*x[0] + 512*x[0] + 256*x[0] + 128*x[0] + 64*x[0] + 32*x[0] + 16*x[0] + 8*x[0] + 4*x[0] + 2*x[0]))
+
+-- lemma sra_sign_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
+--   some bvoutput = map_f_to_bv_32 foutput ->
+--    some (bool_to_bv_32 bv1[7])  = map_f_to_bv_32 fv1[0]  ->
+--    some (bool_to_bv_32 bv1[6]) = map_f_to_bv_32 fv1[1]  ->
+--    some (bool_to_bv_32 bv1[5]) = map_f_to_bv_32 fv1[2]  ->
+--    some (bool_to_bv_32 bv1[4]) = map_f_to_bv_32 fv1[3]  ->
+--    some (bool_to_bv_32 bv1[3]) = map_f_to_bv_32 fv1[4]  ->
+--   some (bool_to_bv_32 bv1[2]) = map_f_to_bv_32 fv1[5]  ->
+--    some (bool_to_bv_32 bv1[1]) = map_f_to_bv_32 fv1[6]  ->
+--    some (bool_to_bv_32 bv1[0]) = map_f_to_bv_32 fv1[7]  ->
+--   some (bool_to_bv_32 bv2[7]) = map_f_to_bv_32 fv2[0]  ->
+--   some (bool_to_bv_32 bv2[6]) = map_f_to_bv_32 fv2[1]  ->
+--   some (bool_to_bv_32 bv2[5]) = map_f_to_bv_32 fv2[2]  ->
+--   some (bool_to_bv_32 bv2[4]) = map_f_to_bv_32 fv2[3]  ->
+--   some (bool_to_bv_32 bv2[3]) = map_f_to_bv_32 fv2[4]  ->
+--   some (bool_to_bv_32 bv2[2]) = map_f_to_bv_32 fv2[5]  ->
+--   some (bool_to_bv_32 bv2[1]) = map_f_to_bv_32 fv2[6]  ->
+--   some (bool_to_bv_32 bv2[0]) = map_f_to_bv_32 fv2[7]  ->
+--   bv2[7] = false ->
+--   bv2[6] = false ->
+--   bv2[5] = false ->
+--   (bvoutput =(BitVec.sshiftRight (bv1.signExtend 32) 31)    -- 0xFFFF_FFFF if sign=1 else 0
+--   &&& (~~~ ((BitVec.ofNat 32 0xFFFF_FFFF) >>> bv2.toNat)))
+
+--   =
+--   (foutput = evalSubtable SRA_SIGN_16 (Vector.append fv1 fv2))
+--  := by
+--     solveMLE SRA_SIGN_16 32
 
 
+--def XOR_16 [Field f] : Subtable f 16 :=
+ --subtableFromMLE (fun x => 0 + 1*((1 - x[7])*x[15] + x[7]*(1 - x[15])) + 2*((1 - x[6])*x[14] + x[6]*(1 - x[14])) + 4*((1 - x[5])*x[13] + x[5]*(1 - x[13])) + 8*((1 - x[4])*x[12] + x[4]*(1 - x[12])) + 16*((1 - x[3])*x[11] + x[3]*(1 - x[11])) + 32*((1 - x[2])*x[10] + x[2]*(1 - x[10])) + 64*((1 - x[1])*x[9] + x[1]*(1 - x[9])) + 128*((1 - x[0])*x[8] + x[0]*(1 - x[8])))
 
- lemma xor_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
-  some bvoutput = map_f_to_bv foutput ->
-   some (bool_to_bv bv1[7])  = map_f_to_bv fv1[0]  ->
-   some (bool_to_bv bv1[6]) = map_f_to_bv fv1[1]  ->
-   some (bool_to_bv bv1[5]) = map_f_to_bv fv1[2]  ->
-   some (bool_to_bv bv1[4]) = map_f_to_bv fv1[3]  ->
-   some (bool_to_bv bv1[3]) = map_f_to_bv fv1[4]  ->
-   some (bool_to_bv bv1[2]) = map_f_to_bv fv1[5]  ->
-   some (bool_to_bv bv1[1]) = map_f_to_bv fv1[6]  ->
-   some (bool_to_bv bv1[0]) = map_f_to_bv fv1[7]  ->
-  some (bool_to_bv bv2[7]) = map_f_to_bv fv2[0]  ->
-  some (bool_to_bv bv2[6]) = map_f_to_bv fv2[1]  ->
-  some (bool_to_bv bv2[5]) = map_f_to_bv fv2[2]  ->
-  some (bool_to_bv bv2[4]) = map_f_to_bv fv2[3]  ->
-  some (bool_to_bv bv2[3]) = map_f_to_bv fv2[4]  ->
-  some (bool_to_bv bv2[2]) = map_f_to_bv fv2[5]  ->
-  some (bool_to_bv bv2[1]) = map_f_to_bv fv2[6]  ->
-  some (bool_to_bv bv2[0]) = map_f_to_bv fv2[7]  ->
-  (bvoutput = BitVec.xor bv1 bv2)
-  =
-  (foutput = evalSubtable XOR_16 (Vector.append fv1 fv2))
-:= by
-  solveMLE
+--  lemma xor_mle_one_chunk_liza[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
+--   some bvoutput = map_f_to_bv_8 foutput ->
+--    some (bool_to_bv bv1[7])  = map_f_to_bv_8 fv1[0]  ->
+--    some (bool_to_bv bv1[6]) = map_f_to_bv_8 fv1[1]  ->
+--    some (bool_to_bv bv1[5]) = map_f_to_bv_8 fv1[2]  ->
+--    some (bool_to_bv bv1[4]) = map_f_to_bv_8 fv1[3]  ->
+--    some (bool_to_bv bv1[3]) = map_f_to_bv_8 fv1[4]  ->
+--    some (bool_to_bv bv1[2]) = map_f_to_bv_8 fv1[5]  ->
+--    some (bool_to_bv bv1[1]) = map_f_to_bv_8 fv1[6]  ->
+--    some (bool_to_bv bv1[0]) = map_f_to_bv_8 fv1[7]  ->
+--   some (bool_to_bv bv2[7]) = map_f_to_bv_8 fv2[0]  ->
+--   some (bool_to_bv bv2[6]) = map_f_to_bv_8 fv2[1]  ->
+--   some (bool_to_bv bv2[5]) = map_f_to_bv_8 fv2[2]  ->
+--   some (bool_to_bv bv2[4]) = map_f_to_bv_8 fv2[3]  ->
+--   some (bool_to_bv bv2[3]) = map_f_to_bv_8 fv2[4]  ->
+--   some (bool_to_bv bv2[2]) = map_f_to_bv_8 fv2[5]  ->
+--   some (bool_to_bv bv2[1]) = map_f_to_bv_8 fv2[6]  ->
+--   some (bool_to_bv bv2[0]) = map_f_to_bv_8 fv2[7]  ->
+--   (bvoutput = BitVec.xor bv1 bv2)
+--   =
+--   (foutput = evalSubtable XOR_16 (Vector.append fv1 fv2))
+-- := by
+--   solveMLE XOR_16 8
