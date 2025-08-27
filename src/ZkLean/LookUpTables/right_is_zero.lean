@@ -7,7 +7,7 @@ set_option maxHeartbeats  20000000000000000000
 def RIGHT_IS_ZERO_16 [Field f] : Subtable f 16 :=
   subtableFromMLE (fun x => 1*(1 - x[8])*(1 - x[9])*(1 - x[10])*(1 - x[11])*(1 - x[12])*(1 - x[13])*(1 - x[14])*(1 - x[15]))
 
-lemma left_is_zero_mle_one_chunk[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
+lemma right_is_zero_mle_one_chunk[ZKField f] (bv1 bv2 : BitVec 8) (fv1 fv2 : Vector f 8) :
   some bvoutput = map_f_to_bv_8 foutput ->
    some (bool_to_bv bv1[7])  = map_f_to_bv_8 fv1[0]  ->
    some (bool_to_bv bv1[6]) = map_f_to_bv_8 fv1[1]  ->

@@ -15,8 +15,7 @@ import Lean.Elab.Term
 import Mathlib.Tactic.Ring
 import Std.Tactic.BVDecide
 import Mathlib.Tactic.Linarith
-import ZkLean.solve_mle
-
+import ZkLean.LookUpTables
 
 
 open Lean Meta Elab Term
