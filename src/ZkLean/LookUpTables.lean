@@ -1,3 +1,4 @@
+import ZkLean.solve_mle
 import ZkLean.LookUpTables.and
 import ZkLean.LookUpTables.eq_abs
 import ZkLean.LookUpTables.eq

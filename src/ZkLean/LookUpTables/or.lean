@@ -1,5 +1,5 @@
-import ZkLean
-import ZKlean.solve_mle
+import ZkLean.Formalism
+import ZkLean.solve_mle
 
 
 set_option maxHeartbeats  20000000000000000000
