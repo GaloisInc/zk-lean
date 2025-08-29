@@ -19,7 +19,7 @@ import Mathlib.Control.Fold
 import Mathlib.Data.Nat.Prime.Defs
 import Mathlib.Data.ZMod.Defs
 import Mathlib.Algebra.Order.Kleene
-import ZkLean
+import ZkLean.Formalism
 import Std.Data.HashMap.Basic
 import Lean.Meta.Basic
 import Lean.Elab.Term
