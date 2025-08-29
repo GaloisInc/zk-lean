@@ -33,6 +33,9 @@ def bool_to_bv_16 (b: Bool) : (BitVec 16) := if b == true then 1 else 0
 def bool_to_bv_32 (b: Bool) : (BitVec 32) := if b == true then 1 else 0
 --if b == false then 1
 
+def bool_to_bv_64 (b: Bool) : (BitVec 64) := if b == true then 1 else 0
+--if b == false then 1
+
 instance : Fact (Nat.Prime ff) := by sorry
 instance : ZKField (ZMod ff) where
   hash x :=
@@ -82,6 +85,13 @@ def map_f_to_bv_32 (rs1_val : ZMod ff) : Option (BitVec 32) :=
   let n := (rs1_val.val : Nat)
   if n < 2^32 then
     some (BitVec.ofNat 32 n)
+  else
+    none
+
+def map_f_to_bv_64 (rs1_val : ZMod ff) : Option (BitVec 64) :=
+  let n := (rs1_val.val : Nat)
+  if n < 2^64 then
+    some (BitVec.ofNat 64 n)
   else
     none
 
@@ -193,6 +203,41 @@ lemma extract_bv_rel_32{bf x} : some (bool_to_bv_32 bf) = map_f_to_bv_32 x <-> (
   linarith
 
 
+lemma extract_bv_rel_64{bf x} : some (bool_to_bv_64 bf) = map_f_to_bv_64 x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#64 else 0#64) = BitVec.ofNat 64 x.val) := by
+  unfold map_f_to_bv_64
+  unfold bool_to_bv_64
+  dsimp
+  simp
+  intros h
+  constructor
+  intros hx
+  cases a: x.val with
+    | zero => decide
+    | succ n => cases n with
+      | zero => decide
+      | succ m =>
+          exfalso
+          rw [a] at h
+          unfold BitVec.ofNat at h
+          unfold Fin.ofNat at h
+          have h' := congrArg (fun x => x.toFin.val) h
+          simp at h'
+          cases g : bf with
+            | true =>
+              have mod_eq : (m + 2) % 18446744073709551616 = m + 2 := Nat.mod_eq_of_lt (by linarith [hx, a])
+              rw [← h'] at mod_eq
+              rw [g] at mod_eq
+              simp at mod_eq
+
+            | false =>
+              have mod_eq : (m + 2) % 18446744073709551616 = m + 2 := Nat.mod_eq_of_lt (by linarith [hx, a])
+              rw [← h'] at mod_eq
+              rw [g] at mod_eq
+              simp at mod_eq
+  intro h
+  linarith
+
+
 
 lemma ZMod.eq_if_val (a b : ZMod ff) :
   (a = b ) <->  (a.val = b.val) := by
@@ -249,6 +294,22 @@ lemma BitVec_ofNat_eq_iff_32 {x y : ℕ} (hx : x < 2^32) (hy : y < 2^32) :
   simp at h
   apply Nat.mod_eq_of_modEq at h'
   have hxy : x % 2^32 = y := h' hy
+  rw [Nat.mod_eq_of_lt] at hxy
+  apply hxy
+  apply hx
+
+lemma BitVec_ofNat_eq_iff_64 {x y : ℕ} (hx : x < 2^64) (hy : y < 2^64) :
+  (x = y)  <-> (BitVec.ofNat 64 x = BitVec.ofNat 64 y):= by
+  constructor
+  intro h
+  rw [h]
+  intro h
+  unfold BitVec.ofNat at h
+  unfold Fin.ofNat at h
+  have h' := congrArg (fun x => x.toFin.val) h
+  simp at h
+  apply Nat.mod_eq_of_modEq at h'
+  have hxy : x % 2^64 = y := h' hy
   rw [Nat.mod_eq_of_lt] at hxy
   apply hxy
   apply hx
@@ -344,25 +405,54 @@ elab_rules : tactic
           evalTactic (← `(tactic| unfold bool_to_bv))
       catch _ => pure ()
       -- TODO: I don't the number bits should be hardcoded like this
-      evalTactic (← `(tactic|
-        set a   := ($foT).val ;
-        set b10 := ZMod.val ($fv1T)[0] ;
-        set b11 := ZMod.val ($fv1T)[1] ;
-        set b12 := ZMod.val ($fv1T)[2] ;
-        set b13 := ZMod.val ($fv1T)[3] ;
-        set b14 := ZMod.val ($fv1T)[4] ;
-        set b15 := ZMod.val ($fv1T)[5];
-        set b16 := ZMod.val ($fv1T)[6] ;
-        set b17 := ZMod.val ($fv1T)[7] ;
-        set b20 := ZMod.val ($fv2T)[0] ;
-        set b21 := ZMod.val ($fv2T)[1] ;
-        set b22 := ZMod.val ($fv2T)[2] ;
-        set b23 := ZMod.val ($fv2T)[3] ;
-        set b24 := ZMod.val ($fv2T)[4] ;
-        set b25 := ZMod.val ($fv2T)[5] ;
-        set b26 := ZMod.val ($fv2T)[6] ;
-        set b27 := ZMod.val ($fv2T)[7] ;
-        bv_decide ;
+      evalTactic (← `(tactic|set a   := ($foT).val))
+      index := 0
+      while index < ids.length/2 do
+        -- names for the bound and its equality
+        let idName  := Name.mkSimple s!"b0_{index}"
+
+        -- identifiers/syntax nodes
+        let idSyn   : TSyntax `ident := mkIdent idName
+        let idxSyn  : TSyntax `term  := Syntax.mkNumLit (toString index)
+
+        -- safest access: .get! (parses reliably inside quotations)
+        evalTactic (← `(tactic|
+          set $idSyn := $fv1T[$idxSyn]
+        ))
+        index := index + 1
+      index := 0
+      while index < ids.length/2 do
+        -- names for the bound and its equality
+        let idName  := Name.mkSimple s!"b1_{index}"
+
+        -- identifiers/syntax nodes
+        let idSyn   : TSyntax `ident := mkIdent idName
+        let idxSyn  : TSyntax `term  := Syntax.mkNumLit (toString index)
+
+        -- safest access: .get! (parses reliably inside quotations)
+        evalTactic (← `(tactic|
+          set $idSyn := $fv2T[$idxSyn]
+        ))
+
+        index := index + 1
+
+        -- set b10 := ZMod.val ($fv1T)[0] ;
+        -- set b11 := ZMod.val ($fv1T)[1] ;
+        -- set b12 := ZMod.val ($fv1T)[2] ;
+        -- set b13 := ZMod.val ($fv1T)[3] ;
+        -- set b14 := ZMod.val ($fv1T)[4] ;
+        -- set b15 := ZMod.val ($fv1T)[5];
+        -- set b16 := ZMod.val ($fv1T)[6] ;
+        -- set b17 := ZMod.val ($fv1T)[7] ;
+        -- set b20 := ZMod.val ($fv2T)[0] ;
+        -- set b21 := ZMod.val ($fv2T)[1] ;
+        -- set b22 := ZMod.val ($fv2T)[2] ;
+        -- set b23 := ZMod.val ($fv2T)[3] ;
+        -- set b24 := ZMod.val ($fv2T)[4] ;
+        -- set b25 := ZMod.val ($fv2T)[5] ;
+        -- set b26 := ZMod.val ($fv2T)[6] ;
+        -- set b27 := ZMod.val ($fv2T)[7] ;
+      evalTactic (← `(tactic| bv_decide ;
         exact $id1:ident ;
         ))
       evalTactic (← `(tactic| try_apply_lemma_hyps [$[$idsArr:ident],*]))

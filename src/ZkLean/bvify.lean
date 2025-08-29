@@ -141,6 +141,24 @@ lemma BitVec.ofNat_sub_32{ b : ℕ} (h: 1 >= b) :
             exfalso
             simp at h
 
+lemma BitVec.ofNat_sub_16{ b : ℕ} (h: 1 >= b) :
+  BitVec.ofNat 16 (1 - b) =
+    (BitVec.ofNat 16 1) - (BitVec.ofNat 16 b) := by
+    unfold BitVec.ofNat
+    rw [Fin.ofNat, Fin.ofNat,  Fin.ofNat]
+    apply congrArg
+    simp_all
+    apply Fin.eq_of_val_eq
+    simp_all
+    cases b with
+      | zero => simp
+      | succ n => cases n with
+         | zero => simp_all
+         | succ m =>
+            exfalso
+            simp at h
+
+
 
 lemma trust_me_bv {x y :ℕ }
     (hx : x ≤ 1) (hy : y <= 1) :
@@ -198,7 +216,7 @@ def mkZifyContext (simpArgs : Option (Syntax.TSepArray `Lean.Parser.Tactic.simpS
     TacticM MkSimpContextResult := do
   let args := simpArgs.map (·.getElems) |>.getD #[]
   mkSimpContext
-    (← `(tactic| simp -decide only  [ult_bv, trust_me_bv, BitVec.ofNat_add, BitVec.ofNat_mul, BitVec.ofNat_sub_8, BitVec.ofNat_sub_32, push_cast, $args,*] )) false
+    (← `(tactic| simp -decide only  [ult_bv, trust_me_bv, BitVec.ofNat_add, BitVec.ofNat_mul, BitVec.ofNat_sub_8, BitVec.ofNat_sub_16,  BitVec.ofNat_sub_32, push_cast, $args,*] )) false
 
 /-- A variant of `applySimpResultToProp` that cannot close the goal, but does not need a meta
 variable and returns a tuple of a proof and the corresponding simplified proposition. -/
