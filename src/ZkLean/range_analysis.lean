@@ -299,14 +299,16 @@ elab_rules : tactic
                   | throwError m!"❌ Could not find a hypothesis named `{hName}`"
                 match decl.type.getAppFnArgs with
                 | (``LE.le, #[_, _, lhs, rhs]) =>
-                    -- TODO: Need to figure out a way to do a check if rhs is actually 1
-                    let LHSvars  ← collectVarsAppAndConst lhs
+                  match (← whnf rhs) with
+                  | (Expr.lit (Literal.natVal 1)) => do
+                    let LHSvars ← collectVarsAppAndConst lhs
                     let varsList := LHSvars.toList
                     if LHSvars.size == 1 && resultList.contains varsList[0]! then
                           return decl.userName :: acc
                         else
                         return acc
                   | _ => return acc
+                | _ => return acc
             -- if bound exists apply a case split tactic
             if bounds.length = 2 then
               -- let lctx ← g.withContext getLCtx
