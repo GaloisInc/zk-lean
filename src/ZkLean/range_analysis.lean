@@ -91,35 +91,14 @@ elab "elim2_norm_num" h1:ident h2:ident : tactic => do
   evalTactic (← `(tactic| apply Or.elim $id1))
   evalTactic (← `(tactic| intro hx; apply Or.elim $id2))
   evalTactic (← `(tactic| intro hy; rewrite [hx]; rewrite [hy]; simp;))
-  try
-      evalTactic (←  `(tactic|apply Nat.le_refl))
-  catch _ => pure ()
-  try
-      evalTactic (←  `(tactic| rfl))
-  catch _ => pure ()
-
+  evalTactic (← `(tactic| try apply Nat.le_refl))
   evalTactic (← `(tactic| intro hy; rewrite [hy]; rewrite [hx]; simp;))
-  try
-      evalTactic (←  `(tactic|apply Nat.le_refl))
-  catch _ => pure ()
-  try
-      evalTactic (←  `(tactic| rfl))
-  catch _ => pure ()
+  evalTactic (← `(tactic| try apply Nat.le_refl))
   evalTactic (← `(tactic| intro hx; apply Or.elim $id2))
   evalTactic (← `(tactic| intro hy; rewrite [hx]; rewrite [hy]; simp;))
-  try
-      evalTactic (←  `(tactic|apply Nat.le_refl))
-  catch _ => pure ()
-  try
-      evalTactic (←  `(tactic| rfl))
-  catch _ => pure ()
+  evalTactic (← `(tactic| try apply Nat.le_refl))
   evalTactic (← `(tactic| intro hy; rewrite [hy]; rewrite [hx]; simp;))
-  try
-      evalTactic (←  `(tactic|apply Nat.le_refl))
-  catch _ => pure ()
-  try
-      evalTactic (←  `(tactic| rfl))
-  catch _ => pure ()
+  evalTactic (← `(tactic| try apply Nat.le_refl))
 
 -- determines if an expression contains a subtraction
 partial def containsSub (e : Expr) :  MetaM Bool := do
@@ -189,9 +168,7 @@ elab_rules : tactic
   let mut random := false
   -- begin by factoring out multiplication for all goals
   -- important for mux discovery
-  try
-       evalTactic (← `(tactic| all_goals simp [Nat.mul_assoc]))
-   catch _ => pure ()
+  evalTactic (← `(tactic| try all_goals simp [Nat.mul_assoc]))
   let mut did_mux := false
   let mut did_decide:= false
   -- as long as we are making progress then continue
@@ -199,26 +176,16 @@ elab_rules : tactic
     if did_mux then
       -- for muxes we need to prove the factored lemma and split by
       -- cases
-      try
-        evalTactic (← `(tactic| simp))
-      catch _ => pure ()
-      try
-        evalTactic (← `(tactic| ring))
-      catch _ =>  pure ()
+      evalTactic (← `(tactic| try simp))
+      evalTactic (← `(tactic| try ring))
     if did_mux then
-       evalTactic (← `(tactic| intro hMux))
-       evalTactic (← `(tactic| rw [hMux]))
-       try
-         evalTactic (← `(tactic| simp ))
-        catch _ => pure ()
-       try
-          evalTactic (← `(tactic| rw [Nat.mux_if_then]))
-       catch _ => pure ()
-       try
-          evalTactic (← `(tactic| split_ifs))
-       catch _ => pure ()
-       did_mux := false
-       progress := true
+      evalTactic (← `(tactic| intro hMux))
+      evalTactic (← `(tactic| rw [hMux]))
+      evalTactic (← `(tactic| try simp))
+      evalTactic (← `(tactic| try rw [Nat.mux_if_then]))
+      evalTactic (← `(tactic| try split_ifs))
+      did_mux := false
+      progress := true
     let goals ← getGoals
     --  keep track of goals we changed
     let mut updatedGoals : List MVarId := []
