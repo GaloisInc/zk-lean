@@ -242,10 +242,10 @@ elab_rules : tactic
         applied := true
         handled := true
         progress := true
-      catch err =>
+      catch _err =>
         random := false
       let e ← instantiateMVars goalType
-      let (fn, args) := e.getAppFnArgs
+      let (_fn, args) := e.getAppFnArgs
       let mut lemmaMatch := none
       let result ← collectVarsAppAndConst goalType
       let resultList := result.toList
@@ -264,7 +264,7 @@ elab_rules : tactic
           let finalExpr ← g.withContext (rebuild x a b)
           let prop <- mkEq args[2]! finalExpr
           let pr := ← mkFreshExprMVar prop
-          let eqId := pr.mvarId!
+          -- let eqId := pr.mvarId!
           -- create a new factored hyphesis
           let gWithHyp ← g.assert `hMux prop pr
           replaceMainGoal [pr.mvarId!, gWithHyp]
@@ -288,24 +288,24 @@ elab_rules : tactic
                   | throwError m!"❌ Could not find a hypothesis named `{hName}`"
                 match decl.type.getAppFnArgs with
                 | (``LE.le, #[_, _, lhs, rhs]) =>
-                  -- TODO: Need to figure out a way to do a check if rhs is actually 1
-                          let LHSvars  ← collectVarsAppAndConst lhs
-                          let varsList := LHSvars.toList
-                          if LHSvars.size == 1 && resultList.contains varsList[0]! then
-                                return decl.userName :: acc
-                              else
-                              return acc
+                    -- TODO: Need to figure out a way to do a check if rhs is actually 1
+                    let LHSvars  ← collectVarsAppAndConst lhs
+                    let varsList := LHSvars.toList
+                    if LHSvars.size == 1 && resultList.contains varsList[0]! then
+                          return decl.userName :: acc
+                        else
+                        return acc
                   | _ => return acc
             -- if bound exists apply a case split tactic
             if bounds.length = 2 then
-              let lctx ← g.withContext getLCtx
+              -- let lctx ← g.withContext getLCtx
               let h1 := mkIdent  bounds[0]!
               let h2 := mkIdent bounds[1]!
               try
                 evalTactic (← `(tactic| elim2_norm_num $h1 $h2))
                 if ← g.isAssigned then
-                  let newType ← g.getType
-                  let t ← Meta.inferType (mkMVar g)
+                  -- let newType ← g.getType
+                  -- let t ← Meta.inferType (mkMVar g)
                   let remaining ← getUnsolvedGoals
                   if remaining.contains g then
                     logInfo m!"➖ elim2 modified goal {g}, but did not fully solve it"
@@ -346,7 +346,7 @@ elab_rules : tactic
                 | _ => none
          -- logInfo m!"Break"
           match lemmaMatch with
-          | some (name, stx) =>
+          | some (_name, stx) =>
               try
                 let e ← elabTerm stx goalType
                 let subgoals ← g.apply e
@@ -354,7 +354,7 @@ elab_rules : tactic
                 handled := true
                 progress := true
                 applied := true
-              catch err =>
+              catch _err =>
                 random := false
           | none =>
               random := false
@@ -364,8 +364,8 @@ elab_rules : tactic
         try
           evalTactic (← `(tactic| decide))
           if ← g.isAssigned then
-            let newType ← g.getType
-            let t ← Meta.inferType (mkMVar g)
+            -- let newType ← g.getType
+            -- let t ← Meta.inferType (mkMVar g)
             let remaining ← getUnsolvedGoals
             if remaining.contains g then
               logInfo m!"➖ norm_num modified goal {g}, but did not fully solve it"
@@ -383,7 +383,7 @@ elab_rules : tactic
             updatedGoals := updatedGoals ++ [g]
             applied := true
             handled := true
-        catch err =>
+        catch _err =>
           updatedGoals := updatedGoals ++ [g]
           handled := true
           applied := true
