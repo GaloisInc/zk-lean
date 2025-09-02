@@ -240,7 +240,7 @@ lemma extract_bv_rel_64{bf x} : some (bool_to_bv_64 bf) = map_f_to_bv_64 x <-> (
 
 
 lemma ZMod.eq_if_val (a b : ZMod ff) :
-  (a = b ) <->  (a.val = b.val) := by
+  (a = b) <-> (a.val = b.val) := by
   apply Iff.intro
   intros h
   rw [h]
@@ -250,7 +250,7 @@ lemma ZMod.eq_if_val (a b : ZMod ff) :
 
 
 lemma BitVec_ofNat_eq_iff_8 {x y : ℕ} (hx : x < 2^8) (hy : y < 2^8) :
-  (x = y)  <-> (BitVec.ofNat 8 x = BitVec.ofNat 8 y):= by
+  (x = y) <-> (BitVec.ofNat 8 x = BitVec.ofNat 8 y) := by
   constructor
   intro h
   rw [h]
@@ -266,7 +266,7 @@ lemma BitVec_ofNat_eq_iff_8 {x y : ℕ} (hx : x < 2^8) (hy : y < 2^8) :
   apply hx
 
 lemma BitVec_ofNat_eq_iff_16 {x y : ℕ} (hx : x < 2^16) (hy : y < 2^16) :
-  (x = y)  <-> (BitVec.ofNat 16 x = BitVec.ofNat 16 y):= by
+  (x = y) <-> (BitVec.ofNat 16 x = BitVec.ofNat 16 y) := by
   constructor
   intro h
   rw [h]
@@ -283,7 +283,7 @@ lemma BitVec_ofNat_eq_iff_16 {x y : ℕ} (hx : x < 2^16) (hy : y < 2^16) :
 
 
 lemma BitVec_ofNat_eq_iff_32 {x y : ℕ} (hx : x < 2^32) (hy : y < 2^32) :
-  (x = y)  <-> (BitVec.ofNat 32 x = BitVec.ofNat 32 y):= by
+  (x = y) <-> (BitVec.ofNat 32 x = BitVec.ofNat 32 y) := by
   constructor
   intro h
   rw [h]
