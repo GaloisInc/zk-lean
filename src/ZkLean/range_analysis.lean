@@ -56,31 +56,20 @@ def rebuild (x sumA sumB : Expr) : MetaM Expr := do
   let res       := mkApp2 (mkConst ``Nat.add) term2 term1
   return res
 
--- collecting a mux expressions
--- Ex: xA + (1-x)B + xC --> x, [A,C], [B]
-partial def collectExprs (x : Expr) : MetaM (Expr × List Expr × List Expr) := do
-  let (fn, args) := x.getAppFnArgs
-  if args.size < 3 then
-    return (x, [], [])
-  match fn with
-    | ``HAdd.hAdd  =>
-    let (v', as', bs') ← collectExprs args[args.size -1]!
-    if as'.isEmpty && bs'.isEmpty then
-        return (x, [],[])
-    let mut (v, as,bs) ← collectExprs args[args.size -2]!
-    if as.isEmpty && bs.isEmpty then
-        return (x, [],[])
-    if (v' != v) then
-       return (x, [],[])
-    return (v, as ++ as', bs++bs')
-    | ``HMul.hMul =>
-        let (fn2, args2) := args[args.size -2]!.getAppFnArgs
-        match fn2 with
-          | ``HSub.hSub => return (args2[args2.size -1]!, [], [args[args.size -1]!])
-          | _ => return (args[args.size -2]!, [args[args.size -1]!], [])
-    | _ => return (x, [],[],)
-
-
+-- Inspects the expression to possibly extract mux elements.
+-- Ex: xA + (1-x)B + xC --> some (x, [A,C], [B])
+partial def viewAsMux (e : Expr) : Option (Expr × List Expr × List Expr) := do
+  match e.getAppFnArgs with
+  | (``HAdd.hAdd, #[_, _, _, _, lhs, rhs])  => do
+    let (lv, las, lbs) ← viewAsMux lhs
+    let (rv, ras, rbs) ← viewAsMux rhs
+    if (lv != rv) then none
+    (lv, las ++ ras, lbs ++ rbs)
+  | (``HMul.hMul, #[_, _, _, _, lhs, rhs]) =>
+    match lhs.getAppFnArgs with
+    | (``HSub.hSub, #[_, _, _, _, _, subRHS]) => some (subRHS, [], [rhs])
+    | _ => some (lhs, [rhs], [])
+  | _ => none
 
 -- does split by cases reasoning
 elab "elim2_norm_num" h1:ident h2:ident : tactic => do
@@ -235,8 +224,8 @@ elab_rules : tactic
         let unfolded := ← withTransparency .reducible (whnf args[2]!)
         let fn3 := unfolded.getAppFn
         -- First check if we are dealing with a mux
-        let (x, lhs, rhs) <- collectExprs args[2]!
-        if (!lhs.isEmpty && !rhs.isEmpty) then
+        match viewAsMux args[2]! with
+        | some (x, lhs@(_ :: _), rhs@(_ :: _)) =>
           let a := mkAddNat lhs
           let b := mkAddNat rhs
           let finalExpr ← g.withContext (rebuild x a b)
@@ -252,7 +241,7 @@ elab_rules : tactic
           handled := true
           progress := true
           did_mux := true
-        else
+        | _ =>
           -- if not a mux but we have only two variables do a case by case reasoning
           -- this is necessary in case of variable dependencies
           -- Ex: x1 + x2 - x1*x2 --> Can't be negative but needs to be proven
