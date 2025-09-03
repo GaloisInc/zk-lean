@@ -94,21 +94,32 @@ elab "elim2_norm_num" h1:ident h2:ident : tactic => do
   try
       evalTactic (←  `(tactic|apply Nat.le_refl))
   catch _ => pure ()
+  try
+      evalTactic (←  `(tactic| rfl))
+  catch _ => pure ()
 
   evalTactic (← `(tactic| intro hy; rewrite [hy]; rewrite [hx]; simp;))
   try
       evalTactic (←  `(tactic|apply Nat.le_refl))
+  catch _ => pure ()
+  try
+      evalTactic (←  `(tactic| rfl))
   catch _ => pure ()
   evalTactic (← `(tactic| intro hx; apply Or.elim $id2))
   evalTactic (← `(tactic| intro hy; rewrite [hx]; rewrite [hy]; simp;))
   try
       evalTactic (←  `(tactic|apply Nat.le_refl))
   catch _ => pure ()
+  try
+      evalTactic (←  `(tactic| rfl))
+  catch _ => pure ()
   evalTactic (← `(tactic| intro hy; rewrite [hy]; rewrite [hx]; simp;))
   try
       evalTactic (←  `(tactic|apply Nat.le_refl))
   catch _ => pure ()
-
+  try
+      evalTactic (←  `(tactic| rfl))
+  catch _ => pure ()
 
 -- determines if an expression contains a subtraction
 partial def containsSub (e : Expr) :  MetaM Bool := do
