@@ -91,35 +91,19 @@ elab "elim2_norm_num" h1:ident h2:ident : tactic => do
   evalTactic (← `(tactic| apply Or.elim $id1))
   evalTactic (← `(tactic| intro hx; apply Or.elim $id2))
   evalTactic (← `(tactic| intro hy; rewrite [hx]; rewrite [hy]; simp;))
-  try
-      evalTactic (←  `(tactic|apply Nat.le_refl))
-  catch _ => pure ()
-  try
-      evalTactic (←  `(tactic| rfl))
-  catch _ => pure ()
-
+  evalTactic (←  `(tactic| try apply Nat.le_refl))
+  evalTactic (←  `(tactic| try rfl))
   evalTactic (← `(tactic| intro hy; rewrite [hy]; rewrite [hx]; simp;))
-  try
-      evalTactic (←  `(tactic|apply Nat.le_refl))
-  catch _ => pure ()
-  try
-      evalTactic (←  `(tactic| rfl))
-  catch _ => pure ()
+  evalTactic (←  `(tactic|try apply Nat.le_refl))
+  evalTactic (←  `(tactic| try rfl))
   evalTactic (← `(tactic| intro hx; apply Or.elim $id2))
   evalTactic (← `(tactic| intro hy; rewrite [hx]; rewrite [hy]; simp;))
-  try
-      evalTactic (←  `(tactic|apply Nat.le_refl))
-  catch _ => pure ()
-  try
-      evalTactic (←  `(tactic| rfl))
-  catch _ => pure ()
+  evalTactic (←  `(tactic|try apply Nat.le_refl))
+  evalTactic (←  `(tactic|try rfl))
   evalTactic (← `(tactic| intro hy; rewrite [hy]; rewrite [hx]; simp;))
-  try
-      evalTactic (←  `(tactic|apply Nat.le_refl))
-  catch _ => pure ()
-  try
-      evalTactic (←  `(tactic| rfl))
-  catch _ => pure ()
+  evalTactic (←  `(tactic|try apply Nat.le_refl))
+  evalTactic (←  `(tactic| try rfl))
+
 
 -- determines if an expression contains a subtraction
 partial def containsSub (e : Expr) :  MetaM Bool := do
@@ -189,9 +173,7 @@ elab_rules : tactic
   let mut random := false
   -- begin by factoring out multiplication for all goals
   -- important for mux discovery
-  try
-       evalTactic (← `(tactic| all_goals simp [Nat.mul_assoc]))
-   catch _ => pure ()
+  evalTactic (← `(tactic| try all_goals simp [Nat.mul_assoc]))
   let mut did_mux := false
   let mut did_decide:= false
   -- as long as we are making progress then continue
@@ -199,26 +181,16 @@ elab_rules : tactic
     if did_mux then
       -- for muxes we need to prove the factored lemma and split by
       -- cases
-      try
-        evalTactic (← `(tactic| simp))
-      catch _ => pure ()
-      try
-        evalTactic (← `(tactic| ring))
-      catch _ =>  pure ()
+      evalTactic (← `(tactic| try simp))
+      evalTactic (← `(tactic| try ring))
     if did_mux then
-       evalTactic (← `(tactic| intro hMux))
-       evalTactic (← `(tactic| rw [hMux]))
-       try
-         evalTactic (← `(tactic| simp ))
-        catch _ => pure ()
-       try
-          evalTactic (← `(tactic| rw [Nat.mux_if_then]))
-       catch _ => pure ()
-       try
-          evalTactic (← `(tactic| split_ifs))
-       catch _ => pure ()
-       did_mux := false
-       progress := true
+      evalTactic (← `(tactic| intro hMux))
+      evalTactic (← `(tactic| rw [hMux]))
+      evalTactic (← `(tactic| try simp))
+      evalTactic (← `(tactic| try rw [Nat.mux_if_then]))
+      evalTactic (← `(tactic| try split_ifs))
+      did_mux := false
+      progress := true
     let goals ← getGoals
     --  keep track of goals we changed
     let mut updatedGoals : List MVarId := []
@@ -253,10 +225,10 @@ elab_rules : tactic
         applied := true
         handled := true
         progress := true
-      catch err =>
+      catch _err =>
         random := false
       let e ← instantiateMVars goalType
-      let (fn, args) := e.getAppFnArgs
+      let (_fn, args) := e.getAppFnArgs
       let mut lemmaMatch := none
       let result ← collectVarsAppAndConst goalType
       let resultList := result.toList
@@ -275,7 +247,7 @@ elab_rules : tactic
           let finalExpr ← g.withContext (rebuild x a b)
           let prop <- mkEq args[2]! finalExpr
           let pr := ← mkFreshExprMVar prop
-          let eqId := pr.mvarId!
+          -- let eqId := pr.mvarId!
           -- create a new factored hyphesis
           let gWithHyp ← g.assert `hMux prop pr
           replaceMainGoal [pr.mvarId!, gWithHyp]
@@ -299,24 +271,26 @@ elab_rules : tactic
                   | throwError m!"❌ Could not find a hypothesis named `{hName}`"
                 match decl.type.getAppFnArgs with
                 | (``LE.le, #[_, _, lhs, rhs]) =>
-                  -- TODO: Need to figure out a way to do a check if rhs is actually 1
-                          let LHSvars  ← collectVarsAppAndConst lhs
-                          let varsList := LHSvars.toList
-                          if LHSvars.size == 1 && resultList.contains varsList[0]! then
-                                return decl.userName :: acc
-                              else
-                              return acc
+                  match (← whnf rhs) with
+                  | (Expr.lit (Literal.natVal 1)) => do
+                    let LHSvars ← collectVarsAppAndConst lhs
+                    let varsList := LHSvars.toList
+                    if LHSvars.size == 1 && resultList.contains varsList[0]! then
+                          return decl.userName :: acc
+                        else
+                        return acc
                   | _ => return acc
+                | _ => return acc
             -- if bound exists apply a case split tactic
             if bounds.length = 2 then
-              let lctx ← g.withContext getLCtx
+              -- let lctx ← g.withContext getLCtx
               let h1 := mkIdent  bounds[0]!
               let h2 := mkIdent bounds[1]!
               try
                 evalTactic (← `(tactic| elim2_norm_num $h1 $h2))
                 if ← g.isAssigned then
-                  let newType ← g.getType
-                  let t ← Meta.inferType (mkMVar g)
+                  -- let newType ← g.getType
+                  -- let t ← Meta.inferType (mkMVar g)
                   let remaining ← getUnsolvedGoals
                   if remaining.contains g then
                     logInfo m!"➖ elim2 modified goal {g}, but did not fully solve it"
@@ -357,7 +331,7 @@ elab_rules : tactic
                 | _ => none
          -- logInfo m!"Break"
           match lemmaMatch with
-          | some (name, stx) =>
+          | some (_name, stx) =>
               try
                 let e ← elabTerm stx goalType
                 let subgoals ← g.apply e
@@ -365,7 +339,7 @@ elab_rules : tactic
                 handled := true
                 progress := true
                 applied := true
-              catch err =>
+              catch _err =>
                 random := false
           | none =>
               random := false
@@ -375,8 +349,8 @@ elab_rules : tactic
         try
           evalTactic (← `(tactic| decide))
           if ← g.isAssigned then
-            let newType ← g.getType
-            let t ← Meta.inferType (mkMVar g)
+            -- let newType ← g.getType
+            -- let t ← Meta.inferType (mkMVar g)
             let remaining ← getUnsolvedGoals
             if remaining.contains g then
               logInfo m!"➖ norm_num modified goal {g}, but did not fully solve it"
@@ -394,7 +368,7 @@ elab_rules : tactic
             updatedGoals := updatedGoals ++ [g]
             applied := true
             handled := true
-        catch err =>
+        catch _err =>
           updatedGoals := updatedGoals ++ [g]
           handled := true
           applied := true

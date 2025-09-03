@@ -243,7 +243,7 @@ lemma extract_bv_rel_64{bf x} : some (bool_to_bv_64 bf) = map_f_to_bv_64 x <-> (
 
 
 lemma ZMod.eq_if_val (a b : ZMod ff) :
-  (a = b ) <->  (a.val = b.val) := by
+  (a = b) <-> (a.val = b.val) := by
   apply Iff.intro
   intros h
   rw [h]
@@ -253,7 +253,7 @@ lemma ZMod.eq_if_val (a b : ZMod ff) :
 
 
 lemma BitVec_ofNat_eq_iff_8 {x y : ℕ} (hx : x < 2^8) (hy : y < 2^8) :
-  (x = y)  <-> (BitVec.ofNat 8 x = BitVec.ofNat 8 y):= by
+  (x = y) <-> (BitVec.ofNat 8 x = BitVec.ofNat 8 y) := by
   constructor
   intro h
   rw [h]
@@ -269,7 +269,7 @@ lemma BitVec_ofNat_eq_iff_8 {x y : ℕ} (hx : x < 2^8) (hy : y < 2^8) :
   apply hx
 
 lemma BitVec_ofNat_eq_iff_16 {x y : ℕ} (hx : x < 2^16) (hy : y < 2^16) :
-  (x = y)  <-> (BitVec.ofNat 16 x = BitVec.ofNat 16 y):= by
+  (x = y) <-> (BitVec.ofNat 16 x = BitVec.ofNat 16 y) := by
   constructor
   intro h
   rw [h]
@@ -286,7 +286,7 @@ lemma BitVec_ofNat_eq_iff_16 {x y : ℕ} (hx : x < 2^16) (hy : y < 2^16) :
 
 
 lemma BitVec_ofNat_eq_iff_32 {x y : ℕ} (hx : x < 2^32) (hy : y < 2^32) :
-  (x = y)  <-> (BitVec.ofNat 32 x = BitVec.ofNat 32 y):= by
+  (x = y) <-> (BitVec.ofNat 32 x = BitVec.ofNat 32 y) := by
   constructor
   intro h
   rw [h]
@@ -393,15 +393,9 @@ elab_rules : tactic
       logInfo m!"{ids}"
 
       -- TODO: I don't like this but otherwise we cant solve sign extend (maybe this should also be passed in as a parameter)
-      try
-        evalTactic (← `(tactic| valify [$[$idsArr:ident],*]))
-      catch _ => pure ()
-      try
-        evalTactic (← `(tactic| simp (config := { failIfUnchanged := false });  rw [Nat.mod_eq_of_lt]))
-      catch _ => pure ()
-      try
-        evalTactic (← `(tactic| simp (config := { failIfUnchanged := false });  rw [Nat.mod_eq_of_lt]))
-      catch _ => pure ()
+      evalTactic (← `(tactic| try valify [$[$idsArr:ident],*]))
+      evalTactic (← `(tactic| try simp (config := { failIfUnchanged := false });  rw [Nat.mod_eq_of_lt]))
+      evalTactic (← `(tactic| try rw [Nat.mod_eq_of_lt]))
       let lemmaName := Name.mkSimple s!"BitVec_ofNat_eq_iff_{n}"
       evalTactic (← `(tactic| rw [$(mkIdent lemmaName):ident]))
 
@@ -409,15 +403,9 @@ elab_rules : tactic
       let fv1T : TSyntax `term := (← termFor `fv1)
       let fv2T : TSyntax `term := (← termFor `fv2)
       let foT  : TSyntax `term := (← termFor `foutput)
-      try
-        evalTactic (← `(tactic| bvify [$[$idsArr:ident],*]))
-      catch _ => pure ()
-      try
-          evalTactic (← `(tactic| unfold bool_to_bv))
-      catch _ => pure ()
-      try
-          evalTactic (← `(tactic| unfold bool_to_bv_32))
-      catch _ => pure ()
+      evalTactic (← `(tactic| try bvify [$[$idsArr:ident],*]))
+      evalTactic (← `(tactic| try unfold bool_to_bv))
+      evalTactic (← `(tactic| try unfold bool_to_bv_32))
       -- TODO: I don't the number bits should be hardcoded like this
       evalTactic (← `(tactic|set a   := ($foT).val))
       index := 0

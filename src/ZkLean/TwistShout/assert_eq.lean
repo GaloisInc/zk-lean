@@ -78,5 +78,4 @@ lemma eq_mle_one_chunk_[ZKField f] (bv1 bv2 : BitVec 32) (fv1 fv2 : Vector f 32)
   =
   (foutput = evalSubtable VirtualAssertEQ_32 (Vector.append fv1 fv2))
 := by
- --unfold bool_to_bv_32
  solveMLE VirtualAssertEQ_32 32
