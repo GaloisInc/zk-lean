@@ -208,6 +208,12 @@ lemma one_le_two_mod_of_three_le {n : ℕ} (hn : 3 ≤ n) : 1 ≤ 2 % n := by
 
 
 
+lemma one_val {n : ℕ} {x y : ZMod n}
+(hx : x.val ≤ 1) :
+  (1-x).val =
+  (1 - x.val) % n := by
+sorry
+
 lemma or_val {n : ℕ} [h: NeZero n] [h': GtTwo n] {x y : ZMod n}
     (hx : x.val ≤ 1) (hy : y.val <= 1) :
   (x + y - x*y).val =
@@ -299,7 +305,7 @@ macro_rules
 | `(tactic| valify $[[$simpArgs,*]]? $[at $location]?) =>
   let args := simpArgs.map (·.getElems) |>.getD #[]
   `(tactic|
-    simp only [ult_val, or_val, ZMod.val_sub, ZMod.val_add, ZMod.val_mul, ZMod.val_one, ZMod.val_ofNat, push_cast, $args,*,] $[at $location]? )
+    simp only [one_val, ult_val, or_val, ZMod.val_sub, ZMod.val_add, ZMod.val_mul, ZMod.val_one, ZMod.val_ofNat, push_cast, $args,*,] $[at $location]? )
 
 
 
@@ -310,7 +316,7 @@ def mkZifyContext (simpArgs : Option (Syntax.TSepArray `Lean.Parser.Tactic.simpS
     TacticM MkSimpContextResult := do
   let args := simpArgs.map (·.getElems) |>.getD #[]
   mkSimpContext
-    (← `(tactic| simp only  [ult_val,  or_val, ZMod.val_sub, ZMod.val_add, ZMod.val_mul, ZMod.val_one, ZMod.val_ofNat, push_cast, $args,*,] )) false
+    (← `(tactic| simp only  [one_val , ult_val, or_val, ZMod.val_sub, ZMod.val_add, ZMod.val_mul, ZMod.val_one, ZMod.val_ofNat, push_cast, $args,*,] )) false
 
 /-- A variant of `applySimpResultToProp` that cannot close the goal, but does not need a meta
 variable and returns a tuple of a proof and the corresponding simplified proposition. -/
