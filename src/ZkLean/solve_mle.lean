@@ -345,138 +345,124 @@ elab_rules : tactic
       hyps := hyps ++ [Name.mkSimple s!"h{index}"]
       index := index +1
     catch _ => newHyp := false
-   match hyps with
-  | [] => pure ()
-  | first :: rest => do
-      let _firstId : TSyntax `ident := mkIdent first
-      index := 0
-      let g ← getMainGoal
-      for x in rest do
-        index := index +1
-        let id : TSyntax `ident ← g.withContext do
-          let lctx ← getLCtx
-          let some decl := lctx.findFromUserName? x
-               | throwError m!"no hyp `{x}`"
-          pure (mkIdent decl.userName)
-        try
-        -- we might have extra hypothesis that don't need to be rewritten
-          let extractLemma:= Name.mkSimple s!"extract_bv_rel_{n}"
-          evalTactic (← `(tactic| rw [$(mkIdent extractLemma):ident] at $id:ident))
-          let n1 := Name.mkSimple s!"{x}_1"
-          let n2 := Name.mkSimple s!"{x}_2"
-          let id1 : TSyntax `ident := mkIdent n1
-          let id2 : TSyntax `ident := mkIdent n2
-          ids := ids ++ [id1]
-          evalTactic (← `(tactic| rcases $id:ident with ⟨$id1:ident, $id2:ident⟩))
-        catch _ => pure ()
-      let id : TSyntax `ident ← g.withContext do
-          let lctx ← getLCtx
-          let some decl := lctx.findFromUserName? hyps[0]!
-               | throwError m!"no hyp"
-          pure (mkIdent decl.userName)
-      let map_f :=  Name.mkSimple s!"map_f_to_bv_{n}"
-      evalTactic (← `(tactic| unfold $(mkIdent map_f):ident at $id:ident; simp at $id:ident))
-      let n1 := Name.mkSimple s!"h_1"
-      let n2 := Name.mkSimple s!"h_2"
+  let first :: rest := hyps | return ()
+  let _firstId : TSyntax `ident := mkIdent first
+  index := 0
+  let g ← getMainGoal
+  for x in rest do
+    index := index +1
+    let id : TSyntax `ident ← g.withContext do
+      let lctx ← getLCtx
+      let some decl := lctx.findFromUserName? x
+           | throwError m!"no hyp `{x}`"
+      pure (mkIdent decl.userName)
+    try
+    -- we might have extra hypothesis that don't need to be rewritten
+      let extractLemma:= Name.mkSimple s!"extract_bv_rel_{n}"
+      evalTactic (← `(tactic| rw [$(mkIdent extractLemma):ident] at $id:ident))
+      let n1 := Name.mkSimple s!"{x}_1"
+      let n2 := Name.mkSimple s!"{x}_2"
       let id1 : TSyntax `ident := mkIdent n1
       let id2 : TSyntax `ident := mkIdent n2
-      evalTactic (← `(tactic| rcases $id:ident with ⟨$id1:ident, $id2:ident⟩; rw [ZMod.eq_if_val]
-      ; unfold $table:ident
-      ; unfold evalSubtable
-      ; simp (config := { failIfUnchanged := false })
-      ; unfold subtableFromMLE
-      ; simp (config := { failIfUnchanged := false })
-      ; unfold Vector.append
-      ; simp (config := { failIfUnchanged := false })))
-      let idsArr : Array (TSyntax `ident) := ids.toArray
-      --let i <- getMainGoal
-      logInfo m!"{ids}"
+      ids := ids ++ [id1]
+      evalTactic (← `(tactic| rcases $id:ident with ⟨$id1:ident, $id2:ident⟩))
+    catch _ => pure ()
+  let id : TSyntax `ident ← g.withContext do
+      let lctx ← getLCtx
+      let some decl := lctx.findFromUserName? hyps[0]!
+           | throwError m!"no hyp"
+      pure (mkIdent decl.userName)
+  let map_f :=  Name.mkSimple s!"map_f_to_bv_{n}"
+  evalTactic (← `(tactic| unfold $(mkIdent map_f):ident at $id:ident; simp at $id:ident))
+  let n1 := Name.mkSimple s!"h_1"
+  let n2 := Name.mkSimple s!"h_2"
+  let id1 : TSyntax `ident := mkIdent n1
+  let id2 : TSyntax `ident := mkIdent n2
+  evalTactic (← `(tactic| rcases $id:ident with ⟨$id1:ident, $id2:ident⟩; rw [ZMod.eq_if_val]
+  ; unfold $table:ident
+  ; unfold evalSubtable
+  ; simp (config := { failIfUnchanged := false })
+  ; unfold subtableFromMLE
+  ; simp (config := { failIfUnchanged := false })
+  ; unfold Vector.append
+  ; simp (config := { failIfUnchanged := false })))
+  let idsArr : Array (TSyntax `ident) := ids.toArray
+  --let i <- getMainGoal
+  logInfo m!"{ids}"
 
-      -- TODO: I don't like this but otherwise we cant solve sign extend (maybe this should also be passed in as a parameter)
-      try
-        evalTactic (← `(tactic| valify [$[$idsArr:ident],*]))
-      catch _ => pure ()
-      try
-        evalTactic (← `(tactic| simp (config := { failIfUnchanged := false });  rw [Nat.mod_eq_of_lt]))
-      catch _ => pure ()
-      try
-        evalTactic (← `(tactic| simp (config := { failIfUnchanged := false });  rw [Nat.mod_eq_of_lt]))
-      catch _ => pure ()
-      let lemmaName := Name.mkSimple s!"BitVec_ofNat_eq_iff_{n}"
-      evalTactic (← `(tactic| rw [$(mkIdent lemmaName):ident]))
+  -- TODO: I don't like this but otherwise we cant solve sign extend (maybe this should also be passed in as a parameter)
+  evalTactic (← `(tactic| try valify [$[$idsArr:ident],*]))
+  evalTactic (← `(tactic| try simp (config := { failIfUnchanged := false });  rw [Nat.mod_eq_of_lt]))
+  evalTactic (← `(tactic| try rw [Nat.mod_eq_of_lt]))
+  let lemmaName := Name.mkSimple s!"BitVec_ofNat_eq_iff_{n}"
+  evalTactic (← `(tactic| rw [$(mkIdent lemmaName):ident]))
 
-      -- TODO : Should fv1 should be passed in as parameters?
-      let fv1T : TSyntax `term := (← termFor `fv1)
-      let fv2T : TSyntax `term := (← termFor `fv2)
-      let foT  : TSyntax `term := (← termFor `foutput)
-      try
-        evalTactic (← `(tactic| bvify [$[$idsArr:ident],*]))
-      catch _ => pure ()
-      try
-          evalTactic (← `(tactic| unfold bool_to_bv))
-      catch _ => pure ()
-      try
-          evalTactic (← `(tactic| unfold bool_to_bv_32))
-      catch _ => pure ()
-      -- TODO: I don't the number bits should be hardcoded like this
-      evalTactic (← `(tactic|set a   := ($foT).val))
-      index := 0
-      while index < ids.length/2 do
-        -- names for the bound and its equality
-        let idName  := Name.mkSimple s!"b0_{index}"
+  -- TODO : Should fv1 should be passed in as parameters?
+  let fv1T : TSyntax `term := (← termFor `fv1)
+  let fv2T : TSyntax `term := (← termFor `fv2)
+  let foT  : TSyntax `term := (← termFor `foutput)
+  evalTactic (← `(tactic| try bvify [$[$idsArr:ident],*]))
+  evalTactic (← `(tactic| try unfold bool_to_bv))
+  evalTactic (← `(tactic| try unfold bool_to_bv_32))
+  -- TODO: I don't the number bits should be hardcoded like this
+  evalTactic (← `(tactic|set a   := ($foT).val))
+  index := 0
+  while index < ids.length/2 do
+    -- names for the bound and its equality
+    let idName  := Name.mkSimple s!"b0_{index}"
 
-        -- identifiers/syntax nodes
-        let idSyn   : TSyntax `ident := mkIdent idName
-        let idxSyn  : TSyntax `term  := Syntax.mkNumLit (toString index)
+    -- identifiers/syntax nodes
+    let idSyn   : TSyntax `ident := mkIdent idName
+    let idxSyn  : TSyntax `term  := Syntax.mkNumLit (toString index)
 
-        -- safest access: .get! (parses reliably inside quotations)
-        evalTactic (← `(tactic|
-          set $idSyn := $fv1T[$idxSyn]
-        ))
-        index := index + 1
-      index := 0
-      while index < ids.length/2 do
-        -- names for the bound and its equality
-        let idName  := Name.mkSimple s!"b1_{index}"
+    -- safest access: .get! (parses reliably inside quotations)
+    evalTactic (← `(tactic|
+      set $idSyn := $fv1T[$idxSyn]
+    ))
+    index := index + 1
+  index := 0
+  while index < ids.length/2 do
+    -- names for the bound and its equality
+    let idName  := Name.mkSimple s!"b1_{index}"
 
-        -- identifiers/syntax nodes
-        let idSyn   : TSyntax `ident := mkIdent idName
-        let idxSyn  : TSyntax `term  := Syntax.mkNumLit (toString index)
+    -- identifiers/syntax nodes
+    let idSyn   : TSyntax `ident := mkIdent idName
+    let idxSyn  : TSyntax `term  := Syntax.mkNumLit (toString index)
 
-        -- safest access: .get! (parses reliably inside quotations)
-        evalTactic (← `(tactic|
-          set $idSyn := $fv2T[$idxSyn]
-        ))
+    -- safest access: .get! (parses reliably inside quotations)
+    evalTactic (← `(tactic|
+      set $idSyn := $fv2T[$idxSyn]
+    ))
 
-        index := index + 1
+    index := index + 1
 
-        -- set b10 := ZMod.val ($fv1T)[0] ;
-        -- set b11 := ZMod.val ($fv1T)[1] ;
-        -- set b12 := ZMod.val ($fv1T)[2] ;
-        -- set b13 := ZMod.val ($fv1T)[3] ;
-        -- set b14 := ZMod.val ($fv1T)[4] ;
-        -- set b15 := ZMod.val ($fv1T)[5];
-        -- set b16 := ZMod.val ($fv1T)[6] ;
-        -- set b17 := ZMod.val ($fv1T)[7] ;
-        -- set b20 := ZMod.val ($fv2T)[0] ;
-        -- set b21 := ZMod.val ($fv2T)[1] ;
-        -- set b22 := ZMod.val ($fv2T)[2] ;
-        -- set b23 := ZMod.val ($fv2T)[3] ;
-        -- set b24 := ZMod.val ($fv2T)[4] ;
-        -- set b25 := ZMod.val ($fv2T)[5] ;
-        -- set b26 := ZMod.val ($fv2T)[6] ;
-        -- set b27 := ZMod.val ($fv2T)[7] ;
-      let g <- getMainGoal
-      logInfo m!"{g}"
-      evalTactic (← `(tactic| bv_normalize))
-      let h <- getMainGoal
-      logInfo m!"{h}"
-      logInfo m!"started bv_decice"
-      evalTactic (← `(tactic| bv_decide ;
-        exact $id1:ident ;
-        ))
-      logInfo m!"finished bv_decide :)"
-      evalTactic (← `(tactic| try_apply_lemma_hyps [$[$idsArr:ident],*]))
+    -- set b10 := ZMod.val ($fv1T)[0] ;
+    -- set b11 := ZMod.val ($fv1T)[1] ;
+    -- set b12 := ZMod.val ($fv1T)[2] ;
+    -- set b13 := ZMod.val ($fv1T)[3] ;
+    -- set b14 := ZMod.val ($fv1T)[4] ;
+    -- set b15 := ZMod.val ($fv1T)[5];
+    -- set b16 := ZMod.val ($fv1T)[6] ;
+    -- set b17 := ZMod.val ($fv1T)[7] ;
+    -- set b20 := ZMod.val ($fv2T)[0] ;
+    -- set b21 := ZMod.val ($fv2T)[1] ;
+    -- set b22 := ZMod.val ($fv2T)[2] ;
+    -- set b23 := ZMod.val ($fv2T)[3] ;
+    -- set b24 := ZMod.val ($fv2T)[4] ;
+    -- set b25 := ZMod.val ($fv2T)[5] ;
+    -- set b26 := ZMod.val ($fv2T)[6] ;
+    -- set b27 := ZMod.val ($fv2T)[7] ;
+  let g <- getMainGoal
+  logInfo m!"{g}"
+  evalTactic (← `(tactic| bv_normalize))
+  let h <- getMainGoal
+  logInfo m!"{h}"
+  logInfo m!"started bv_decice"
+  evalTactic (← `(tactic| bv_decide ;
+    exact $id1:ident ;
+    ))
+  logInfo m!"finished bv_decide :)"
+  evalTactic (← `(tactic| try_apply_lemma_hyps [$[$idsArr:ident],*]))
   -- -- use x
 
 -- def SRA_SIGN_16 [Field f] : Subtable f 16 :=
