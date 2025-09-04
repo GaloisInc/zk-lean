@@ -23,5 +23,7 @@ import ZkLean.LookUpTables.left_is_zero
 import ZkLean.LookUpTables.right_is_zero
 import ZkLean.LookUpTables.div_by_zero
 import ZkLean.LookUpTables.lsb
+import ZkLean.TwistShout.and
 import ZkLean.TwistShout.xor
 import ZkLean.TwistShout.half_word
+import ZkLean.TwistShout.assert_eq

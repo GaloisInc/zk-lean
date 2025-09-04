@@ -8,7 +8,7 @@ set_option maxHeartbeats  20000000000000000000
 def VirtualAssertHalfwordAlignment_32 [Field f] : Subtable f 64 :=
   subtableFromMLE (fun x => 1 - x[62])
 
-lemma half_word_mle_one_chunk_[ZKField f] (bv1 bv2 : BitVec 32) (fv1 fv2 : Vector f 32) :
+lemma half_word_32_mle_one_chunk_[ZKField f] (bv1 bv2 : BitVec 32) (fv1 fv2 : Vector f 32) :
   some bvoutput = map_f_to_bv_32 foutput ->
    some (bool_to_bv_32 bv1[31])  = map_f_to_bv_32 fv1[0]  ->
    some (bool_to_bv_32 bv2[31]) =map_f_to_bv_32 fv1[1]  ->
@@ -146,4 +146,4 @@ solveMLE VirtualAssertHalfwordAlignment_32 32
 --  h63_1,
 --  h64_1]]
 
--- -- valify 
+-- -- valify
