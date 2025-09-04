@@ -381,7 +381,7 @@ elab_rules : tactic
   ; simp (config := { failIfUnchanged := false })))
   let idsArr : Array (TSyntax `ident) := ids.toArray
   --let i <- getMainGoal
-  logInfo m!"{ids}"
+  --logInfo m!"{ids}"
 
   -- TODO: I don't like this but otherwise we cant solve sign extend (maybe this should also be passed in as a parameter)
   evalTactic (← `(tactic| try valify [$[$idsArr:ident],*]))
@@ -446,15 +446,13 @@ elab_rules : tactic
     -- set b26 := ZMod.val ($fv2T)[6] ;
     -- set b27 := ZMod.val ($fv2T)[7] ;
   let g <- getMainGoal
-  logInfo m!"{g}"
   evalTactic (← `(tactic| bv_normalize))
   let h <- getMainGoal
-  logInfo m!"{h}"
-  logInfo m!"started bv_decice"
-  evalTactic (← `(tactic| bv_decide ;
-    exact $id1:ident ;
+  --logInfo m!"started bv_decice"
+  evalTactic (← `(tactic| bv_decide (config := {timeout := 120}) ;
+    apply $id1:ident ;
     ))
-  logInfo m!"finished bv_decide :)"
+  -- logInfo m!"finished bv_decide :)"
   evalTactic (← `(tactic| try_apply_lemma_hyps [$[$idsArr:ident],*]))
   -- -- use x
 
