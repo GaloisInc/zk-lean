@@ -320,10 +320,14 @@ lemma BitVec_ofNat_eq_iff_64 {x y : ℕ} (hx : x < 2^64) (hy : y < 2^64) :
 
 syntax (name := SolveMLE) "solveMLE " ident num : tactic
 
-partial def introAll (i : Nat := 0) : TacticM Unit := do
+partial def introAll (i : Nat := 0) (revNames : List Name := []) : TacticM (List Name) := do
+  let name := Name.mkSimple s!"h{i}"
   let g ← getMainGoal
-  let (_, g') ← g.intro (Name.mkSimple s!"h{i}")  -- note the ← bind in a do-block
-  replaceMainGoal [g']                              -- OK: statement inside do
+  try
+    let (_, g') ← g.intro name
+    replaceMainGoal [g']
+  catch _ => return revNames.reverse
+  introAll (i + 1) (name :: revNames)
 
 private def termFor (nm : Name) : TacticM (TSyntax `term) := withMainContext do
   match (← getLCtx).findFromUserName? nm with
@@ -333,24 +337,13 @@ private def termFor (nm : Name) : TacticM (TSyntax `term) := withMainContext do
 set_option maxHeartbeats  20000000000000000000
 elab_rules : tactic
 | `(tactic| solveMLE $table:ident $N:num ) => do
-  logInfo m!"hello"
-  let mut newHyp := true
-  let mut index := 0
   let n := N.getNat
-  let mut hyps : List Name := []
+  let hyps ← introAll
   let mut ids : List (TSyntax `ident) := []
-  while newHyp do
-    try
-      introAll index
-      hyps := hyps ++ [Name.mkSimple s!"h{index}"]
-      index := index +1
-    catch _ => newHyp := false
   let first :: rest := hyps | return ()
   let _firstId : TSyntax `ident := mkIdent first
-  index := 0
   let g ← getMainGoal
   for x in rest do
-    index := index +1
     let id : TSyntax `ident ← g.withContext do
       let lctx ← getLCtx
       let some decl := lctx.findFromUserName? x
@@ -406,7 +399,7 @@ elab_rules : tactic
   evalTactic (← `(tactic| try unfold bool_to_bv_32))
   -- TODO: I don't the number bits should be hardcoded like this
   evalTactic (← `(tactic|set a   := ($foT).val))
-  index := 0
+  let mut index := 0
   while index < ids.length/2 do
     -- names for the bound and its equality
     let idName  := Name.mkSimple s!"b0_{index}"
