@@ -449,7 +449,7 @@ elab_rules : tactic
   evalTactic (← `(tactic| bv_normalize))
   let h <- getMainGoal
   --logInfo m!"started bv_decice"
-  evalTactic (← `(tactic| bv_decide (config := {timeout := 120}) ;
+  evalTactic (← `(tactic| bv_decide (config := {timeout := 300}) ;
     apply $id1:ident ;
     ))
   -- logInfo m!"finished bv_decide :)"
