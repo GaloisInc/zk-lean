@@ -245,13 +245,12 @@ elab_rules : tactic
           did_mux := true
         | _ =>
             pure ()
-          --logInfo m!"Not a mux"
           -- if not a mux but we have only two variables do a case by case reasoning
           -- this is necessary in case of variable dependencies
           -- Ex: x1 + x2 - x1*x2 --> Can't be negative but needs to be proven
           -- - First check that only 2 variables exist & a subtraction is involved
           -- then make sure all variables are bounded <= 1
-          if result.size == 2 && (<- containsSub goalType) then
+          if !applied && result.size == 2 && (<- containsSub goalType) then
             let bounds ← g.withContext do
               let lctx ← getLCtx
               hyps.foldlM (init := []) fun acc hName => do
@@ -264,33 +263,40 @@ elab_rules : tactic
                     let LHSvars ← collectVarsAppAndConst lhs
                     let varsList := LHSvars.toList
                     if LHSvars.size == 1 && resultList.contains varsList[0]! then
-                          return decl.userName :: acc
+                          return decl :: acc
                         else
                         return acc
                   | _ => return acc
                 | _ => return acc
             -- if bound exists apply a case split tactic
             if bounds.length = 2 then
-              -- let lctx ← g.withContext getLCtx
-              let h1 := mkIdent  bounds[0]!
-              let h2 := mkIdent bounds[1]!
-              try
-                evalTactic (← `(tactic| elim2_norm_num $h1 $h2))
+              setGoals [g]
+              g.withContext do
+                 -- logInfo m!"Goal: {goalType}"
+                -- let lctx ← g.withContext getLCtx
+                  let h1 := mkIdent  bounds[0]!.userName
+                  let h2 := mkIdent  bounds[1]!.userName
+                  try
+                    evalTactic (← `(tactic| elim2_norm_num $h1 $h2))
+                  catch err => pure ()
+                 -- logInfo m!"❌ elim2_norm_num failed {err.toMessageData}"
                 if ← g.isAssigned then
-                  -- let newType ← g.getType
-                  -- let t ← Meta.inferType (mkMVar g)
-                  --logInfo m!"➖ elim2 modified goal "
-                  let remaining ← getUnsolvedGoals
-                  if remaining.contains g then
-                    logInfo m!"➖ elim2 modified goal {g}, but did not fully solve it"
-                  else
-                    updatedGoals := updatedGoals ++ [g]
-                    applied := true
-                    handled := true
-                    progress := true
-              catch err => logInfo m!"❌ elim2_norm_num failed"
+                    -- let newType ← g.getType
+                    -- let t ← Meta.inferType (mkMVar g)
+                    --logInfo m!"➖ elim2 modified goal "
+                    let remaining ← getUnsolvedGoals
+                    if remaining.contains g then
+                      logInfo m!"➖ elim2 modified goal {g}, but did not fully solve it"
+                    else
+                      updatedGoals := updatedGoals ++ [g]
+                      applied := true
+                      handled := true
+                      progress := true
+                -- catch err =>
+                --   logInfo m!"❌ elim2_norm_num failed {err.toMessageData}"
             else
-              logInfo m!"❌ Did not find two appropriate bounds to run elim2_norm_num for {resultList}"
+              pure ()
+             -- logInfo m!"❌ Did not find two appropriate bounds to run elim2_norm_num for {resultList}"
         --try to apply Lean's range analysis lemmas
         lemmaMatch := none
         --logInfo m!"NAME {fn3}"
@@ -427,24 +433,3 @@ example (y x a b: ℕ) (h: x<=1 ) (h2: y<=1) (h7: z<= 1) (h3: a<= 1) (h4: b<= 1)
       -- apply Nat.mul_le_mul
        --+
       -- (1-x) * y * (1-z) *(4*a + b) +
-
-example (y x a b: ℕ) (h: x<=1 ) (h2: y<=1) (h7: z<= 1) (h3: a<= 1) (h4: b<= 1):
-      (1-x) * (1-y)* (1-z) *(2*a + b) +
-      x * (1-y) *(1-z) * (3*a + b) --+
-      -- (1-x) * y * (1-z) *(4*a + b) +
-      -- x * y * (1-z) * (5*a + b) +
-      -- (1-x) * (1-y)* z *(6*a + b) +
-      -- x * (1-y) *z * (7*a + b) +
-      -- (1-x) * y * z *(8*a + b) +
-      -- x * y * z* (9*a + b)
-      --  < 11  /\  (1-x) * (1-y)* (1-z) *(2*a + b) +
-      -- x * (1-y) *(1-z) * (3*a + b) +
-      -- (1-x) * y * (1-z) *(4*a + b) +
-      -- x * y * (1-z) * (5*a + b) +
-      -- (1-x) * (1-y)* z *(6*a + b) +
-      -- x * (1-y) *z * (7*a + b) +
-      -- (1-x) * y * z *(8*a + b) +
-      -- x * y * z* (9*a + b)
-       < 10 := by
-       split_ands
-       try_apply_lemma_hyps [h3, h4, h2,h7, h]
