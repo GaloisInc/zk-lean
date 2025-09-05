@@ -229,11 +229,9 @@ elab_rules : tactic
           -- let eqId := pr.mvarId!
           -- create a new factored hyphesis
           let gWithHyp ← g.assert `hMux prop pr
-          replaceMainGoal [pr.mvarId!, gWithHyp]
           updatedGoals := updatedGoals ++ [pr.mvarId!, gWithHyp]
           --logInfo m!"NEW GOALS: {pr.mvarId!}"
           --logInfo m!"NEW GOALS: {gWithHyp}"
-          setGoals updatedGoals
           applied := true
           handled := true
           progress := true
