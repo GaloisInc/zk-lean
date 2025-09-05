@@ -243,60 +243,59 @@ elab_rules : tactic
           handled := true
           progress := true
           did_mux := true
-        | _ =>
-            pure ()
-          -- if not a mux but we have only two variables do a case by case reasoning
-          -- this is necessary in case of variable dependencies
-          -- Ex: x1 + x2 - x1*x2 --> Can't be negative but needs to be proven
-          -- - First check that only 2 variables exist & a subtraction is involved
-          -- then make sure all variables are bounded <= 1
-          if !applied && result.size == 2 && (<- containsSub goalType) then
-            let bounds ← g.withContext do
-              let lctx ← getLCtx
-              hyps.foldlM (init := []) fun acc hName => do
-                let some decl := lctx.findFromUserName? hName
-                  | throwError m!"❌ Could not find a hypothesis named `{hName}`"
-                match decl.type.getAppFnArgs with
-                | (``LE.le, #[_, _, lhs, rhs]) =>
-                  match (← whnf rhs) with
-                  | (Expr.lit (Literal.natVal 1)) => do
-                    let LHSvars ← collectVarsAppAndConst lhs
-                    let varsList := LHSvars.toList
-                    if LHSvars.size == 1 && resultList.contains varsList[0]! then
-                          return decl :: acc
-                        else
-                        return acc
-                  | _ => return acc
+        | _ => pure ()
+        -- if not a mux but we have only two variables do a case by case reasoning
+        -- this is necessary in case of variable dependencies
+        -- Ex: x1 + x2 - x1*x2 --> Can't be negative but needs to be proven
+        -- - First check that only 2 variables exist & a subtraction is involved
+        -- then make sure all variables are bounded <= 1
+        if !applied && result.size == 2 && (<- containsSub goalType) then
+          let bounds ← g.withContext do
+            let lctx ← getLCtx
+            hyps.foldlM (init := []) fun acc hName => do
+              let some decl := lctx.findFromUserName? hName
+                | throwError m!"❌ Could not find a hypothesis named `{hName}`"
+              match decl.type.getAppFnArgs with
+              | (``LE.le, #[_, _, lhs, rhs]) =>
+                match (← whnf rhs) with
+                | (Expr.lit (Literal.natVal 1)) => do
+                  let LHSvars ← collectVarsAppAndConst lhs
+                  let varsList := LHSvars.toList
+                  if LHSvars.size == 1 && resultList.contains varsList[0]! then
+                        return decl :: acc
+                      else
+                      return acc
                 | _ => return acc
-            -- if bound exists apply a case split tactic
-            if bounds.length = 2 then
-              setGoals [g]
-              g.withContext do
-                 -- logInfo m!"Goal: {goalType}"
-                -- let lctx ← g.withContext getLCtx
-                  let h1 := mkIdent  bounds[0]!.userName
-                  let h2 := mkIdent  bounds[1]!.userName
-                  try
-                    evalTactic (← `(tactic| elim2_norm_num $h1 $h2))
-                  catch err => pure ()
-                 -- logInfo m!"❌ elim2_norm_num failed {err.toMessageData}"
-                if ← g.isAssigned then
-                    -- let newType ← g.getType
-                    -- let t ← Meta.inferType (mkMVar g)
-                    --logInfo m!"➖ elim2 modified goal "
-                    let remaining ← getUnsolvedGoals
-                    if remaining.contains g then
-                      logInfo m!"➖ elim2 modified goal {g}, but did not fully solve it"
-                    else
-                      updatedGoals := updatedGoals ++ [g]
-                      applied := true
-                      handled := true
-                      progress := true
-                -- catch err =>
-                --   logInfo m!"❌ elim2_norm_num failed {err.toMessageData}"
-            else
-              pure ()
-             -- logInfo m!"❌ Did not find two appropriate bounds to run elim2_norm_num for {resultList}"
+              | _ => return acc
+          -- if bound exists apply a case split tactic
+          if bounds.length = 2 then
+            setGoals [g]
+            g.withContext do
+               -- logInfo m!"Goal: {goalType}"
+              -- let lctx ← g.withContext getLCtx
+                let h1 := mkIdent  bounds[0]!.userName
+                let h2 := mkIdent  bounds[1]!.userName
+                try
+                  evalTactic (← `(tactic| elim2_norm_num $h1 $h2))
+                catch _ => pure ()
+               -- logInfo m!"❌ elim2_norm_num failed {err.toMessageData}"
+              if ← g.isAssigned then
+                  -- let newType ← g.getType
+                  -- let t ← Meta.inferType (mkMVar g)
+                  --logInfo m!"➖ elim2 modified goal "
+                  let remaining ← getUnsolvedGoals
+                  if remaining.contains g then
+                    logInfo m!"➖ elim2 modified goal {g}, but did not fully solve it"
+                  else
+                    updatedGoals := updatedGoals ++ [g]
+                    applied := true
+                    handled := true
+                    progress := true
+              -- catch err =>
+              --   logInfo m!"❌ elim2_norm_num failed {err.toMessageData}"
+          else
+            pure ()
+           -- logInfo m!"❌ Did not find two appropriate bounds to run elim2_norm_num for {resultList}"
         --try to apply Lean's range analysis lemmas
         lemmaMatch := none
         --logInfo m!"NAME {fn3}"
