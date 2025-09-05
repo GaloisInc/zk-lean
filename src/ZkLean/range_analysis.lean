@@ -305,81 +305,74 @@ elab_rules : tactic
             -- if we have variables then we can apply < C --> <= m?
             lemmaMatch :=
               match fn with
-              | name =>
-                match name with
-                | ``LT.lt =>
-                   match fn3 with
-                    | Expr.const name _ =>
-                      match name with
-                        | ``ite => some ("if", rfl)
-                        | _ => some ("Nat.lt_of_le_of_lt", lt)
-                    | _ => none
+              | ``LT.lt =>
+                match fn3 with
+                | Expr.const name _ =>
+                  match name with
+                  | ``ite => some ("if", rfl)
+                  | _ => some ("Nat.lt_of_le_of_lt", lt)
                 | _ => none
+              | _ => none
           if lemmaMatch.isNone then
             lemmaMatch :=
               match fn with
-              | name =>
-                match name with
-                | ``LE.le =>
-                  match fn3 with
-                  | Expr.const name _ =>
-                    match name with
-                      | ``HSub.hSub => some ("Nat.lt_sub", sub)
-                      | ``HAdd.hAdd => some ("Nat.add_le_add", add)
-                      | ``HMul.hMul => some ("Nat.mul_le_mul", mul)
-                      | ``OfNat.ofNat => some ("@OfNat.ofNat", rfl)
-                      -- rfl is a place holder should be something else
-                      | ``ite => some ("if", rfl)
-                      | ``ZMod.val => some ("ZMod", rfl )
-                      | _ =>  none
-                  | _ => if isVar then
-                            some ("ZMod", rfl )
-                          else
-                            none
-                | _ => none
+              | ``LE.le =>
+                match fn3 with
+                | Expr.const name _ =>
+                  match name with
+                  | ``HSub.hSub => some ("Nat.lt_sub", sub)
+                  | ``HAdd.hAdd => some ("Nat.add_le_add", add)
+                  | ``HMul.hMul => some ("Nat.mul_le_mul", mul)
+                  | ``OfNat.ofNat => some ("@OfNat.ofNat", rfl)
+                  -- rfl is a place holder should be something else
+                  | ``ite => some ("if", rfl)
+                  | ``ZMod.val => some ("ZMod", rfl)
+                  | _ => none
+                | _ => if isVar then some ("ZMod", rfl) else none
+              | _ => none
          -- logInfo m!"Break"
         match lemmaMatch with
-          | some ("if", stx) =>
-              --logInfo m!"We have a match?"
-              evalTactic (← `(tactic| split_ifs))
-              let goals <- getGoals
-             -- logInfo m!"Goal List3: {goals}"
-              updatedGoals := goals
+        | some ("if", _stx) =>
+          --logInfo m!"We have a match?"
+          evalTactic (← `(tactic| split_ifs))
+          let goals <- getGoals
+          -- logInfo m!"Goal List3: {goals}"
+          updatedGoals := goals
+          handled := true
+          progress := true
+          applied := true
+        | some ("ZMod", _stx) =>
+          -- logInfo m!"We have a var... {<-g.getType}"
+          for hName in hyps do
+            unless applied do
+            try
+              -- need to do it with context so names are initialized
+              let subgoals ← g.withContext do
+                let lctx ← getLCtx
+                let some decl := lctx.findFromUserName? hName
+                  | throwError m!"❌ Could not find a hypothesis named `{hName}`"
+                let hExpr := mkFVar decl.fvarId
+                g.apply hExpr
+              updatedGoals := updatedGoals ++ subgoals
+              applied := true
               handled := true
               progress := true
-              applied := true
-          | some ("ZMod", stx) =>
-            -- logInfo m!"We have a var... {<-g.getType}"
-             for hName in hyps do
-              unless applied do
-              try
-              -- need to do it with context so names are initialized
-                let subgoals ← g.withContext do
-                  let lctx ← getLCtx
-                  let some decl := lctx.findFromUserName? hName
-                    | throwError m!"❌ Could not find a hypothesis named `{hName}`"
-                  let hExpr := mkFVar decl.fvarId
-                  g.apply hExpr
-                updatedGoals := updatedGoals ++ subgoals
-                applied := true
-                handled := true
-                progress := true
-              catch _err =>
-                random := false
-          | some (_name, stx) =>
-              try
-                let e ← elabTerm stx goalType
-                let subgoals ← g.apply e
-                --logInfo m!" We applied a lemma {_name}"
-                updatedGoals := updatedGoals ++ subgoals
-                handled := true
-                progress := true
-                applied := true
-              catch _err =>
-                --logInfo m!" What happened? "
-                random := false
-          | none =>
+            catch _err =>
               random := false
+        | some (_name, stx) =>
+          try
+            let e ← elabTerm stx goalType
+            let subgoals ← g.apply e
+            --logInfo m!" We applied a lemma {_name}"
+            updatedGoals := updatedGoals ++ subgoals
+            handled := true
+            progress := true
+            applied := true
+          catch _err =>
+            --logInfo m!" What happened? "
+            random := false
+        | none =>
+          random := false
       -- if other tectniques did not work try decide
       if not applied then
         let mut h <- getGoals
