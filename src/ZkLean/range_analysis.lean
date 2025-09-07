@@ -158,7 +158,6 @@ elab_rules : tactic
   let mul ← `(Nat.mul_le_mul)
   let rfl ← `(Nat.le_refl)
   let split_ifs ← `(split_ifs)
-  let mut random := false
   -- begin by factoring out multiplication for all goals
   -- important for mux discovery
   evalTactic (← `(tactic| try all_goals simp [Nat.mul_assoc]))
@@ -352,8 +351,7 @@ elab_rules : tactic
               applied := true
               handled := true
               progress := true
-            catch _err =>
-              random := false
+            catch _err => pure ()
         | some (_name, stx) =>
           try
             let e ← elabTerm stx goalType
@@ -363,11 +361,8 @@ elab_rules : tactic
             handled := true
             progress := true
             applied := true
-          catch _err =>
-            --logInfo m!" What happened? "
-            random := false
-        | none =>
-          random := false
+          catch _err => pure ()
+        | none => pure ()
       -- if other tectniques did not work try decide
       if not applied then
         let mut h <- getGoals
