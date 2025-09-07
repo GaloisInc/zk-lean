@@ -234,7 +234,7 @@ elab_rules : tactic
      --logInfo m!"fun: {_fn}"
       let result ← collectVarsAppAndConst instantiatedGoalType
       let resultList := result.toList
-      if !handled && args.size > 3 then
+      if args.size > 3 then
         let g ← getMainGoal
         let goalType ← g.getType
        -- logInfo m!"Goal:{g}"
@@ -255,16 +255,17 @@ elab_rules : tactic
           updatedGoals := updatedGoals ++ [pr.mvarId!, gWithHyp]
           --logInfo m!"NEW GOALS: {pr.mvarId!}"
           --logInfo m!"NEW GOALS: {gWithHyp}"
-          handled := true
-          progress := true
           did_mux := true
+          progress := true
+          handled := true
+          continue
         | _ => pure ()
         -- if not a mux but we have only two variables do a case by case reasoning
         -- this is necessary in case of variable dependencies
         -- Ex: x1 + x2 - x1*x2 --> Can't be negative but needs to be proven
         -- - First check that only 2 variables exist & a subtraction is involved
         -- then make sure all variables are bounded <= 1
-        if !handled && result.size == 2 && (← containsSub instantiatedGoalType) then
+        if result.size == 2 && (← containsSub instantiatedGoalType) then
           let bounds ← g.withContext do
             let lctx ← getLCtx
             hyps.foldlM (init := []) fun acc hName => do
@@ -308,9 +309,8 @@ elab_rules : tactic
             pure ()
            -- logInfo m!"❌ Did not find two appropriate bounds to run elim2_norm_num for {resultList}"
         --try to apply Lean's range analysis lemmas
-        let mut lemmaMatch := none
-        if not handled then lemmaMatch ← findLemmaMatch result instantiatedGoalType
-        match lemmaMatch with
+        if handled then continue
+        match (← findLemmaMatch result instantiatedGoalType) with
         | some ("if", _stx) =>
           --logInfo m!"We have a match?"
           evalTactic (← `(tactic| split_ifs))
@@ -322,7 +322,6 @@ elab_rules : tactic
         | some ("ZMod", _stx) =>
           -- logInfo m!"We have a var... {<-g.getType}"
           for hName in hyps do
-            unless handled do
             try
               -- need to do it with context so names are initialized
               let subgoals ← g.withContext do
@@ -334,7 +333,7 @@ elab_rules : tactic
               updatedGoals := updatedGoals ++ subgoals
               handled := true
               progress := true
-              continue
+              break
             catch _err => pure ()
         | some (_name, stx) =>
           try
@@ -346,30 +345,24 @@ elab_rules : tactic
             progress := true
           catch _err => pure ()
         | none => pure ()
-      -- if other tectniques did not work try decide
-      if not handled then
-        let mut h <- getGoals
-        try
-          evalTactic (← `(tactic| decide))
-          if ← g.isAssigned then
-            -- let newType ← g.getType
-            -- let t ← Meta.inferType (mkMVar g)
-            if (← getUnsolvedGoals).contains g then
-              --logInfo m!"➖ norm_num modified goal {g}, but did not fully solve it"
-              handled := true
-            else
-              logInfo m!"✅ Fully solved goal using decide {goalType}"
-              updatedGoals := updatedGoals ++ [g]
-              handled := true
-              progress := h.length != 0
-          else
-            updatedGoals := updatedGoals ++ [g]
-            handled := true
-            progress := false
-        catch _err =>
+      if handled then continue
+      -- if other techniques did not work try decide
+      let h ← getGoals
+      try
+        evalTactic (← `(tactic| decide))
+        if ← g.isAssigned then
+          logInfo m!"✅ Fully solved goal using decide {goalType}"
+          updatedGoals := updatedGoals ++ [g]
+          handled := true
+          progress := h.length != 0
+        else
           updatedGoals := updatedGoals ++ [g]
           handled := true
           progress := false
+      catch _err =>
+        updatedGoals := updatedGoals ++ [g]
+        handled := true
+        progress := false
     setGoals updatedGoals
 
 
