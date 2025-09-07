@@ -1,10 +1,11 @@
 import Lean
+import Lean.Elab.Tactic.Basic
+import Lean.Meta.Basic
+import Lean.Parser.Tactic
+import Mathlib.Algebra.Field.ZMod
 import Mathlib.Data.Nat.Basic
 import Mathlib.Tactic
 import Mathlib.Tactic.Eval
-import Lean.Elab.Tactic.Basic
-import Lean.Parser.Tactic
-import Mathlib.Algebra.Field.ZMod
 
 open Lean Meta Elab Tactic
 
@@ -93,79 +94,105 @@ elab "elim2_norm_num" h1:ident h2:ident : tactic => do
   evalTactic (←  `(tactic|try apply Nat.le_refl))
   evalTactic (←  `(tactic| try rfl))
 
-
--- determines if an expression contains a subtraction
+/-- Determines if any expression contains a subtraction in its arguments, recursively.  Does not go
+under the indexing part of a vector indexing expression. -/
 partial def containsSub (e : Expr) :  MetaM Bool := do
-  let e <- instantiateMVars e
-  if e.isApp then
-    let args := e.getAppArgs
-    let f := e.getAppFn
-    if f.isConstOf ``HSub.hSub then
-      return true
-    --   | _ => logInfo m!"Failed on args of const"
-    match args with
-    | #[_,_,_,_,_, arg1, arg2, _] =>
-       if arg1.isFVar then
-          return false
-    | _ => for arg in args do
-              if ← containsSub arg then
-           return true
-  return false
+  if not e.isApp then return false
+  match e.getAppFnArgs with
+  | (``HSub.hSub, _) => return true
+  | (``getElem, #[_,_,_,_,_, vectorExpr, _, _]) => containsSub vectorExpr
+  | (_, args) => args.anyM containsSub
 
---
-partial def collectVarsAppAndConst (e : Expr) (acc : NameSet := {}) : MetaM NameSet := do
-  let mut acc := acc
-  let old_e := e
-  let e ← instantiateMVars e
-  let f := e.getAppFn
+/-- Recurses through the expression to find all free variables that appear in it, either as is, or
+as part of some vector indexing operation. -/
+partial def collectVarsAppAndConst (e : Expr) : MetaM NameSet := do
+  let lctx ← getLCtx
   if e.isFVar then
-    let fvarId := e.fvarId!
-    let lctx ← getLCtx
-    if let some decl := lctx.find? fvarId then
-      acc := acc.insert decl.userName
-    else
-      return acc
+    if let some decl := lctx.find? e.fvarId! then
+      return {decl.userName}
   if e.isApp then
-    let args := e.getAppArgs
-    let f := e.getAppFn
-    match args with
-    | #[_,_,_,_,_, arg1, arg2, _] =>
-       if arg1.isFVar then
-          let fvarId := arg1.fvarId!
-          let lctx ← getLCtx
-          if let some decl := lctx.find? fvarId then
-            let idxPretty ← PrettyPrinter.ppExpr arg2
-            let idxStr := s!"{idxPretty}"
-            acc:= acc.insert (Name.mkSimple s!"{decl.userName}[{idxStr}]")
-            return acc
-    | _ => for arg in args do
-              acc ← collectVarsAppAndConst arg acc
-          return acc
-  else
-    return acc
+    let (fn, args) := e.getAppFnArgs
+    match (fn, args) with
+    | (``getElem, #[_,_,_,_,_, vectorExpr, indexExpr, _]) =>
+      if vectorExpr.isFVar then
+        if let some decl := lctx.find? vectorExpr.fvarId! then
+          let idxPretty ← PrettyPrinter.ppExpr indexExpr
+          return {Name.mkSimple s!"{decl.userName}[{idxPretty}]"}
+    | _ =>
+      return (← args.mapM collectVarsAppAndConst).foldl (· ++ ·) {}
+  return {}
 
+-- | Introduces a name in the local context, passing a term for it to the continuation, so that it
+-- can be used in a syntax quotation.  Useful for testing functions working over open expressions
+def withVector (n : Name) (cont : Term → TacticM a) : TacticM a := do
+  withLocalDecl n .default (← elabTerm (← `(Vector (ZMod 8) 32)) none) $ fun e => do
+    let t ← PrettyPrinter.delab e
+    cont t
+
+def testCollectVarsAppAndConst (test : TacticM NameSet) : MetaM Unit :=
+  Term.TermElabM.run' do
+    let ns ← test { elaborator := .anonymous } |>.run' { goals := [] }
+    logInfo m!"{ns.toList}"
+
+def test1 : TacticM NameSet := do
+  withVector `x $ fun x => withVector `y $ fun y => withVector `z $ fun z => do
+    let e ← elabTerm (← `($x[8].val + ($y[2] * $z[5]).val = 0)) none
+    collectVarsAppAndConst e
+
+#eval testCollectVarsAppAndConst test1
 
 -- Main Range Analtsis Tactic
 -- Args: list of hypothesis
 syntax (name := tryApplyLemHyps) "try_apply_lemma_hyps" ppSpace "[" ident,* "]" : tactic
+
+def findLemmaMatch
+  (result : NameSet) (mainGoalType : Expr)
+  : TacticM (Option (String × TSyntax `term)) := do
+  let lt ← `(Nat.lt_of_le_of_lt)
+  let sub ← `(Nat.lt_sub)
+  let add ← `(Nat.add_le_add)
+  let mul ← `(Nat.mul_le_mul)
+  let rfl ← `(Nat.le_refl)
+  let (fn, args) := mainGoalType.getAppFnArgs
+  let unfolded := ← withTransparency .reducible (whnf args[2]!)
+  let fn3 := unfolded.getAppFn
+  if (result.size >0) then
+    -- if we have variables then we can apply < C --> <= m?
+    match fn with
+    | ``LT.lt =>
+      match fn3 with
+      | Expr.const name _ =>
+        match name with
+        | ``ite => return some ("if", rfl)
+        | _ => return some ("Nat.lt_of_le_of_lt", lt)
+      | _ => pure ()
+    | _ => pure ()
+  match fn with
+  | ``LE.le =>
+    match fn3 with
+    | Expr.const name _ =>
+      match name with
+      | ``HSub.hSub => return some ("Nat.lt_sub", sub)
+      | ``HAdd.hAdd => return some ("Nat.add_le_add", add)
+      | ``HMul.hMul => return some ("Nat.mul_le_mul", mul)
+      | ``OfNat.ofNat => return some ("@OfNat.ofNat", rfl)
+      -- rfl is a place holder should be something else
+      | ``ite => return some ("if", rfl)
+      | ``ZMod.val => return some ("ZMod", rfl)
+      | _ => pure ()
+    | _ => if fn3.isFVar then return some ("ZMod", rfl) else pure ()
+  | _ => pure ()
+  return none
 
 @[tactic tryApplyLemHyps]
 elab_rules : tactic
 | `(tactic| try_apply_lemma_hyps [$hs,*]) => do
   let hyps := (hs.getElems.map (·.getId)).toList
   let mut progress := true
-  let lt ← `(Nat.lt_of_le_of_lt)
-  let sub ← `(Nat.lt_sub)
-  let add ← `(Nat.add_le_add)
-  let mul ← `(Nat.mul_le_mul)
-  let rfl ← `(Nat.le_refl)
-  let split_ifs ← `(split_ifs)
-  let mut random := false
   -- begin by factoring out multiplication for all goals
   -- important for mux discovery
   evalTactic (← `(tactic| try all_goals simp [Nat.mul_assoc]))
   let mut did_mux := false
-  let mut did_decide:= false
   -- as long as we are making progress then continue
   while progress do
     if did_mux then
@@ -174,16 +201,16 @@ elab_rules : tactic
       evalTactic (← `(tactic| try simp))
       evalTactic (← `(tactic| try ring))
     if did_mux then
-      let goals_old ← getGoals
-      --logInfo m!"Goal List: {goals_old}"
+      -- let goals_old ← getGoals
+      -- logInfo m!"Goal List: {goals_old}"
       -- let g := goals_old[0]!
       -- setGoals [g]
       evalTactic (← `(tactic| intro hMux))
       --evalTactic (← `(tactic| try simp at hMux))
       evalTactic (← `(tactic| try simp [hMux]))
       evalTactic (← `(tactic| try rw [Nat.mux_if_then] at ⊢))
-      let goals_old ← getGoals
-     -- logInfo m!"Goal List2: {goals_old}"
+      -- let goals_old ← getGoals
+      -- logInfo m!"Goal List2: {goals_old}"
       did_mux := false
       progress := true
     let goals ← getGoals
@@ -192,36 +219,27 @@ elab_rules : tactic
     let mut handled := false
     progress := false
     for g in goals do
-      -- if goal is asigned it is solved and should not be manipulated after
-      if ← g.isAssigned then
-        updatedGoals := updatedGoals ++ [g]
-        continue
-      -- we always want to only do the first goal that applies and then start from
-      -- top of the queue
-      if handled then
+      -- 1. If goal is asigned it is solved and should not be manipulated after
+      -- 2. We always want to only do the first goal that applies and then start
+      -- from top of the queue
+      if (← g.isAssigned) || handled then
         updatedGoals := updatedGoals ++ [g]
         continue
        -- Focus on one goal at a time
       setGoals [g]
       let goalType ← g.getType
-      --logInfo m!"{goalType}"
-      let mut applied := false
       -- first we try to apply hypothesis
-      let e ← instantiateMVars goalType
-      let (_fn, args) := e.getAppFnArgs
+      let instantiatedGoalType ← instantiateMVars goalType
+      let (_fn, args) := instantiatedGoalType.getAppFnArgs
      --logInfo m!"fun: {_fn}"
-      let mut lemmaMatch := none
-      let result ← collectVarsAppAndConst goalType
+      let result ← collectVarsAppAndConst instantiatedGoalType
       let resultList := result.toList
-      if !applied && args.size > 3 then
+      if args.size > 3 then
         let g ← getMainGoal
         let goalType ← g.getType
        -- logInfo m!"Goal:{g}"
         let e ← instantiateMVars goalType
-        let (fn, args) := e.getAppFnArgs
-        let unfolded := ← withTransparency .reducible (whnf args[2]!)
-        let fn3 := unfolded.getAppFn
-        let isVar := fn3.isFVar
+        let args := e.getAppArgs
         -- First check if we are dealing with a mux
         match viewAsMux args[2]! with
         | some (x, lhs@(_ :: _), rhs@(_ :: _)) =>
@@ -237,17 +255,17 @@ elab_rules : tactic
           updatedGoals := updatedGoals ++ [pr.mvarId!, gWithHyp]
           --logInfo m!"NEW GOALS: {pr.mvarId!}"
           --logInfo m!"NEW GOALS: {gWithHyp}"
-          applied := true
-          handled := true
-          progress := true
           did_mux := true
+          progress := true
+          handled := true
+          continue
         | _ => pure ()
         -- if not a mux but we have only two variables do a case by case reasoning
         -- this is necessary in case of variable dependencies
         -- Ex: x1 + x2 - x1*x2 --> Can't be negative but needs to be proven
         -- - First check that only 2 variables exist & a subtraction is involved
         -- then make sure all variables are bounded <= 1
-        if !applied && result.size == 2 && (<- containsSub goalType) then
+        if result.size == 2 && (← containsSub instantiatedGoalType) then
           let bounds ← g.withContext do
             let lctx ← getLCtx
             hyps.foldlM (init := []) fun acc hName => do
@@ -260,88 +278,50 @@ elab_rules : tactic
                   let LHSvars ← collectVarsAppAndConst lhs
                   let varsList := LHSvars.toList
                   if LHSvars.size == 1 && resultList.contains varsList[0]! then
-                        return decl :: acc
-                      else
-                      return acc
+                    return decl :: acc
+                  else
+                    return acc
                 | _ => return acc
               | _ => return acc
           -- if bound exists apply a case split tactic
           if bounds.length = 2 then
             setGoals [g]
             g.withContext do
-               -- logInfo m!"Goal: {goalType}"
+              -- logInfo m!"Goal: {goalType}"
               -- let lctx ← g.withContext getLCtx
-                let h1 := mkIdent  bounds[0]!.userName
-                let h2 := mkIdent  bounds[1]!.userName
-                try
-                  evalTactic (← `(tactic| elim2_norm_num $h1 $h2))
-                catch _ => pure ()
-               -- logInfo m!"❌ elim2_norm_num failed {err.toMessageData}"
-              if ← g.isAssigned then
-                  -- let newType ← g.getType
-                  -- let t ← Meta.inferType (mkMVar g)
-                  --logInfo m!"➖ elim2 modified goal "
-                  let remaining ← getUnsolvedGoals
-                  if remaining.contains g then
-                    logInfo m!"➖ elim2 modified goal {g}, but did not fully solve it"
-                  else
-                    updatedGoals := updatedGoals ++ [g]
-                    applied := true
-                    handled := true
-                    progress := true
-              -- catch err =>
-              --   logInfo m!"❌ elim2_norm_num failed {err.toMessageData}"
+              let h1 := mkIdent  bounds[0]!.userName
+              let h2 := mkIdent  bounds[1]!.userName
+              evalTactic (← `(tactic| try elim2_norm_num $h1 $h2))
+              -- logInfo m!"❌ elim2_norm_num failed {err.toMessageData}"
+            if ← g.isAssigned then
+              -- let newType ← g.getType
+              -- let t ← Meta.inferType (mkMVar g)
+              --logInfo m!"➖ elim2 modified goal "
+              if (← getUnsolvedGoals).contains g then
+                logInfo m!"➖ elim2 modified goal {g}, but did not fully solve it"
+              else
+                updatedGoals := updatedGoals ++ [g]
+                handled := true
+                progress := true
+            -- catch err =>
+            --   logInfo m!"❌ elim2_norm_num failed {err.toMessageData}"
           else
             pure ()
            -- logInfo m!"❌ Did not find two appropriate bounds to run elim2_norm_num for {resultList}"
         --try to apply Lean's range analysis lemmas
-        lemmaMatch := none
-        --logInfo m!"NAME {fn3}"
-        if (not applied) then
-          if (result.size >0) then
-            -- if we have variables then we can apply < C --> <= m?
-            lemmaMatch :=
-              match fn with
-              | ``LT.lt =>
-                match fn3 with
-                | Expr.const name _ =>
-                  match name with
-                  | ``ite => some ("if", rfl)
-                  | _ => some ("Nat.lt_of_le_of_lt", lt)
-                | _ => none
-              | _ => none
-          if lemmaMatch.isNone then
-            lemmaMatch :=
-              match fn with
-              | ``LE.le =>
-                match fn3 with
-                | Expr.const name _ =>
-                  match name with
-                  | ``HSub.hSub => some ("Nat.lt_sub", sub)
-                  | ``HAdd.hAdd => some ("Nat.add_le_add", add)
-                  | ``HMul.hMul => some ("Nat.mul_le_mul", mul)
-                  | ``OfNat.ofNat => some ("@OfNat.ofNat", rfl)
-                  -- rfl is a place holder should be something else
-                  | ``ite => some ("if", rfl)
-                  | ``ZMod.val => some ("ZMod", rfl)
-                  | _ => none
-                | _ => if isVar then some ("ZMod", rfl) else none
-              | _ => none
-         -- logInfo m!"Break"
-        match lemmaMatch with
+        if handled then continue
+        match (← findLemmaMatch result instantiatedGoalType) with
         | some ("if", _stx) =>
           --logInfo m!"We have a match?"
           evalTactic (← `(tactic| split_ifs))
-          let goals <- getGoals
+          let goals ← getGoals
           -- logInfo m!"Goal List3: {goals}"
           updatedGoals := goals
           handled := true
           progress := true
-          applied := true
         | some ("ZMod", _stx) =>
           -- logInfo m!"We have a var... {<-g.getType}"
           for hName in hyps do
-            unless applied do
             try
               -- need to do it with context so names are initialized
               let subgoals ← g.withContext do
@@ -351,11 +331,10 @@ elab_rules : tactic
                 let hExpr := mkFVar decl.fvarId
                 g.apply hExpr
               updatedGoals := updatedGoals ++ subgoals
-              applied := true
               handled := true
               progress := true
-            catch _err =>
-              random := false
+              break
+            catch _err => pure ()
         | some (_name, stx) =>
           try
             let e ← elabTerm stx goalType
@@ -364,44 +343,26 @@ elab_rules : tactic
             updatedGoals := updatedGoals ++ subgoals
             handled := true
             progress := true
-            applied := true
-          catch _err =>
-            --logInfo m!" What happened? "
-            random := false
-        | none =>
-          random := false
-      -- if other tectniques did not work try decide
-      if not applied then
-        let mut h <- getGoals
-        try
-          evalTactic (← `(tactic| decide))
-          if ← g.isAssigned then
-            -- let newType ← g.getType
-            -- let t ← Meta.inferType (mkMVar g)
-            let remaining ← getUnsolvedGoals
-            if remaining.contains g then
-              --logInfo m!"➖ norm_num modified goal {g}, but did not fully solve it"
-              applied := true
-            else
-              logInfo m!"✅ Fully solved goal using decide {goalType}"
-              updatedGoals := updatedGoals ++ [g]
-              applied := true
-              handled := true
-              if h.length != 0 then
-                progress := true
-                did_decide := true
-              else
-                progress := false
-          else
-            updatedGoals := updatedGoals ++ [g]
-            applied := true
-            handled := true
-            progress := false
-        catch _err =>
+          catch _err => pure ()
+        | none => pure ()
+      if handled then continue
+      -- if other techniques did not work try decide
+      let h ← getGoals
+      try
+        evalTactic (← `(tactic| decide))
+        if ← g.isAssigned then
+          logInfo m!"✅ Fully solved goal using decide {goalType}"
           updatedGoals := updatedGoals ++ [g]
           handled := true
-          applied := true
+          progress := h.length != 0
+        else
+          updatedGoals := updatedGoals ++ [g]
+          handled := true
           progress := false
+      catch _err =>
+        updatedGoals := updatedGoals ++ [g]
+        handled := true
+        progress := false
     setGoals updatedGoals
 
 
