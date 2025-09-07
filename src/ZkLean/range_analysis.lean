@@ -351,6 +351,7 @@ elab_rules : tactic
               applied := true
               handled := true
               progress := true
+              continue
             catch _err => pure ()
         | some (_name, stx) =>
           try
