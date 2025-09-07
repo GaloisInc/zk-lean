@@ -1,10 +1,11 @@
 import Lean
+import Lean.Elab.Tactic.Basic
+import Lean.Meta.Basic
+import Lean.Parser.Tactic
+import Mathlib.Algebra.Field.ZMod
 import Mathlib.Data.Nat.Basic
 import Mathlib.Tactic
 import Mathlib.Tactic.Eval
-import Lean.Elab.Tactic.Basic
-import Lean.Parser.Tactic
-import Mathlib.Algebra.Field.ZMod
 
 open Lean Meta Elab Tactic
 
@@ -93,57 +94,54 @@ elab "elim2_norm_num" h1:ident h2:ident : tactic => do
   evalTactic (←  `(tactic|try apply Nat.le_refl))
   evalTactic (←  `(tactic| try rfl))
 
-
--- determines if an expression contains a subtraction
+/-- Determines if any expression contains a subtraction in its arguments, recursively.  Does not go
+under the indexing part of a vector indexing expression. -/
 partial def containsSub (e : Expr) :  MetaM Bool := do
-  let e <- instantiateMVars e
-  if e.isApp then
-    let args := e.getAppArgs
-    let f := e.getAppFn
-    if f.isConstOf ``HSub.hSub then
-      return true
-    --   | _ => logInfo m!"Failed on args of const"
-    match args with
-    | #[_,_,_,_,_, arg1, arg2, _] =>
-       if arg1.isFVar then
-          return false
-    | _ => for arg in args do
-              if ← containsSub arg then
-           return true
-  return false
-
---
-partial def collectVarsAppAndConst (e : Expr) (acc : NameSet := {}) : MetaM NameSet := do
-  let mut acc := acc
-  let old_e := e
   let e ← instantiateMVars e
-  let f := e.getAppFn
-  if e.isFVar then
-    let fvarId := e.fvarId!
-    let lctx ← getLCtx
-    if let some decl := lctx.find? fvarId then
-      acc := acc.insert decl.userName
-    else
-      return acc
-  if e.isApp then
-    let args := e.getAppArgs
-    let f := e.getAppFn
-    match args with
-    | #[_,_,_,_,_, arg1, arg2, _] =>
-       if arg1.isFVar then
-          let fvarId := arg1.fvarId!
-          let lctx ← getLCtx
-          if let some decl := lctx.find? fvarId then
-            let idxPretty ← PrettyPrinter.ppExpr arg2
-            let idxStr := s!"{idxPretty}"
-            acc:= acc.insert (Name.mkSimple s!"{decl.userName}[{idxStr}]")
-            return acc
-    | _ => for arg in args do
-              acc ← collectVarsAppAndConst arg acc
-          return acc
-  else
-    return acc
+  if not e.isApp then return false
+  match e.getAppFnArgs with
+  | (``HSub.hSub, _) => return true
+  | (``getElem, #[_,_,_,_,_, vectorExpr, _, _]) => containsSub vectorExpr
+  | (_, args) => args.anyM containsSub
 
+/-- Recurses through the expression to find all free variables that appear in it, either as is, or
+as part of some vector indexing operation. -/
+partial def collectVarsAppAndConst (e : Expr) : MetaM NameSet := do
+  let e ← instantiateMVars e
+  let lctx ← getLCtx
+  if e.isFVar then
+    if let some decl := lctx.find? e.fvarId! then
+      return {decl.userName}
+  if e.isApp then
+    let (fn, args) := e.getAppFnArgs
+    match (fn, args) with
+    | (``getElem, #[_,_,_,_,_, vectorExpr, indexExpr, _]) =>
+      if vectorExpr.isFVar then
+        if let some decl := lctx.find? vectorExpr.fvarId! then
+          let idxPretty ← PrettyPrinter.ppExpr indexExpr
+          return {Name.mkSimple s!"{decl.userName}[{idxPretty}]"}
+    | _ =>
+      return (← args.mapM collectVarsAppAndConst).foldl (· ++ ·) {}
+  return {}
+
+-- | Introduces a name in the local context, passing a term for it to the continuation, so that it
+-- can be used in a syntax quotation.  Useful for testing functions working over open expressions
+def withVector (n : Name) (cont : Term → TacticM a) : TacticM a := do
+  withLocalDecl n .default (← elabTerm (← `(Vector (ZMod 8) 32)) none) $ fun e => do
+    let t ← PrettyPrinter.delab e
+    cont t
+
+def testCollectVarsAppAndConst (test : TacticM NameSet) : MetaM Unit :=
+  Term.TermElabM.run' do
+    let ns ← test { elaborator := .anonymous } |>.run' { goals := [] }
+    logInfo m!"{ns.toList}"
+
+def test1 : TacticM NameSet := do
+  withVector `x $ fun x => withVector `y $ fun y => withVector `z $ fun z => do
+    let e ← elabTerm (← `($x[8].val + ($y[2] * $z[5]).val = 0)) none
+    collectVarsAppAndConst e
+
+#eval testCollectVarsAppAndConst test1
 
 -- Main Range Analtsis Tactic
 -- Args: list of hypothesis
