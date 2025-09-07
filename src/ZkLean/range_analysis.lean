@@ -159,7 +159,6 @@ elab_rules : tactic
   -- important for mux discovery
   evalTactic (← `(tactic| try all_goals simp [Nat.mul_assoc]))
   let mut did_mux := false
-  let mut did_decide:= false
   -- as long as we are making progress then continue
   while progress do
     if did_mux then
@@ -186,28 +185,22 @@ elab_rules : tactic
     let mut handled := false
     progress := false
     for g in goals do
-      -- if goal is asigned it is solved and should not be manipulated after
-      if ← g.isAssigned then
-        updatedGoals := updatedGoals ++ [g]
-        continue
-      -- we always want to only do the first goal that applies and then start from
-      -- top of the queue
-      if handled then
+      -- 1. If goal is asigned it is solved and should not be manipulated after
+      -- 2. We always want to only do the first goal that applies and then start
+      -- from top of the queue
+      if (← g.isAssigned) || handled then
         updatedGoals := updatedGoals ++ [g]
         continue
        -- Focus on one goal at a time
       setGoals [g]
       let goalType ← g.getType
-      --logInfo m!"{goalType}"
-      let mut applied := false
       -- first we try to apply hypothesis
       let e ← instantiateMVars goalType
       let (_fn, args) := e.getAppFnArgs
      --logInfo m!"fun: {_fn}"
-      let mut lemmaMatch := none
       let result ← collectVarsAppAndConst goalType
       let resultList := result.toList
-      if !applied && args.size > 3 then
+      if !handled && args.size > 3 then
         let g ← getMainGoal
         let goalType ← g.getType
        -- logInfo m!"Goal:{g}"
@@ -231,7 +224,6 @@ elab_rules : tactic
           updatedGoals := updatedGoals ++ [pr.mvarId!, gWithHyp]
           --logInfo m!"NEW GOALS: {pr.mvarId!}"
           --logInfo m!"NEW GOALS: {gWithHyp}"
-          applied := true
           handled := true
           progress := true
           did_mux := true
@@ -241,7 +233,7 @@ elab_rules : tactic
         -- Ex: x1 + x2 - x1*x2 --> Can't be negative but needs to be proven
         -- - First check that only 2 variables exist & a subtraction is involved
         -- then make sure all variables are bounded <= 1
-        if !applied && result.size == 2 && (<- containsSub goalType) then
+        if !handled && result.size == 2 && (<- containsSub goalType) then
           let bounds ← g.withContext do
             let lctx ← getLCtx
             hyps.foldlM (init := []) fun acc hName => do
@@ -280,7 +272,6 @@ elab_rules : tactic
                     logInfo m!"➖ elim2 modified goal {g}, but did not fully solve it"
                   else
                     updatedGoals := updatedGoals ++ [g]
-                    applied := true
                     handled := true
                     progress := true
               -- catch err =>
@@ -289,9 +280,9 @@ elab_rules : tactic
             pure ()
            -- logInfo m!"❌ Did not find two appropriate bounds to run elim2_norm_num for {resultList}"
         --try to apply Lean's range analysis lemmas
-        lemmaMatch := none
+        let mut lemmaMatch := none
         --logInfo m!"NAME {fn3}"
-        if (not applied) then
+        if (not handled) then
           if (result.size >0) then
             -- if we have variables then we can apply < C --> <= m?
             lemmaMatch :=
@@ -331,11 +322,10 @@ elab_rules : tactic
           updatedGoals := goals
           handled := true
           progress := true
-          applied := true
         | some ("ZMod", _stx) =>
           -- logInfo m!"We have a var... {<-g.getType}"
           for hName in hyps do
-            unless applied do
+            unless handled do
             try
               -- need to do it with context so names are initialized
               let subgoals ← g.withContext do
@@ -345,7 +335,6 @@ elab_rules : tactic
                 let hExpr := mkFVar decl.fvarId
                 g.apply hExpr
               updatedGoals := updatedGoals ++ subgoals
-              applied := true
               handled := true
               progress := true
               continue
@@ -358,11 +347,10 @@ elab_rules : tactic
             updatedGoals := updatedGoals ++ subgoals
             handled := true
             progress := true
-            applied := true
           catch _err => pure ()
         | none => pure ()
       -- if other tectniques did not work try decide
-      if not applied then
+      if not handled then
         let mut h <- getGoals
         try
           evalTactic (← `(tactic| decide))
@@ -372,26 +360,19 @@ elab_rules : tactic
             let remaining ← getUnsolvedGoals
             if remaining.contains g then
               --logInfo m!"➖ norm_num modified goal {g}, but did not fully solve it"
-              applied := true
+              handled := true
             else
               logInfo m!"✅ Fully solved goal using decide {goalType}"
               updatedGoals := updatedGoals ++ [g]
-              applied := true
               handled := true
-              if h.length != 0 then
-                progress := true
-                did_decide := true
-              else
-                progress := false
+              progress := h.length != 0
           else
             updatedGoals := updatedGoals ++ [g]
-            applied := true
             handled := true
             progress := false
         catch _err =>
           updatedGoals := updatedGoals ++ [g]
           handled := true
-          applied := true
           progress := false
     setGoals updatedGoals
 
