@@ -9,6 +9,16 @@ import Mathlib.Tactic.Eval
 
 open Lean Meta Elab Tactic
 
+
+
+lemma Nat.mul_comm_ofNat (a n : Nat) :
+   (OfNat.ofNat n) * a = a* (OfNat.ofNat n : Nat) := by
+  rw [Nat.mul_comm ]
+
+ lemma mul_comm_num_left (n t : ℕ) :
+  (n : ℕ) * t = t * (n : ℕ) := by
+  simpa using Nat.mul_comm (n : ℕ) t
+
 lemma split_one (x : ℕ): (x <= 1) -> (x = 0 ∨ x = 1) := by
   intro hx
   cases x with
@@ -192,6 +202,13 @@ elab_rules : tactic
   -- begin by factoring out multiplication for all goals
   -- important for mux discovery
   evalTactic (← `(tactic| try all_goals simp [Nat.mul_assoc]))
+  let mut cont := true
+   while cont do
+      try
+        evalTactic (← `(tactic| all_goals rw [Nat.mul_comm_ofNat]))
+      catch _ =>
+        cont := false
+  evalTactic (← `(tactic| try all_goals simp [Nat.mul_assoc]))
   let mut did_mux := false
   -- as long as we are making progress then continue
   while progress do
@@ -372,12 +389,20 @@ elab_rules : tactic
 -- example (x: Vector (ZMod 7) 32)  (h1: x[0].val <= 1) (h2: x[1].val <= 1) (h3: x[2].val <= 1) (h4: x[3].val <= 1) (h5: x[4].val <= 1) (h6: x[5].val <= 1) (h7: x[6].val <= 1) (h8: x[7].val <= 1) (h9: x[8].val <= 1) (h10: x[9].val <= 1): (x[0].val*x[1].val + (1 - x[0].val)*(1 - x[1].val))*(x[2].val*x[3].val + (1 - x[2].val)*(1 - x[3].val)) *(x[4].val*x[5].val + (1 - x[4].val)*(1 - x[5].val))* (x[6].val*x[7].val + (1 - x[6].val)*(1 - x[7].val))*(x[8].val*x[9].val + (1 - x[8].val)*(1 - x[9].val))  < 2 :=
 -- by try_apply_lemma_hyps [h1, h2, h3, h4, h5, h6, h7 , h8, h9, h10]
 
-example (y x a b: ℕ) (h: x<=1 ) (h2: y<=1) (h7: z<= 1) (h3: a<= 1) (h4: b<= 1):
-      (1-x)  *(2*a + b) +
-      x *  (3*a + b) +
-      (1-x) * (4 *a + b) < 9 := by
-      try_apply_lemma_hyps [h3, h4, h2,h7, h]
-      -- simp
+example (y x : ℕ) (h: x<=1 ) (h2: y<=1) (h3: z<=1):
+     2 * ((x) * (1-y) * z) +
+       8 * (x * (y) * (1-z)) +
+      7* ((1-x) * y) * z +
+      1 * (1-x)* (1-y) * (1-z)
+       < 9 := by
+      --  all_goals simp [Nat.mul_assoc]
+      --  all_goals rw [Nat.mul_comm_ofNat]
+      --  all_goals rw [Nat.mul_comm_ofNat]
+      --  all_goals rw [Nat.mul_comm_ofNat]
+       try_apply_lemma_hyps [ h2, h, h3]
+
+
+--       -- simp
       -- apply h3
       -- simp
       -- apply h4

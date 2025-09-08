@@ -9,7 +9,6 @@ def VirtualShiftRightBitmask_32 [Field f] : Subtable f 64 :=
 
 
 
-
 lemma shift_right_bit_mask_32_mle_one_chunk_[ZKField f] (bv1 bv2 : BitVec 32) (fv1 fv2 : Vector f 32) :
   some bvoutput = map_f_to_bv_32 foutput ->
     some (bool_to_bv_32 bv1[31])  = map_f_to_bv_32 fv1[0]  ->
@@ -85,3 +84,33 @@ lemma shift_right_bit_mask_32_mle_one_chunk_[ZKField f] (bv1 bv2 : BitVec 32) (f
   =
   (foutput = evalSubtable VirtualShiftRightBitmask_32 (Vector.append fv1 fv2))) := by
     solveMLE VirtualShiftRightBitmask_32  32
+
+    -- rw [ Nat.mul_comm_ofNat ]
+    -- rw [<- Nat.mul_comm_ofNat]
+    -- rw [<- Nat.mul_comm_ofNat ]
+    -- rw [<- Nat.mul_comm_ofNat]
+    -- rw [<- Nat.mul_comm_ofNat ]
+    -- rw [<- Nat.mul_comm_ofNat]
+    -- rw [<- Nat.mul_comm_ofNat ]
+    -- rw [<- Nat.mul_comm_ofNat]
+    -- rw [<- Nat.mul_comm_ofNat ]
+    -- rw [<- Nat.mul_comm_ofNat ]
+    -- rw [<- Nat.mul_comm_ofNat]
+    -- rw [<- Nat.mul_comm_ofNat ]
+    -- rw [<- Nat.mul_comm_ofNat]
+    -- rw [<- Nat.mul_comm_ofNat ]
+    -- rw [<- Nat.mul_comm_ofNat]
+    -- rw [<- Nat.mul_comm_ofNat ]
+    -- rw [<- Nat.mul_comm_ofNat]
+    -- rw [<- Nat.mul_comm_ofNat ]
+    -- rw [<- Nat.mul_comm_ofNat]
+    -- rw [<- Nat.mul_comm_ofNat ]
+    -- rw [<- Nat.mul_comm_ofNat]
+    -- rw [<- Nat.mul_comm_ofNat ]
+    -- rw [<- Nat.mul_comm_ofNat]
+    -- rw [<- Nat.mul_comm_ofNat ]
+    -- rw [<- Nat.mul_comm_ofNat]
+    -- rw [<- Nat.mul_comm_ofNat ]
+    -- rw [<- Nat.mul_comm_ofNat]
+    -- rw [<- Nat.mul_comm_ofNat ]
+    -- rw [<- Nat.mul_comm_ofNat]
