@@ -29,3 +29,4 @@ import ZkLean.TwistShout.half_word
 import ZkLean.TwistShout.assert_eq
 import ZkLean.TwistShout.assert_lte
 import ZkLean.TwistShout.unsigned_less_than
+import ZkLean.TwistShout.shift_right_bit_mask
