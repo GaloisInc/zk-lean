@@ -200,11 +200,11 @@ elab_rules : tactic
   -- important for mux discovery
   evalTactic (← `(tactic| try all_goals simp [Nat.mul_assoc]))
   let mut cont := true
-   while cont do
-      try
-        evalTactic (← `(tactic| all_goals rw [Nat.mul_comm_ofNat]))
-      catch _ =>
-        cont := false
+  while cont do
+    try
+      evalTactic (← `(tactic| all_goals rw [Nat.mul_comm_ofNat]))
+    catch _ =>
+      cont := false
   evalTactic (← `(tactic| try all_goals simp [Nat.mul_assoc]))
   let mut did_mux := false
   -- as long as we are making progress then continue
