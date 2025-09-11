@@ -204,7 +204,7 @@ instance [Witnessable f a]: Witnessable f (Vector a n) where
   witness :=
     let rec helper n : ZKBuilder f (Vector a n) :=
       match n with
-      | 0 => pure (Vector.mkEmpty 0)
+      | 0 => pure (Vector.emptyWithCapacity 0)
       | m+1 => do
         let w <- Witnessable.witness
         let v <- helper m
