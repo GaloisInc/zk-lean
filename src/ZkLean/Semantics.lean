@@ -147,4 +147,4 @@ def semantics [ZKField f] (witness: List f) (state: ZKBuilderState f) : Bool :=
     false
 
 
---- 
+---

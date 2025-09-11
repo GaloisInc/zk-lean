@@ -93,7 +93,7 @@ lemma split_one (x : ℕ): (x <= 1) -> (x = 0 ∨ x = 1) := by
 -- abbrev f := ZMod ff
 -- abbrev b := Nat.log2 ff
 
-class GtTwo (n : ℕ) : Prop :=
+class GtTwo (n : ℕ) : Prop where
   out : 2 < n
 
 lemma one_le_two_mod_of_three_le {n : ℕ} (hn : 3 ≤ n) : 1 ≤ 2 % n := by
