@@ -33,17 +33,15 @@ find . -type f -wholename '*/ZkLean/*.lean'| sort | while read -r f; do
   i=$((i+1))
   printf "⏱️  [%d/%d] %s\r" "$i" "$total" "$f" >&2
 
+  OUTPUT=$( { lake env "${TIME_CMD[@]}" lean "$f" >/dev/null; } 2>&1 ) || true
+  EXIT=$?
   if [ "$PARSE_MODE" = "gnu" ]; then
-    OUTPUT=$( { lake env "${TIME_CMD[@]}" lean "$f" >/dev/null; } 2>&1 ) || true
-    EXIT=$?
     TIMES_LINE=$(printf "%s\n" "$OUTPUT" | head -n1)
     ERR_LINES=$(printf "%s\n" "$OUTPUT" | tail -n +2 | head -n "$MAX_ERR_LINES" | tr '\n' ' ' | sed 's/"/'\''/g')
     REAL=$(awk '{print $1}' <<<"$TIMES_LINE")
     USER=$(awk '{print $2}' <<<"$TIMES_LINE")
     SYS=$(awk '{print $3}' <<<"$TIMES_LINE")
   else
-    OUTPUT=$( { lake env "${TIME_CMD[@]}" lean "$f" >/dev/null; } 2>&1 ) || true
-    EXIT=$?
     REAL=$(echo "$OUTPUT" | awk '/^real /{print $2}' | tail -n1)
     USER=$(echo "$OUTPUT" | awk '/^user /{print $2}' | tail -n1)
     SYS=$( echo "$OUTPUT" | awk '/^sys /{print $2}'  | tail -n1)
