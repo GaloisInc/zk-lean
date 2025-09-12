@@ -31,7 +31,7 @@ total=$(find . -type f -wholename '*/ZkLean/*.lean' | wc -l | tr -d ' ')
 
 find . -type f -wholename '*/ZkLean/*.lean'| sort | while read -r f; do
   i=$((i+1))
-  printf "⏱️  [%d/%d] %s\r" "$i" "$total" "$f" >&2
+  printf "\e[2K⏱️  [%d/%d] %s\r" "$i" "$total" "$f" >&2
 
   OUTPUT=$( { lake env "${TIME_CMD[@]}" lean "$f" >/dev/null; } 2>&1 ) || true
   EXIT=$?
