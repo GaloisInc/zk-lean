@@ -155,44 +155,6 @@ def test1 : TacticM NameSet := do
 -- Args: list of hypothesis
 syntax (name := tryApplyLemHyps) "try_apply_lemma_hyps" ppSpace "[" ident,* "]" : tactic
 
-def findLemmaMatch (terms : NameSet) (mainGoalType : Expr)
-  : TacticM (Option (String × TSyntax `term)) := do
-  let lt ← `(Nat.lt_of_le_of_lt)
-  let sub ← `(Nat.lt_sub)
-  let add ← `(Nat.add_le_add)
-  let mul ← `(Nat.mul_le_mul)
-  let rfl ← `(Nat.le_refl)
-  let (fn, args) := mainGoalType.getAppFnArgs
-  let unfolded := ← withTransparency .reducible (whnf args[2]!)
-  let fn3 := unfolded.getAppFn
-  if (terms.size >0) then
-    -- if we have variables then we can apply < C --> <= m?
-    match fn with
-    | ``LT.lt =>
-      match fn3 with
-      | Expr.const name _ =>
-        match name with
-        | ``ite => return some ("if", rfl)
-        | _ => return some ("Nat.lt_of_le_of_lt", lt)
-      | _ => pure ()
-    | _ => pure ()
-  match fn with
-  | ``LE.le =>
-    match fn3 with
-    | Expr.const name _ =>
-      match name with
-      | ``HSub.hSub => return some ("Nat.lt_sub", sub)
-      | ``HAdd.hAdd => return some ("Nat.add_le_add", add)
-      | ``HMul.hMul => return some ("Nat.mul_le_mul", mul)
-      | ``OfNat.ofNat => return some ("@OfNat.ofNat", rfl)
-      -- rfl is a place holder should be something else
-      | ``ite => return some ("if", rfl)
-      | ``ZMod.val => return some ("ZMod", rfl)
-      | _ => pure ()
-    | _ => if fn3.isFVar then return some ("ZMod", rfl) else pure ()
-  | _ => pure ()
-  return none
-
 -- for muxes we need to prove the factored lemma and split by cases
 def didMux : TacticM Unit := do
   evalTactic (← `(tactic| try simp))
@@ -248,6 +210,72 @@ def caseByCaseOnTwoVariables (g : MVarId) (hyps : List Name) (terms : NameSet)
         return some [g]
   return none
 
+def applyIfLemma : TacticM (Option (List MVarId)) := do
+  evalTactic (← `(tactic| split_ifs))
+  return some (← getGoals)
+
+def applyZModLemma (g : MVarId) (hyps : List Name) : TacticM (Option (List MVarId)) := do
+  for hName in hyps do
+    try
+      -- need to do it with context so names are initialized
+      let subgoals ← g.withContext do
+        let lctx ← getLCtx
+        let some decl := lctx.findFromUserName? hName
+          | throwError m!"❌ Could not find a hypothesis named `{hName}`"
+        g.apply (mkFVar decl.fvarId)
+      return some subgoals
+    catch _err => pure ()
+  return none
+
+def applyThisLemma (g : MVarId) (goalType : Expr) (stx : Syntax) : TacticM (Option (List MVarId)) := do
+  try
+    let e ← elabTerm stx goalType
+    let subgoals ← g.apply e
+    return some subgoals
+  catch _ =>
+    return none
+
+def findAndApplyRangeAnalysisLemma (terms : NameSet) (g : MVarId) (mainGoalType : Expr) (hyps : List Name)
+  : TacticM (Option (List MVarId)) := do
+  let applyThisLemma := applyThisLemma g mainGoalType
+  let lt ← ``(Nat.lt_of_le_of_lt)
+  let sub ← ``(Nat.lt_sub)
+  let add ← ``(Nat.add_le_add)
+  let mul ← ``(Nat.mul_le_mul)
+  let rfl ← ``(Nat.le_refl)
+  let (fn, args) := mainGoalType.getAppFnArgs
+  let unfolded := ← withTransparency .reducible (whnf args[2]!)
+  let fn3 := unfolded.getAppFn
+  if (terms.size > 0) then
+    -- if we have variables then we can apply < C --> <= m?
+    match fn with
+    | ``LT.lt =>
+      match fn3 with
+      | Expr.const name _ =>
+        match name with
+        | ``ite => if let some out := (← applyIfLemma) then return out
+        | _ => if let some out := (← applyThisLemma lt) then return out
+      | _ => pure ()
+    | _ => pure ()
+  match fn with
+  | ``LE.le =>
+    match fn3 with
+    | Expr.const name _ =>
+      match name with
+      | ``HSub.hSub => if let some out := (← applyThisLemma sub) then return out
+      | ``HAdd.hAdd => if let some out := (← applyThisLemma add) then return out
+      | ``HMul.hMul => if let some out := (← applyThisLemma mul) then return out
+      | ``OfNat.ofNat => if let some out := (← applyThisLemma rfl) then return out
+      -- rfl is a place holder should be something else
+      | ``ite => if let some out := (← applyIfLemma) then return out
+      | ``ZMod.val => if let some out := (← applyZModLemma g hyps) then return out
+      | _ => pure ()
+    | _ =>
+      if fn3.isFVar then
+        if let some out := (← applyZModLemma g hyps) then return out
+  | _ => pure ()
+  return none
+
 @[tactic tryApplyLemHyps]
 elab_rules : tactic
 | `(tactic| try_apply_lemma_hyps [$hs,*]) => do
@@ -269,10 +297,8 @@ elab_rules : tactic
     if did_mux then do
       didMux
       did_mux := false
-      progress := true
     let goals ← getGoals
-    --  keep track of goals we changed
-    let mut updatedGoals : List MVarId := []
+    let mut updatedGoals : List MVarId := [] -- to keep track of goals we changed
     let mut handled := false
     progress := false
     for g in goals do
@@ -282,18 +308,15 @@ elab_rules : tactic
       if (← g.isAssigned) || handled then
         updatedGoals := updatedGoals ++ [g]
         continue
-       -- Focus on one goal at a time
-      setGoals [g]
+      setGoals [g] -- focus on one goal at a time
       let goalType ← g.getType
       -- first we try to apply hypothesis
       let instantiatedGoalType ← instantiateMVars goalType
       let (_fn, args) := instantiatedGoalType.getAppFnArgs
-     --logInfo m!"fun: {_fn}"
       let terms ← collectTerms instantiatedGoalType
       if args.size > 3 then
         let g ← getMainGoal
         let goalType ← g.getType
-       -- logInfo m!"Goal:{g}"
         let e ← instantiateMVars goalType
         let args := e.getAppArgs
         -- First check if we are dealing with a mux
@@ -310,30 +333,9 @@ elab_rules : tactic
             handled := true; progress := true; updatedGoals := updatedGoals ++ gs
         --try to apply Lean's range analysis lemmas
         if handled then continue
-        match (← findLemmaMatch terms instantiatedGoalType) with
-        | some ("if", _stx) =>
-          evalTactic (← `(tactic| split_ifs))
-          handled := true; progress := true; updatedGoals := (← getGoals)
-        | some ("ZMod", _stx) =>
-          for hName in hyps do
-            try
-              -- need to do it with context so names are initialized
-              let subgoals ← g.withContext do
-                let lctx ← getLCtx
-                let some decl := lctx.findFromUserName? hName
-                  | throwError m!"❌ Could not find a hypothesis named `{hName}`"
-                let hExpr := mkFVar decl.fvarId
-                g.apply hExpr
-              handled := true; progress := true; updatedGoals := updatedGoals ++ subgoals
-              break
-            catch _err => pure ()
-        | some (_name, stx) =>
-          try
-            let e ← elabTerm stx goalType
-            let subgoals ← g.apply e
-            handled := true; progress := true; updatedGoals := updatedGoals ++ subgoals
-          catch _err => pure ()
-        | none => pure ()
+        if let some gs := (← findAndApplyRangeAnalysisLemma terms g instantiatedGoalType hyps) then
+          -- FIXME: In the if case, it was actually replacing the updated goals
+          handled := true; progress := true; updatedGoals := updatedGoals ++ gs
       if handled then continue
       -- if other techniques did not work try decide
       try
@@ -346,7 +348,6 @@ elab_rules : tactic
       -- if we made it here, nothing worked
       updatedGoals := updatedGoals ++ [g]
     setGoals updatedGoals
-
 
 
 --(x[0]*x[1] + (1 - x[0])*(1 - x[1]))*(x[2]*x[3] + (1 - x[2])*(1 - x[3]))*(x[4]*x[5] + (1 - x[4])*(1 - x[5]))*(x[6]*x[7] + (1 - x[6])*(1 - x[7]))*(x[8]*x[9] + (1 - x[8])*(1 - x[9]))*(x[10]*x[11] + (1 - x[10])*(1 - x[11]))*(x[12]*x[13] + (1 - x[12])*(1 - x[13]))*(x[14]*x[15] + (1 - x[14])*(1 - x[15]))*(x[16]*x[17] + (1 - x[16])*(1 - x[17]))*(x[18]*x[19] + (1 - x[18])*(1 - x[19]))*(x[20]*x[21] + (1 - x[20])*(1 - x[21]))*(x[22]*x[23] + (1 - x[22])*(1 - x[23]))*(x[24]*x[25] + (1 - x[24])*(1 - x[25]))*(x[26]*x[27] + (1 - x[26])*(1 - x[27]))*(x[28]*x[29] + (1 - x[28])*(1 - x[29]))*(x[30]*x[31] + (1 - x[30])*(1 - x[31]))*(x[32]*x[33] + (1 - x[32])*(1 - x[33]))*(x[34]*x[35] + (1 - x[34])*(1 - x[35]))*(x[36]*x[37] + (1 - x[36])*(1 - x[37]))*(x[38]*x[39] + (1 - x[38])*(1 - x[39]))*(x[40]*x[41] + (1 - x[40])*(1 - x[41]))*(x[42]*x[43] + (1 - x[42])*(1 - x[43]))*(x[44]*x[45] + (1 - x[44])*(1 - x[45]))*(x[46]*x[47] + (1 - x[46])*(1 - x[47]))*(x[48]*x[49] + (1 - x[48])*(1 - x[49]))*(x[50]*x[51] + (1 - x[50])*(1 - x[51]))*(x[52]*x[53] + (1 - x[52])*(1 - x[53]))*(x[54]*x[55] + (1 - x[54])*(1 - x[55]))*(x[56]*x[57] + (1 - x[56])*(1 - x[57]))*(x[58]*x[59] + (1 - x[58])*(1 - x[59]))*(x[60]*x[61] + (1 - x[60])*(1 - x[61]))*(x[62]*x[63] + (1 - x[62])*(1 - x[63])))
