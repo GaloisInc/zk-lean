@@ -45,7 +45,9 @@ find . -type f -wholename '*/ZkLean/*.lean'| sort | while read -r f; do
     REAL=$(echo "$OUTPUT" | awk '/^real /{print $2}' | tail -n1)
     USER=$(echo "$OUTPUT" | awk '/^user /{print $2}' | tail -n1)
     SYS=$( echo "$OUTPUT" | awk '/^sys /{print $2}'  | tail -n1)
-    ERR_LINES=$(printf "%s\n" "$OUTPUT" | grep -vE '^(real|user|sys) ' | head -n "$MAX_ERR_LINES" | tr '\n' ' ' | sed 's/"/'\''/g')
+    # Note: grep will fail with error status 1 and break the whole pipe under
+    # pipefail, so we catch this failure explicitly
+    ERR_LINES=$(printf "%s\n" "$OUTPUT" | { grep -vE '^(real|user|sys) ' || test $? = 1; } | head -n "$MAX_ERR_LINES" | tr '\n' ' ' | sed 's/"/'\''/g')
   fi
 
   STATUS="OK"
