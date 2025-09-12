@@ -115,7 +115,7 @@ partial def containsSub (e : Expr) :  MetaM Bool := do
 
 /-- Recurses through the expression to find all free variables that appear in it, either as is, or
 as part of some vector indexing operation. -/
-partial def collectVarsAppAndConst (e : Expr) : MetaM NameSet := do
+partial def collectTerms (e : Expr) : MetaM NameSet := do
   let lctx ← getLCtx
   if e.isFVar then
     if let some decl := lctx.find? e.fvarId! then
@@ -129,7 +129,7 @@ partial def collectVarsAppAndConst (e : Expr) : MetaM NameSet := do
           let idxPretty ← PrettyPrinter.ppExpr indexExpr
           return {Name.mkSimple s!"{decl.userName}[{idxPretty}]"}
     | _ =>
-      return (← args.mapM collectVarsAppAndConst).foldl (· ++ ·) {}
+      return (← args.mapM collectTerms).foldl (· ++ ·) {}
   return {}
 
 -- | Introduces a name in the local context, passing a term for it to the continuation, so that it
@@ -147,7 +147,7 @@ def testCollectVarsAppAndConst (test : TacticM NameSet) : MetaM Unit :=
 def test1 : TacticM NameSet := do
   withVector `x $ fun x => withVector `y $ fun y => withVector `z $ fun z => do
     let e ← elabTerm (← `($x[8].val + ($y[2] * $z[5]).val = 0)) none
-    collectVarsAppAndConst e
+    collectTerms e
 
 #eval testCollectVarsAppAndConst test1
 
@@ -155,8 +155,7 @@ def test1 : TacticM NameSet := do
 -- Args: list of hypothesis
 syntax (name := tryApplyLemHyps) "try_apply_lemma_hyps" ppSpace "[" ident,* "]" : tactic
 
-def findLemmaMatch
-  (result : NameSet) (mainGoalType : Expr)
+def findLemmaMatch (terms : NameSet) (mainGoalType : Expr)
   : TacticM (Option (String × TSyntax `term)) := do
   let lt ← `(Nat.lt_of_le_of_lt)
   let sub ← `(Nat.lt_sub)
@@ -166,7 +165,7 @@ def findLemmaMatch
   let (fn, args) := mainGoalType.getAppFnArgs
   let unfolded := ← withTransparency .reducible (whnf args[2]!)
   let fn3 := unfolded.getAppFn
-  if (result.size >0) then
+  if (terms.size >0) then
     -- if we have variables then we can apply < C --> <= m?
     match fn with
     | ``LT.lt =>
@@ -194,6 +193,61 @@ def findLemmaMatch
   | _ => pure ()
   return none
 
+-- for muxes we need to prove the factored lemma and split by cases
+def didMux : TacticM Unit := do
+  evalTactic (← `(tactic| try simp))
+  evalTactic (← `(tactic| try ring))
+  evalTactic (← `(tactic| intro hMux))
+  evalTactic (← `(tactic| try simp [hMux]))
+  evalTactic (← `(tactic| try rw [Nat.mux_if_then] at ⊢))
+
+def handleIfMux (g : MVarId) (args : Array Expr) : TacticM (Option (List MVarId)) := do
+  match viewAsMux args[2]! with
+  | some (x, lhs@(_ :: _), rhs@(_ :: _)) =>
+    let a := mkAddNat lhs
+    let b := mkAddNat rhs
+    let finalExpr ← g.withContext (rebuild x a b)
+    let prop ← mkEq args[2]! finalExpr
+    let pr ← mkFreshExprMVar prop
+    -- create a new factored hyphesis
+    let gWithHyp ← g.assert `hMux prop pr
+    return some [pr.mvarId!, gWithHyp]
+  | _ =>
+    return none
+
+def caseByCaseOnTwoVariables (g : MVarId) (hyps : List Name) (terms : NameSet)
+  : TacticM (Option (List MVarId)) := do
+  let bounds ← g.withContext do
+    let lctx ← getLCtx
+    hyps.foldlM (init := []) fun acc hName => do
+      let some decl := lctx.findFromUserName? hName
+        | throwError m!"❌ Could not find a hypothesis named `{hName}`"
+      match decl.type.getAppFnArgs with
+      | (``LE.le, #[_, _, lhs, rhs]) =>
+        match (← whnf rhs) with
+        | (Expr.lit (Literal.natVal 1)) => do
+          let LHSvars ← collectTerms lhs
+          let varsList := LHSvars.toList
+          if LHSvars.size == 1 && terms.contains varsList[0]! then
+            return decl :: acc
+          else
+            return acc
+        | _ => return acc
+      | _ => return acc
+  -- if bound exists apply a case split tactic
+  if bounds.length = 2 then
+    setGoals [g]
+    g.withContext do
+      let h1 := mkIdent  bounds[0]!.userName
+      let h2 := mkIdent  bounds[1]!.userName
+      evalTactic (← `(tactic| try elim2_norm_num $h1 $h2))
+    if ← g.isAssigned then
+      if (← getUnsolvedGoals).contains g then
+        logInfo m!"➖ elim2 modified goal {g}, but did not fully solve it"
+      else
+        return some [g]
+  return none
+
 @[tactic tryApplyLemHyps]
 elab_rules : tactic
 | `(tactic| try_apply_lemma_hyps [$hs,*]) => do
@@ -212,22 +266,8 @@ elab_rules : tactic
   let mut did_mux := false
   -- as long as we are making progress then continue
   while progress do
-    if did_mux then
-      -- for muxes we need to prove the factored lemma and split by
-      -- cases
-      evalTactic (← `(tactic| try simp))
-      evalTactic (← `(tactic| try ring))
-    if did_mux then
-      -- let goals_old ← getGoals
-      -- logInfo m!"Goal List: {goals_old}"
-      -- let g := goals_old[0]!
-      -- setGoals [g]
-      evalTactic (← `(tactic| intro hMux))
-      --evalTactic (← `(tactic| try simp at hMux))
-      evalTactic (← `(tactic| try simp [hMux]))
-      evalTactic (← `(tactic| try rw [Nat.mux_if_then] at ⊢))
-      -- let goals_old ← getGoals
-      -- logInfo m!"Goal List2: {goals_old}"
+    if did_mux then do
+      didMux
       did_mux := false
       progress := true
     let goals ← getGoals
@@ -249,8 +289,7 @@ elab_rules : tactic
       let instantiatedGoalType ← instantiateMVars goalType
       let (_fn, args) := instantiatedGoalType.getAppFnArgs
      --logInfo m!"fun: {_fn}"
-      let result ← collectVarsAppAndConst instantiatedGoalType
-      let resultList := result.toList
+      let terms ← collectTerms instantiatedGoalType
       if args.size > 3 then
         let g ← getMainGoal
         let goalType ← g.getType
@@ -258,86 +297,24 @@ elab_rules : tactic
         let e ← instantiateMVars goalType
         let args := e.getAppArgs
         -- First check if we are dealing with a mux
-        match viewAsMux args[2]! with
-        | some (x, lhs@(_ :: _), rhs@(_ :: _)) =>
-          let a := mkAddNat lhs
-          let b := mkAddNat rhs
-          let finalExpr ← g.withContext (rebuild x a b)
-         -- logInfo m!"factored mux: {finalExpr}"
-          let prop <- mkEq args[2]! finalExpr
-          let pr := ← mkFreshExprMVar prop
-          -- let eqId := pr.mvarId!
-          -- create a new factored hyphesis
-          let gWithHyp ← g.assert `hMux prop pr
-          updatedGoals := updatedGoals ++ [pr.mvarId!, gWithHyp]
-          --logInfo m!"NEW GOALS: {pr.mvarId!}"
-          --logInfo m!"NEW GOALS: {gWithHyp}"
-          did_mux := true
-          progress := true
-          handled := true
-          continue
-        | _ => pure ()
+        if let some gs := (← handleIfMux g args) then do
+          did_mux := true; handled := true; progress := true; updatedGoals := updatedGoals ++ gs
+        if handled then continue
         -- if not a mux but we have only two variables do a case by case reasoning
         -- this is necessary in case of variable dependencies
         -- Ex: x1 + x2 - x1*x2 --> Can't be negative but needs to be proven
         -- - First check that only 2 variables exist & a subtraction is involved
         -- then make sure all variables are bounded <= 1
-        if result.size == 2 && (← containsSub instantiatedGoalType) then
-          let bounds ← g.withContext do
-            let lctx ← getLCtx
-            hyps.foldlM (init := []) fun acc hName => do
-              let some decl := lctx.findFromUserName? hName
-                | throwError m!"❌ Could not find a hypothesis named `{hName}`"
-              match decl.type.getAppFnArgs with
-              | (``LE.le, #[_, _, lhs, rhs]) =>
-                match (← whnf rhs) with
-                | (Expr.lit (Literal.natVal 1)) => do
-                  let LHSvars ← collectVarsAppAndConst lhs
-                  let varsList := LHSvars.toList
-                  if LHSvars.size == 1 && resultList.contains varsList[0]! then
-                    return decl :: acc
-                  else
-                    return acc
-                | _ => return acc
-              | _ => return acc
-          -- if bound exists apply a case split tactic
-          if bounds.length = 2 then
-            setGoals [g]
-            g.withContext do
-              -- logInfo m!"Goal: {goalType}"
-              -- let lctx ← g.withContext getLCtx
-              let h1 := mkIdent  bounds[0]!.userName
-              let h2 := mkIdent  bounds[1]!.userName
-              evalTactic (← `(tactic| try elim2_norm_num $h1 $h2))
-              -- logInfo m!"❌ elim2_norm_num failed {err.toMessageData}"
-            if ← g.isAssigned then
-              -- let newType ← g.getType
-              -- let t ← Meta.inferType (mkMVar g)
-              --logInfo m!"➖ elim2 modified goal "
-              if (← getUnsolvedGoals).contains g then
-                logInfo m!"➖ elim2 modified goal {g}, but did not fully solve it"
-              else
-                updatedGoals := updatedGoals ++ [g]
-                handled := true
-                progress := true
-            -- catch err =>
-            --   logInfo m!"❌ elim2_norm_num failed {err.toMessageData}"
-          else
-            pure ()
-           -- logInfo m!"❌ Did not find two appropriate bounds to run elim2_norm_num for {resultList}"
+        if terms.size == 2 && (← containsSub instantiatedGoalType) then
+          if let some gs := (← caseByCaseOnTwoVariables g hyps terms) then do
+            handled := true; progress := true; updatedGoals := updatedGoals ++ gs
         --try to apply Lean's range analysis lemmas
         if handled then continue
-        match (← findLemmaMatch result instantiatedGoalType) with
+        match (← findLemmaMatch terms instantiatedGoalType) with
         | some ("if", _stx) =>
-          --logInfo m!"We have a match?"
           evalTactic (← `(tactic| split_ifs))
-          let goals ← getGoals
-          -- logInfo m!"Goal List3: {goals}"
-          updatedGoals := goals
-          handled := true
-          progress := true
+          handled := true; progress := true; updatedGoals := (← getGoals)
         | some ("ZMod", _stx) =>
-          -- logInfo m!"We have a var... {<-g.getType}"
           for hName in hyps do
             try
               -- need to do it with context so names are initialized
@@ -347,39 +324,27 @@ elab_rules : tactic
                   | throwError m!"❌ Could not find a hypothesis named `{hName}`"
                 let hExpr := mkFVar decl.fvarId
                 g.apply hExpr
-              updatedGoals := updatedGoals ++ subgoals
-              handled := true
-              progress := true
+              handled := true; progress := true; updatedGoals := updatedGoals ++ subgoals
               break
             catch _err => pure ()
         | some (_name, stx) =>
           try
             let e ← elabTerm stx goalType
             let subgoals ← g.apply e
-            --logInfo m!" We applied a lemma {_name}"
-            updatedGoals := updatedGoals ++ subgoals
-            handled := true
-            progress := true
+            handled := true; progress := true; updatedGoals := updatedGoals ++ subgoals
           catch _err => pure ()
         | none => pure ()
       if handled then continue
       -- if other techniques did not work try decide
-      let h ← getGoals
       try
         evalTactic (← `(tactic| decide))
         if ← g.isAssigned then
           logInfo m!"✅ Fully solved goal using decide {goalType}"
-          updatedGoals := updatedGoals ++ [g]
-          handled := true
-          progress := h.length != 0
-        else
-          updatedGoals := updatedGoals ++ [g]
-          handled := true
-          progress := false
-      catch _err =>
-        updatedGoals := updatedGoals ++ [g]
-        handled := true
-        progress := false
+          handled := true; progress := true; updatedGoals := updatedGoals ++ [g]
+          continue
+      catch _err => pure ()
+      -- if we made it here, nothing worked
+      updatedGoals := updatedGoals ++ [g]
     setGoals updatedGoals
 
 
