@@ -3,6 +3,7 @@ import Lean.Elab.Tactic.Basic
 import Lean.Meta.Basic
 import Lean.Parser.Tactic
 import Mathlib.Algebra.Field.ZMod
+import Mathlib.Control.Monad.Cont
 import Mathlib.Data.Nat.Basic
 import Mathlib.Tactic
 import Mathlib.Tactic.Eval
@@ -148,7 +149,7 @@ def test1 : TacticM NameSet := do
 
 #eval testCollectVarsAppAndConst test1
 
--- Main Range Analtsis Tactic
+-- Main Range Analysis Tactic
 -- Args: list of hypothesis
 syntax (name := tryApplyLemHyps) "try_apply_lemma_hyps" ppSpace "[" ident,* "]" : tactic
 
@@ -160,23 +161,31 @@ def didMux : TacticM Unit := do
   evalTactic (← `(tactic| try simp [hMux]))
   evalTactic (← `(tactic| try rw [Nat.mux_if_then] at ⊢))
 
-def handleIfMux (g : MVarId) (args : Array Expr) : TacticM (Option (List MVarId)) := do
+structure LoopBodyResult where
+  didMux : Bool
+  madeProgress : Bool
+  goals : List MVarId
+
+def LoopBodyLabel := MonadCont.Label LoopBodyResult (ContT LoopBodyResult TacticM) Unit
+
+def handleIfMux (loopBodyReturn : LoopBodyLabel) (g : MVarId) (args : Array Expr)
+  : ContT LoopBodyResult TacticM Unit := do
   match viewAsMux args[2]! with
   | some (x, lhs@(_ :: _), rhs@(_ :: _)) =>
     let a := mkAddNat lhs
     let b := mkAddNat rhs
-    let finalExpr ← g.withContext (rebuild x a b)
+    let finalExpr ← monadLift $ g.withContext (rebuild x a b)
     let prop ← mkEq args[2]! finalExpr
     let pr ← mkFreshExprMVar prop
     -- create a new factored hyphesis
     let gWithHyp ← g.assert `hMux prop pr
-    return some [pr.mvarId!, gWithHyp]
-  | _ =>
-    return none
+    loopBodyReturn.apply { didMux := true, madeProgress := true, goals := [pr.mvarId!, gWithHyp] }
+  | _ => return ()
 
-def caseByCaseOnTwoVariables (g : MVarId) (hyps : List Name) (terms : NameSet)
-  : TacticM (Option (List MVarId)) := do
-  let bounds ← g.withContext do
+def caseByCaseOnTwoVariables (loopBodyReturn : LoopBodyLabel)
+  (g : MVarId) (hyps : List Name) (terms : NameSet)
+  : ContT LoopBodyResult TacticM Unit := do
+  let bounds ← monadLift $ g.withContext do
     let lctx ← getLCtx
     hyps.foldlM (init := []) fun acc hName => do
       let some decl := lctx.findFromUserName? hName
@@ -196,7 +205,7 @@ def caseByCaseOnTwoVariables (g : MVarId) (hyps : List Name) (terms : NameSet)
   -- if bound exists apply a case split tactic
   if bounds.length = 2 then
     setGoals [g]
-    g.withContext do
+    monadLift $ g.withContext do
       let h1 := mkIdent  bounds[0]!.userName
       let h2 := mkIdent  bounds[1]!.userName
       evalTactic (← `(tactic| try elim2_norm_num $h1 $h2))
@@ -204,44 +213,45 @@ def caseByCaseOnTwoVariables (g : MVarId) (hyps : List Name) (terms : NameSet)
       if (← getUnsolvedGoals).contains g then
         logInfo m!"➖ elim2 modified goal {g}, but did not fully solve it"
       else
-        return some [g]
-  return none
+        loopBodyReturn.apply { didMux := false, madeProgress := true, goals := [g] }
 
-def applyIfLemma : TacticM (Option (List MVarId)) := do
-  evalTactic (← `(tactic| split_ifs))
-  return some (← getGoals)
+def applyIfLemma (loopBodyReturn : LoopBodyLabel) : ContT LoopBodyResult TacticM Unit := do
+  monadLift $ do evalTactic (← `(tactic| split_ifs))
+  loopBodyReturn.apply { didMux := false, madeProgress := true, goals := (← getGoals) }
 
-def applyZModLemma (g : MVarId) (hyps : List Name) : TacticM (Option (List MVarId)) := do
+def applyZModLemma (loopBodyReturn : LoopBodyLabel) (g : MVarId) (hyps : List Name)
+  : ContT LoopBodyResult TacticM Unit := do
   for hName in hyps do
     try
       -- need to do it with context so names are initialized
-      let subgoals ← g.withContext do
+      let subgoals ← monadLift $ g.withContext do
         let lctx ← getLCtx
         let some decl := lctx.findFromUserName? hName
           | throwError m!"❌ Could not find a hypothesis named `{hName}`"
         g.apply (mkFVar decl.fvarId)
-      return some subgoals
+      -- Note: `return` below makes sure we end the loop after jumping to the
+      -- continuation
+      return (← loopBodyReturn.apply { didMux := false, madeProgress := true, goals := subgoals })
     catch _err => pure ()
-  return none
 
-def applyThisLemma (g : MVarId) (goalType : Expr) (stx : Syntax) : TacticM (Option (List MVarId)) := do
+def applyThisLemma (loopBodyReturn : LoopBodyLabel) (g : MVarId) (goalType : Expr) (stx : Syntax)
+  : ContT LoopBodyResult TacticM Unit := do
   try
-    let e ← elabTerm stx goalType
-    let subgoals ← g.apply e
-    return some subgoals
-  catch _ =>
-    return none
+    let subgoals ← g.apply (← elabTerm stx goalType)
+    loopBodyReturn.apply { didMux := false, madeProgress := true, goals := subgoals }
+  catch _ => pure ()
 
-def findAndApplyRangeAnalysisLemma (terms : NameSet) (g : MVarId) (mainGoalType : Expr) (hyps : List Name)
-  : TacticM (Option (List MVarId)) := do
-  let applyThisLemma := applyThisLemma g mainGoalType
-  let lt ← ``(Nat.lt_of_le_of_lt)
-  let sub ← ``(Nat.lt_sub)
-  let add ← ``(Nat.add_le_add)
-  let mul ← ``(Nat.mul_le_mul)
-  let rfl ← ``(Nat.le_refl)
+def findAndApplyRangeAnalysisLemma (loopBodyReturn : LoopBodyLabel)
+  (terms : NameSet) (g : MVarId) (mainGoalType : Expr) (hyps : List Name)
+  : ContT LoopBodyResult TacticM Unit := do
+  let applyThisLemma := applyThisLemma loopBodyReturn g mainGoalType
+  let lt ← monadLift (m := TacticM) ``(Nat.lt_of_le_of_lt)
+  let sub ← monadLift (m := TacticM) ``(Nat.lt_sub)
+  let add ← monadLift (m := TacticM) ``(Nat.add_le_add)
+  let mul ← monadLift (m := TacticM) ``(Nat.mul_le_mul)
+  let rfl ← monadLift (m := TacticM) ``(Nat.le_refl)
   let (fn, args) := mainGoalType.getAppFnArgs
-  let unfolded := ← withTransparency .reducible (whnf args[2]!)
+  let unfolded := ← monadLift $ withTransparency .reducible (whnf args[2]!)
   let fn3 := unfolded.getAppFn
   if (terms.size > 0) then
     -- if we have variables then we can apply < C --> <= m?
@@ -250,8 +260,8 @@ def findAndApplyRangeAnalysisLemma (terms : NameSet) (g : MVarId) (mainGoalType 
       match fn3 with
       | Expr.const name _ =>
         match name with
-        | ``ite => if let some out := (← applyIfLemma) then return out
-        | _ => if let some out := (← applyThisLemma lt) then return out
+        | ``ite => applyIfLemma loopBodyReturn
+        | _ => applyThisLemma lt
       | _ => pure ()
     | _ => pure ()
   match fn with
@@ -259,19 +269,17 @@ def findAndApplyRangeAnalysisLemma (terms : NameSet) (g : MVarId) (mainGoalType 
     match fn3 with
     | Expr.const name _ =>
       match name with
-      | ``HSub.hSub => if let some out := (← applyThisLemma sub) then return out
-      | ``HAdd.hAdd => if let some out := (← applyThisLemma add) then return out
-      | ``HMul.hMul => if let some out := (← applyThisLemma mul) then return out
-      | ``OfNat.ofNat => if let some out := (← applyThisLemma rfl) then return out
+      | ``HSub.hSub => applyThisLemma sub
+      | ``HAdd.hAdd => applyThisLemma add
+      | ``HMul.hMul => applyThisLemma mul
+      | ``OfNat.ofNat => applyThisLemma rfl
       -- rfl is a place holder should be something else
-      | ``ite => if let some out := (← applyIfLemma) then return out
-      | ``ZMod.val => if let some out := (← applyZModLemma g hyps) then return out
+      | ``ite => applyIfLemma loopBodyReturn
+      | ``ZMod.val => applyZModLemma loopBodyReturn g hyps
       | _ => pure ()
     | _ =>
-      if fn3.isFVar then
-        if let some out := (← applyZModLemma g hyps) then return out
+      if fn3.isFVar then applyZModLemma loopBodyReturn g hyps
   | _ => pure ()
-  return none
 
 @[tactic tryApplyLemHyps]
 elab_rules : tactic
@@ -311,39 +319,37 @@ elab_rules : tactic
       let instantiatedGoalType ← instantiateMVars goalType
       let (_fn, args) := instantiatedGoalType.getAppFnArgs
       let terms ← collectTerms instantiatedGoalType
-      if args.size > 3 then
-        let g ← getMainGoal
-        let goalType ← g.getType
-        let e ← instantiateMVars goalType
-        let args := e.getAppArgs
-        -- First check if we are dealing with a mux
-        if let some gs := (← handleIfMux g args) then do
-          did_mux := true; handled := true; progress := true; updatedGoals := updatedGoals ++ gs
-        if handled then continue
-        -- if not a mux but we have only two variables do a case by case reasoning
-        -- this is necessary in case of variable dependencies
-        -- Ex: x1 + x2 - x1*x2 --> Can't be negative but needs to be proven
-        -- - First check that only 2 variables exist & a subtraction is involved
-        -- then make sure all variables are bounded <= 1
-        if terms.size == 2 && (← containsSub instantiatedGoalType) then
-          if let some gs := (← caseByCaseOnTwoVariables g hyps terms) then do
-            handled := true; progress := true; updatedGoals := updatedGoals ++ gs
-        --try to apply Lean's range analysis lemmas
-        if handled then continue
-        if let some gs := (← findAndApplyRangeAnalysisLemma terms g instantiatedGoalType hyps) then
-          -- FIXME: In the if case, it was actually replacing the updated goals
-          handled := true; progress := true; updatedGoals := updatedGoals ++ gs
-      if handled then continue
-      -- if other techniques did not work try decide
-      try
-        evalTactic (← `(tactic| decide))
-        if ← g.isAssigned then
-          logInfo m!"✅ Fully solved goal using decide {goalType}"
-          handled := true; progress := true; updatedGoals := updatedGoals ++ [g]
-          continue
-      catch _err => pure ()
-      -- if we made it here, nothing worked
-      updatedGoals := updatedGoals ++ [g]
+      -- Note: Here we use a continuation to let our callees return by
+      -- short-circuiting the rest of the computation.
+      let loopResult ← (ContT.run · pure) $ MonadCont.callCC $ fun loopBodyReturn => do
+        if args.size > 3 then
+          let g ← getMainGoal
+          let goalType ← g.getType
+          let e ← instantiateMVars goalType
+          let args := e.getAppArgs
+          -- First check if we are dealing with a mux
+          handleIfMux loopBodyReturn g args
+          -- if not a mux but we have only two variables do a case by case reasoning
+          -- this is necessary in case of variable dependencies
+          -- Ex: x1 + x2 - x1*x2 --> Can't be negative but needs to be proven
+          -- - First check that only 2 variables exist & a subtraction is involved
+          -- then make sure all variables are bounded <= 1
+          if terms.size == 2 && (← containsSub instantiatedGoalType) then
+            caseByCaseOnTwoVariables loopBodyReturn g hyps terms
+          --try to apply Lean's range analysis lemmas
+          findAndApplyRangeAnalysisLemma loopBodyReturn terms g instantiatedGoalType hyps
+        -- if other techniques did not work try decide
+        try
+          monadLift $ do evalTactic (← `(tactic| decide))
+          if ← g.isAssigned then
+            logInfo m!"✅ Fully solved goal using decide {goalType}"
+            return { didMux := false, madeProgress := true, goals := [g] }
+        catch _err => pure ()
+        -- if we made it here, nothing worked
+        return { didMux := false, madeProgress := false, goals := [g] }
+      if loopResult.didMux then did_mux := true
+      if loopResult.madeProgress then handled := true; progress := true
+      updatedGoals := updatedGoals ++ loopResult.goals
     setGoals updatedGoals
 
 
