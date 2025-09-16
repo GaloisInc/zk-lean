@@ -4,11 +4,20 @@ import Mathlib.Tactic
 import Mathlib.Tactic.Eval
 import Lean.Elab.Tactic.Basic
 import Lean.Parser.Tactic
-import Mathlib.Algebra.Field.ZMod
-import ZkLean.solve_mle
+import ZkLean.def_ff
+import ZkLean.range_analysis
+import Lean.Meta.Tactic.Simp.SimpTheorems
+import Lean.Meta.Tactic.Simp.RegisterCommand
+
 open Lean Meta Elab Tactic
 
+
 open Mathlib.Tactic.Valify
+
+open Lean
+open Lean.Meta
+open Lean.Parser.Tactic
+open Lean.Elab.Tactic
 
 private def isArithmeticHead (e : Expr) : Bool :=
   match e.getAppFn.constName? with
@@ -27,7 +36,7 @@ private def compositeInsideValHere? (e : Expr) : MetaM (Option Expr) := do
 
     if let some t := args.back? then
       if isArithmeticHead t then
-        logInfo m!"{args}"
+        --logInfo m!"{args}"
         return some e
   pure none
 
@@ -40,7 +49,8 @@ partial def firstCompositeInsideVal? (e : Expr) : MetaM (Option Expr) := do
   | .app f a =>
       if let some r ← firstCompositeInsideVal? f then return some r
       firstCompositeInsideVal? a
-  | _                   => pure none
+  | _                   =>
+    pure none
 
 
 partial def pushValToNat (n : Expr) (t : Expr) : MetaM Expr := do
@@ -48,7 +58,7 @@ partial def pushValToNat (n : Expr) (t : Expr) : MetaM Expr := do
   let args := t.getAppArgs
   match head.constName? with
   | some name =>
-    logInfo m!"{name}"
+    --logInfo m!"{name}"
     if name == ``HAdd.hAdd || name == ``Add.add then
       -- binary add: ... a b
       let a := args[args.size - 2]!
@@ -90,145 +100,216 @@ syntax (name := findInsideVal) "findInsideVal" (ppSpace "=>" ident)? : tactic
 
 @[tactic findInsideVal] def evalFindInsideVal : Tactic := fun stx => do
   let g ← getMainGoal
-  logInfo m!"{g}"
-  let ty ← instantiateMVars (← g.getType)
-  let some t ← firstCompositeInsideVal? ty
-    | do logInfo "none"; return ()
-  let args := t.getAppArgs
-  logInfo m!"found: {← ppExpr t}"
-  let exp ← pushValToNat args[0]! args[1]!
-  let e ← mkAppM ``HMod.hMod #[exp, args[0]!]
-  let args2 := args[1]!.getAppApps
-  let e2 := args2[args2.size-1]!
-  let args3:= e2.getAppArgs
-  logInfo m!"NEW ARGS: {e2.getAppArgs}"
-  let prop <- mkEq t e
-  let pr ←  g.withContext do  mkFreshExprMVar prop
+  let gt <- g.getType
+  g.withContext do
+    let ty ← instantiateMVars (← g.getType)
+    logInfo m!"{gt.getAppApps}"
+    let some t ← firstCompositeInsideVal? ty
+      | return ()
+    let args := t.getAppArgs
+    logInfo m!"NEW EQ: {t}"
+    --logInfo m!"found: {← ppExpr t}"
+    let exp ← pushValToNat args[0]! args[1]!
+    let e ← mkAppM ``HMod.hMod #[exp, args[0]!]
+    let args2 := args[1]!.getAppApps
+    let e2 := args2[args2.size-1]!
+    let args3:= e2.getAppArgs
+    let prop <- mkEq t e
+    let pr ←  g.withContext do mkFreshExprMVar prop
+    let rhs := mkApp2 (mkConst ``ZMod.val) args[0]! args3[args3.size -1]!
+    let lhs := mkApp2 (mkConst ``ZMod.val) args[0]! args3[args3.size -2]!
+    let prop2 <- g.withContext do mkAppM ``LE.le #[rhs, lhs]
+    let pr2 ← g.withContext do mkFreshExprMVar prop2
+    let hm ← g.withContext do pr.mvarId!.assert `vNat prop2 pr2
+    -- setGoals [pr2.mvarId!]
+    -- evalTactic (← `(tactic|  valify stx))
 
 
-  let rhs := mkApp2 (mkConst ``ZMod.val) args[0]! args3[args3.size -1]!
-  let lhs := mkApp2 (mkConst ``ZMod.val) args[0]! args3[args3.size -2]!
-  let prop2 <- g.withContext do mkAppM ``LE.le #[rhs, lhs]
-  let pr2 ← g.withContext do mkFreshExprMVar prop2
-  let hm ← g.withContext do pr.mvarId!.assert `vNat prop2 pr2
-  let gWithHyp ← g.withContext do g.assert `vNat prop pr
-  let gWithHyp2 <- g.withContext do  gWithHyp.assert `subleq prop2 pr2
-  setGoals [pr2.mvarId!, hm, gWithHyp2]
+    let gWithHyp ← g.withContext do g.assert `vNat prop pr
+    let gWithHyp2 <- g.withContext do  gWithHyp.assert `subleq prop2 pr2
+    setGoals [pr2.mvarId!, hm, gWithHyp2]
+
+
+lemma ZMod.val_sub_mod  (h: x.val <= (1 : ZMod ff).val): ( (1 : ZMod ff) -x).val = ( 1 - x.val) % ff := by sorry
+
+lemma Nat.val_sub_mod  (h: x <= 1 ): ( (1 - (x % ff) )% ff )= ( 1 - x ) % ff := by sorry
 
 
 
-syntax (name := valifyHelper) "valify_helper" ppSpace "[" ident,* "]" : tactic
+
+
+
+def assertFirstAcrossGoals (name : Name) : TacticM Unit := do
+  let gs ← getGoals
+  if gs.isEmpty then return ()
+  let g := gs.head!
+  let prop ← g.withContext do instantiateMVars (← g.getType)
+
+  -- One shared metavariable for the proof of `prop`
+  let pr ← mkFreshExprMVar prop
+  -- Assert `prop` into every goal, using the SAME proof metavariable `pr`
+  let mut newGoals := #[]
+  for g in gs do
+    let g' ←  g.withContext do g.assert name prop pr
+    newGoals := newGoals.push g'
+  -- Put the shared proof goal first, then all updated goals
+  setGoals (pr.mvarId! :: newGoals.toList)
+
+elab "share_first_goal" : tactic => assertFirstAcrossGoals `h
+
+
+
+syntax (name := valifyHelper) "valify_helper" ("[" ident,* "]")? : tactic
+
 
 @[tactic valifyHelper]
 elab_rules : tactic
-| `(tactic| valify_helper [$hs,*]) => do
-  evalTactic (← `(tactic| findInsideVal))
-  -- UGH NEED TO FIND THINGS FOR ELIM2_NORM_NUM
-  -- valify [h1, h2]
-  -- elim2_norm_num h1 h2
+ | `( tactic| valify_helper [$ids,*]) =>  withMainContext do
+    let mut sargs :
+    Array (TSyntax [`Lean.Parser.Tactic.simpStar,
+                    `Lean.Parser.Tactic.simpErase,
+                    `Lean.Parser.Tactic.simpLemma]) := #[]
+    for i in ids.getElems do
+      let sa ← `(simpArg| $i:term)
+      let ua :
+      TSyntax [`Lean.Parser.Tactic.simpStar,
+               `Lean.Parser.Tactic.simpErase,
+               `Lean.Parser.Tactic.simpLemma] :=
+      ⟨sa.raw⟩
+      sargs := sargs.push ua
+  -- what this does given an  (1 - exp).val ∈ g we get
+  -- g1: exp.val <= 1
+  -- g2: g1 -> ( 1- exp.val) = 1 - exp.val
+  -- g3: g2 -> g
+  -- TODO: This is not efficient!! we end up proving some  things
+  -- twice; need to look into how to make this more efficient!
+    --evalTactic (← `(tactic| findInsideVal))
+    let g ← getMainGoal
+    let gt <- g.getType
+    let ty ← instantiateMVars (← g.getType)
+    let some t ← firstCompositeInsideVal? ty
+          | return ()
+    let args := t.getAppArgs
+    let exp ← pushValToNat args[0]! args[1]!
+    let e ← mkAppM ``HMod.hMod #[exp, args[0]!]
+    let args2 := args[1]!.getAppApps
+    let e2 := args2[args2.size-1]!
+    let args3:= e2.getAppArgs
+    let prop <- mkEq t e
+    let pr ←  g.withContext do mkFreshExprMVar prop
+    let rhs := mkApp2 (mkConst ``ZMod.val) args[0]! args3[args3.size -1]!
+    let lhs := mkApp2 (mkConst ``ZMod.val) args[0]! args3[args3.size -2]!
+    let prop2 <- g.withContext do mkAppM ``LE.le #[rhs, lhs]
+    let pr2 ← g.withContext do mkFreshExprMVar prop2
+    let hm ← g.withContext do pr.mvarId!.assert `vNat prop2 pr2
+    let gWithHyp ← g.withContext do g.assert `vNat prop pr
+    let gWithHyp2 <- g.withContext do  gWithHyp.assert `subleq prop2 pr2
+    setGoals [pr2.mvarId!, hm, gWithHyp2]
+
+    evalTactic (← `(tactic|
+       valify [$[$sargs],*]; ))
+    evalTactic (← `(tactic| try simp; ))
+    evalTactic (← `(tactic| rw [Nat.mod_eq_of_lt];
+    simp [<- Nat.lt_add_one_iff];))
+    assertFirstAcrossGoals `h
+    evalTactic (← `(tactic| focus try_apply_lemma_hyps [$[$ids],*];))
+    evalTactic (← `(tactic| intro NatLeq ))
+    evalTactic (← `(tactic| exact Nat.lt_of_lt_of_le NatLeq (by decide) ;
+    intro NatLeq;
+    exact Nat.lt_of_lt_of_le NatLeq (by decide);
+    intro NatLeq;
+    intro Leq;
+    ))
+    evalTactic (← `(tactic| valify [$[$sargs],*]; try simp;))
+    evalTactic (← `(tactic| simp [ZMod.val_sub_mod Leq]; ))
+    evalTactic (← `(tactic| valify [$[$sargs],*] ))
+    evalTactic (← `(tactic| try simp  ))
+    evalTactic (← `(tactic|  rw [ Nat.val_sub_mod ]; ))
+    --evalTactic (← `(tactic|  try simp [mul_assoc]; ))
+    evalTactic (← `(tactic|  simp [<- Nat.lt_add_one_iff]; apply NatLeq ; ))
+    -- last goal TODO this should be inside solve_mle b/c of names
+
+    --evalTactic (← `(tactic| intro NatLeq; intro Leq; intro Eq; simp at Eq ; rw [Eq] ;   valify [$[$sargs],*]))
+
+
+    --simp [<- Nat.lt_add_one_iff]; try_apply_lemma_hyps [$[$ids],*]; ))
+    --  -- STEP 2: now prove ( 1- exp.val) = 1 - exp.val using g1
+    -- evalTactic (← `(tactic| intro h; try simp; simp [ZMod.val_sub_mod h]; try valify [$[$sargs],*]; try simp; rw [Nat.val_sub_mod]; try simp [mul_assoc] ))
+    -- -- STEP 3: prove We end up with exp.val <= 1
+
+
+example (fv : Vector (ZMod ff) 8): (fv[0].val <= 1) -> (fv[1].val <= 1 ) -> (fv[2].val <= 1 ) -> ( (1: ZMod ff) - ( (fv[0]*fv[1] + (1-fv[0]) * (1-fv[1])) * ( fv[2]))).val < 7 := by
+  intros h1 h2 h3
+  -- Scenario we have 1 - exp
+  try valify [ h1, h2, h3]
+  --have h: (fv[0].val * fv[1].val + (1 - fv[0].val) * (1 - fv[1].val)) * fv[2].val < 2 := by sorry
+  valify_helper [h1, h2, h3]
+  sorry
+  -- valify [ h1, h2, h3]
+  --all_goals intro NatLeq
+
+  -- exact Nat.lt_of_lt_of_le NatLeq (by decide)
+  -- exact Nat.lt_of_lt_of_le NatLeq (by decide)
+  -- all_goals intro Leq
+  -- valify [h1, h2, h3]
+  -- try simp
+  -- --rw [Nat.mod_eq_of_lt]
+  -- simp [ZMod.val_sub_mod Leq]
+  -- valify [h1, h2, h3]
   -- simp
+  -- rw [ Nat.val_sub_mod ]
+  -- try simp [mul_assoc]
+  -- simp [<- Nat.lt_add_one_iff]
+  -- apply NatLeq
+  -- intro Eq
+  -- simp at Eq
+
+  -- rw [Eq]
+  -- valify [h1, h2, h3]
+  -- rw [Nat.mod_eq_of_lt]
+  -- try_apply_lemma_hyps [h1, h2, h3]
+  -- simp [<- Nat.lt_add_one_iff]
+  -- exact Nat.lt_of_lt_of_le NatLeq (by decide)
+  -- simp [<- Nat.lt_add_one_iff]
+  -- exact Nat.lt_of_lt_of_le NatLeq (by decide)
+
+
+
+
+
+
+
+
+  -- sorry
+  -- -- STEP 1: first prove exp.val <= 1
+  -- -- so I have my first h1 but I actually want h0 which is h1 that is valified simplified & without the mod  can I call valify while I am constructing an expression in a tactic?
+  --valify [h1, h2, h3]
+  -- simp
+  -- rw [Nat.mod_eq_of_lt]
+  --  -- note we end up with val(exp) <= 1
+  -- simp [<- Nat.lt_add_one_iff]
+
+  -- try_apply_lemma_hyps [h1, h2, h3]
+  -- --apply h
+
   -- intro h
-  -- simp [ZMod.val_sub h]
-  -- valify [h1, h2]
-  -- elim2_norm_num h1 h2
+  -- --- Now prove: (1-exp).val = val(exp)
+  -- try simp
+  -- simp [ZMod.val_sub_mod h]
+
+  -- valify [h1, h2, h3]
+  -- simp
+  -- rw [ Nat.val_sub_mod ]
+  -- try simp [mul_assoc]
+
+
+  -- -- We end up with exp.val <= 1
+  -- simp [<- Nat.lt_add_one_iff]
+  -- try_apply_lemma_hyps [h1, h2, h3]
   -- intros hx hy
   -- simp at hy
   -- rw [hy]
-  -- simp
   -- rw [Nat.mod_eq_of_lt]
-  -- try_apply_lemma_hyps [h1, h2, h3]
-
-
-
-  -- match stx with
-  -- | `(tactic| findInsideVal => $x) =>
-  --     evalTactic (← `(tactic| set $x := ($t)))
-  -- | _ => pure ()
-
--- evalTactic (← `(tactic| apply split_one at $(id1):ident))
---   evalTactic (← `(tactic| apply split_one at $(id2):ident))
---   evalTactic (← `(tactic| apply Or.elim $id1))
---   evalTactic (← `(tactic| intro hx; apply Or.elim $id2))
---   evalTactic (← `(tactic| intro hy; rewrite [hx]; rewrite [hy]; simp;))
---   try
---       evalTactic (←  `(tactic|apply Nat.le_refl))
---   catch _ => pure ()
-
---   evalTactic (← `(tactic| intro hy; rewrite [hy]; rewrite [hx]; simp;))
---   try
---       evalTactic (←  `(tactic|apply Nat.le_refl))
---   catch _ => pure ()
---   evalTactic (← `(tactic| intro hx; apply Or.elim $id2))
---   evalTactic (← `(tactic| intro hy; rewrite [hx]; rewrite [hy]; simp;))
---   try
---       evalTactic (←  `(tactic|apply Nat.le_refl))
---   catch _ => pure ()
---   evalTactic (← `(tactic| intro hy; rewrite [hy]; rewrite [hx]; simp;))
---   try
---       evalTactic (←  `(tactic|apply Nat.le_refl))
---   catch _ => pure ()
-
-
-
-example (fv1 fv2 : Vector (ZMod 7) 8): (fv1[0].val <= 1 ) -> (fv2[1].val <= 1 ) -> (fv2[0].val <= 1 ) -> (fv1[0] * fv2[0]* (fv1[0]+fv2[1] - (fv1[0]*fv2[1])) + fv1[0] * fv2[0]).val < 7 := by
-  intros h1 h2 h3
-  valify [ h1, h2, h3]
-  valify_helper []
-  --[h1, h2 , h3]
-  --findInsideVal
-  valify [h1, h2]
-  elim2_norm_num h1 h2
-  simp
-  intro h
-  simp [ZMod.val_sub h]
-  valify [h1, h2]
-  elim2_norm_num h1 h2
-  intros hx hy
-  simp at hy
-  rw [hy]
-  simp
-  rw [Nat.mod_eq_of_lt]
-  try_apply_lemma_hyps [h1, h2, h3]
-
-lemma ugh  (h: x.val <= (1 : ZMod ff).val): ( (1 : ZMod ff) -x).val = ( 1 - x.val) % ff := by sorry
-
-lemma ugh2  (h: x <= 1 ): ( (1 - (x % ff) )% ff )= ( 1 - x ) % ff := by sorry
-
-
-
-example (fv : Vector (ZMod ff) 8): (fv[0].val <= 1) -> (fv[1].val <= 1 ) -> (fv[2].val <= 1 ) -> ( (1: ZMod ff) - (fv[0]*fv[1] + (1-fv[0])*(1-fv[1]))).val < 7 := by
-  intros h1 h2 h3
-  valify [ h1, h2, h3]
-  valify_helper []
-  --[h1, h2 , h3]
-  --findInsideVal
-  valify [h1, h2]
-  simp
-  rw [Nat.mod_eq_of_lt]
-  try_apply_lemma_hyps [h1, h2, h3]
-  intro h
-  simp
-  simp [ugh h]
-
-  valify [h1, h2]
-  simp
-  rw [ugh2]
-  try_apply_lemma_hyps [h1, h2, h3]
-  intros hx hy
-  simp at hy
-  rw [hy]
-  valify [h1, h2, h3]
-  rw [Nat.mod_eq_of_lt]
-  try_apply_lemma_hyps [h1, h2, h3]
-
-
-
-
-
-
-
-
-
 
 
 
