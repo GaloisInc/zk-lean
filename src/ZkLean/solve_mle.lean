@@ -287,7 +287,7 @@ lemma BitVec_ofNat_eq_iff_64 {x y : ℕ} (hx : x < 2^64) (hy : y < 2^64) :
 
 
 
-syntax (name := SolveMLE) "solveMLE " ident num : tactic
+syntax (name := SolveMLE) "solveMLE " ident num  (" [" ident,* "]")?: tactic
 
 partial def introAll (i : Nat := 0) (revNames : List Name := []) : TacticM (List Name) := do
   let name := Name.mkSimple s!"h{i}"
@@ -342,8 +342,9 @@ syntax (name := findModLT) "findModLT " num : tactic
 
 set_option maxHeartbeats  20000000000000000000
 elab_rules : tactic
-| `(tactic| solveMLE $table:ident $N:num ) => do
+| `(tactic| solveMLE $table:ident $N:num $[[$extras:ident,*]]? ) => do
   let n := N.getNat
+  let extraList : List Syntax := (extras.map (·.getElems.toList)).getD []
   let hyps ← introAll
   let mut ids : List (TSyntax `ident) := []
   let first :: rest := hyps | return ()
@@ -386,8 +387,8 @@ elab_rules : tactic
   ; unfold Vector.append
   ; simp (config := { failIfUnchanged := false })))
   let idsArr : Array (TSyntax `ident) := ids.toArray
-  --let i <- getMainGoal
-  --logInfo m!"{ids}"
+  let i <- getMainGoal
+  logInfo m!"{ids}"
 
   -- TODO: I don't like this but otherwise we cant solve sign extend (maybe this should also be passed in as a parameter)
   evalTactic (← `(tactic| try valify [$[$idsArr:ident],*]))
@@ -400,15 +401,19 @@ elab_rules : tactic
   | some t =>
     valhelp := true
     evalTactic (← `(tactic| valify_helper [$[$idsArr:ident],*]))
+    -- val(1 - exp ) --> 1 - val(exp) show that exp <= 1 which range analysis can do
+    -- val(y - x*y) --> x*y <= y which range analysis cannot do b/c variable on RHS
+        --                x*y - y <= 0 and then rewrite back?
     evalTactic (← `(tactic| intro NatLeq; intro ZLeq; intro Eq; simp at Eq ; rw [Eq] ; valify [$[$idsArr:ident],*]))
   | none  => pure ()
   evalTactic (← `(tactic| try simp )) -- rw [Nat.mod_eq_of_lt]))
   let nSyntax : TSyntax `num := ⟨Lean.Syntax.mkNumLit (toString n)⟩
   evalTactic (← `(tactic| findModLT $nSyntax) )
   -- -- let g <- getMainGoal
-  -- -- logInfo m!"Hello?{g}"
+  -- logInfo m!"Hello?{g}"
   evalTactic (← `(tactic| try simp))
   evalTactic (← `(tactic| try_apply_lemma_hyps [$[$idsArr:ident],*]))
+  logInfo m!"Passed range analysis"
   if valhelp then
        evalTactic (← `(tactic|
        simp [<- Nat.lt_add_one_iff];
@@ -418,6 +423,7 @@ elab_rules : tactic
   evalTactic (← `(tactic| try simp))
 
   evalTactic (← `(tactic| intro Leq))
+  logInfo m!"What is going on?"
   evalTactic (← `(tactic| try rw [Nat.mod_eq_of_lt]))
   let lemmaName := Name.mkSimple s!"BitVec_ofNat_eq_iff_{n}"
   evalTactic (← `(tactic| rw [$(mkIdent lemmaName):ident]))
@@ -469,27 +475,19 @@ elab_rules : tactic
       set $idSyn := $fv2T[$idxSyn]
     ))
     index := index + 1
-
--- -- --     -- set b10 := ZMod.val ($fv1T)[0] ;
--- -- --     -- set b11 := ZMod.val ($fv1T)[1] ;
--- -- --     -- set b12 := ZMod.val ($fv1T)[2] ;
--- -- --     -- set b13 := ZMod.val ($fv1T)[3] ;
--- -- --     -- set b14 := ZMod.val ($fv1T)[4] ;
--- -- --     -- set b15 := ZMod.val ($fv1T)[5];
--- -- --     -- set b16 := ZMod.val ($fv1T)[6] ;
--- -- --     -- set b17 := ZMod.val ($fv1T)[7] ;
--- -- --     -- set b20 := ZMod.val ($fv2T)[0] ;
--- -- --     -- set b21 := ZMod.val ($fv2T)[1] ;
--- -- --     -- set b22 := ZMod.val ($fv2T)[2] ;
--- -- --     -- set b23 := ZMod.val ($fv2T)[3] ;
--- -- --     -- set b24 := ZMod.val ($fv2T)[4] ;
--- -- --     -- set b25 := ZMod.val ($fv2T)[5] ;
--- -- --     -- set b26 := ZMod.val ($fv2T)[6] ;
--- -- --     -- set b27 := ZMod.val ($fv2T)[7] ;
--- -- --   let g <- getMainGoal
--- -- --   evalTactic (← `(tactic| bv_normalize))
--- -- --   let h <- getMainGoal
--- -- --   --logInfo m!"started bv_decice"
+  match extraList  with
+  | [id1, id2] =>
+      evalTactic (← `(tactic|
+        unfold $(mkIdent id1.getId);
+        repeat unfold  $(mkIdent id2.getId)
+      ))
+  | [id1] =>
+     evalTactic (← `(tactic|
+        unfold $(mkIdent id1.getId);
+      ))
+  | _ =>
+      pure ()
+  logInfo m!"Starting bv decide"
   evalTactic (← `(tactic| bv_decide (config := {timeout := 300}) ;
     apply $id1:ident ;
     ))
