@@ -238,13 +238,13 @@ elab_rules : tactic
     -- -- STEP 3: prove We end up with exp.val <= 1
 
 
-example (fv : Vector (ZMod ff) 8): (fv[0].val <= 1) -> (fv[1].val <= 1 ) -> (fv[2].val <= 1 ) -> ( (1: ZMod ff) - ( (fv[0]*fv[1] + (1-fv[0]) * (1-fv[1])) * ( fv[2]))).val < 7 := by
-  intros h1 h2 h3
-  -- Scenario we have 1 - exp
-  try valify [ h1, h2, h3]
-  --have h: (fv[0].val * fv[1].val + (1 - fv[0].val) * (1 - fv[1].val)) * fv[2].val < 2 := by sorry
-  valify_helper [h1, h2, h3]
-  sorry
+-- example (fv : Vector (ZMod ff) 8): (fv[0].val <= 1) -> (fv[1].val <= 1 ) -> (fv[2].val <= 1 ) -> ( (1: ZMod ff) - ( (fv[0]*fv[1] + (1-fv[0]) * (1-fv[1])) * ( fv[2]))).val < 7 := by
+--   intros h1 h2 h3
+--   -- Scenario we have 1 - exp
+--   try valify [ h1, h2, h3]
+--   --have h: (fv[0].val * fv[1].val + (1 - fv[0].val) * (1 - fv[1].val)) * fv[2].val < 2 := by sorry
+--   valify_helper [h1, h2, h3]
+--   sorry
   -- valify [ h1, h2, h3]
   --all_goals intro NatLeq
 
