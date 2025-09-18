@@ -306,7 +306,8 @@ elab_rules : tactic
     let mut updatedGoalsReversed : List MVarId := [] -- to keep track of goals we changed
     let mut handled := false
     progress := false
-    let mut goalQueue := Std.Queue.empty.enqueueAll goals
+    -- Note: do not use `enqueueAll` as it would need reversing the list
+    let mut goalQueue := Std.Queue.mk [] goals
     while (not handled && not goalQueue.isEmpty) do
       let some (g, rest) := goalQueue.dequeue? | unreachable!
       goalQueue := rest
