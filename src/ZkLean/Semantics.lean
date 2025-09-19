@@ -40,7 +40,7 @@ def semantics_zkexpr [ZKField f]
     | ZKExpr.Sub lhs rhs => do (← eval lhs) - (← eval rhs)
     | ZKExpr.Mul lhs rhs => do (← eval lhs) * (← eval rhs)
     | ZKExpr.Neg arg => do some (- (← eval arg))
-    | ZKExpr.Lookup table c0 c1 c2 c3 => do
+    | ZKExpr.ComposedLookup table c0 c1 c2 c3 => do
       let chunks := #v[← eval c0, ← eval c1, ← eval c2, ← eval c3].map ZKField.field_to_bits
       some (evalComposedLookupTable table chunks)
     | ZKExpr.LookupMLE table e =>

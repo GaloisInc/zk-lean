@@ -31,7 +31,7 @@ inductive ZKExpr (f: Type) where
   | Sub : (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
   | Neg : (rhs: ZKExpr f) -> ZKExpr f
   | Mul : (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
-  | Lookup: (table: ComposedLookupTable f 16 4) -> (c1: ZKExpr f) -> (c2: ZKExpr f) -> (c3: ZKExpr f) ->(c4: ZKExpr f) -> ZKExpr f -- TODO: this should be a Vector (ZKExpr f) 4 instead the 4 expressions
+  | ComposedLookup: (table: ComposedLookupTable f 16 4) -> (c1: ZKExpr f) -> (c2: ZKExpr f) -> (c3: ZKExpr f) ->(c4: ZKExpr f) -> ZKExpr f -- TODO: this should be a Vector (ZKExpr f) 4 instead the 4 expressions
   | LookupMLE: (table: LookupTableMLE f 64) -> (e: ZKExpr f) -> ZKExpr f
   | RamOp : (op_index: Nat) -> ZKExpr f
 

@@ -161,12 +161,12 @@ def ZKOpInterp [Zero f] {β} (op : ZKOp f β) (st : ZKBuilderState f) : (β × Z
   | ZKOp.ConstrainR1CS a b c =>
       ((), { st with constraints := (ZKExpr.Mul a b, c) :: st.constraints })
   | ZKOp.LookupMLEComposed tbl args =>
-      (ZKExpr.Lookup tbl args[0] args[1] args[2] args[3], st)
+      (ZKExpr.ComposedLookup tbl args[0] args[1] args[2] args[3], st)
   | ZKOp.LookupMLE tbl arg =>
       (ZKExpr.LookupMLE tbl arg, st)
   | ZKOp.MuxLookup ch cases =>
       let sum := Array.foldl (fun acc (flag, tbl) =>
-        acc + ZKExpr.Mul flag (ZKExpr.Lookup tbl ch[0] ch[1] ch[2] ch[3])) (ZKExpr.Literal (0 : f)) cases
+        acc + ZKExpr.Mul flag (ZKExpr.ComposedLookup tbl ch[0] ch[1] ch[2] ch[3])) (ZKExpr.Literal (0 : f)) cases
       (sum, st)
   | ZKOp.RamNew n =>
       let id := st.ram_sizes.size
