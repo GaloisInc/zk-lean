@@ -15,6 +15,16 @@ inductive Subtable (f: Type) (n: Nat) where
 def subtableFromMLE {n: Nat} (mle : Vector f n -> f) : Subtable f n := Subtable.SubtableMLE mle
 
 
+inductive Interleaving where
+  | Interleaved
+  | Concatenated
+
+structure LookupTableMLE (f: Type) (n: Nat) where
+  interleaving: Interleaving
+  mle : Vector f n -> f
+
+
+
 /-- Type for composed lookup tables
 
 A `ComposedLookupTable` is a collection of subtables with a function to
@@ -43,6 +53,13 @@ def evalSubtable {f: Type} {num_bits: Nat} (subtable: Subtable f num_bits) (inpu
   match subtable with
   | Subtable.SubtableMLE mle => mle input
 
+/-- Evaluation function defining the semantics of `Subtable` --/
+def evalLookupTableMLE {f: Type} {num_bits: Nat} (table: LookupTableMLE f num_bits) (input: Vector f num_bits): f :=
+  match table.interleaving with
+  | .Interleaved =>
+    let interleaved_input := input -- TODO: interleave here
+    table.mle input
+  | .Concatenated => table.mle input
 
 /--
   Evaluation function defining the semantics of `ComposedLookupTable`

@@ -31,8 +31,10 @@ inductive ZKOp (f : Type) : Type → Type
 | AllocWitness                         : ZKOp f (ZKExpr f)
 | ConstrainEq    (x y    : ZKExpr f)   : ZKOp f PUnit
 | ConstrainR1CS  (a b c  : ZKExpr f)   : ZKOp f PUnit
-| Lookup         (tbl    : ComposedLookupTable f 16 4)
+| LookupMLEComposed (tbl    : ComposedLookupTable f 16 4)
                  (args   : Vector (ZKExpr f) 4)        : ZKOp f (ZKExpr f)
+| LookupMLE      (lookupMLE: LookupTableMLE f 64)
+                 (arg: ZKExpr f): ZKOp f (ZKExpr f)
 | MuxLookup      (chunks : Vector (ZKExpr f) 4)
                  (cases  : Array (ZKExpr f × ComposedLookupTable f 16 4))
                                                      : ZKOp f (ZKExpr f)
@@ -84,7 +86,7 @@ Perform a MLE lookup into the given table with the provided argument chunks.
 @[simp_ZKBuilder]
 def lookup (tbl : ComposedLookupTable f 16 4)
            (args : Vector (ZKExpr f) 4) : ZKBuilder f (ZKExpr f) :=
-  FreeM.lift (ZKOp.Lookup tbl args)
+  FreeM.lift (ZKOp.LookupMLEComposed tbl args)
 
 /--
 Helper function to perform a mux over a set of lookup tables.
@@ -158,8 +160,10 @@ def ZKOpInterp [Zero f] {β} (op : ZKOp f β) (st : ZKBuilderState f) : (β × Z
       ((), { st with constraints := (x, y) :: st.constraints })
   | ZKOp.ConstrainR1CS a b c =>
       ((), { st with constraints := (ZKExpr.Mul a b, c) :: st.constraints })
-  | ZKOp.Lookup tbl args =>
+  | ZKOp.LookupMLEComposed tbl args =>
       (ZKExpr.Lookup tbl args[0] args[1] args[2] args[3], st)
+  | ZKOp.LookupMLE tbl arg =>
+      (ZKExpr.LookupMLE tbl arg, st)
   | ZKOp.MuxLookup ch cases =>
       let sum := Array.foldl (fun acc (flag, tbl) =>
         acc + ZKExpr.Mul flag (ZKExpr.Lookup tbl ch[0] ch[1] ch[2] ch[3])) (ZKExpr.Literal (0 : f)) cases

@@ -238,7 +238,7 @@ instance : ZKField (ZMod 7) where
     | 0 => 0
     | n + 1 => hash n
 
-  chunk_to_bits {num_bits: Nat} f :=
+  field_to_bits {num_bits: Nat} f :=
     let bv : BitVec 3 := BitVec.ofFin (Fin.castSucc f)
     -- TODO: Double check the endianess.
     Vector.map (fun i =>
