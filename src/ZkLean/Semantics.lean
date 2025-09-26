@@ -43,8 +43,8 @@ def semantics_zkexpr [ZKField f]
     | ZKExpr.ComposedLookup table c0 c1 c2 c3 => do
       let chunks := #v[← eval c0, ← eval c1, ← eval c2, ← eval c3].map ZKField.field_to_bits
       some (evalComposedLookupTable table chunks)
-    | ZKExpr.LookupMLE table e =>
-      do some (evalLookupTableMLE table (ZKField.field_to_bits (← eval e)))
+    | ZKExpr.LookupMLE table e1 e2 =>
+      do some (evalLookupTableMLE table (ZKField.field_to_bits (← eval e1)) (ZKField.field_to_bits (← eval e2)))
     | ZKExpr.RamOp op_id => ram_values[op_id]?.join
 
   eval expr

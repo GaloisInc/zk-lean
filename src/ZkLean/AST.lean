@@ -24,16 +24,17 @@ The construtors include the usual arithmetic operations.
 It includes also a constructor for looking up values in a lookup table
 and a constructor for RAM operations.
 -/
-inductive ZKExpr (f: Type) where
-  | Literal : (lit: f) -> ZKExpr f
-  | WitnessVar : (id: WitnessId) -> ZKExpr f
-  | Add : (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
-  | Sub : (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
-  | Neg : (rhs: ZKExpr f) -> ZKExpr f
-  | Mul : (lhs: ZKExpr f) -> (rhs: ZKExpr f) -> ZKExpr f
-  | ComposedLookup: (table: ComposedLookupTable f 16 4) -> (c1: ZKExpr f) -> (c2: ZKExpr f) -> (c3: ZKExpr f) ->(c4: ZKExpr f) -> ZKExpr f -- TODO: this should be a Vector (ZKExpr f) 4 instead the 4 expressions
-  | LookupMLE: (table: LookupTableMLE f 64) -> (e: ZKExpr f) -> ZKExpr f
-  | RamOp : (op_index: Nat) -> ZKExpr f
+inductive ZKExpr (f : Type) where
+  | Literal : (lit : f) -> ZKExpr f
+  | WitnessVar : (id : WitnessId) -> ZKExpr f
+  | Add : (lhs rhs : ZKExpr f) -> ZKExpr f
+  | Sub : (lhs rhs : ZKExpr f) -> ZKExpr f
+  | Neg : (arg : ZKExpr f) -> ZKExpr f
+  | Mul : (lhs rhs : ZKExpr f) -> ZKExpr f
+  -- TODO: this should be a Vector (ZKExpr f) 4 instead the 4 expressions
+  | ComposedLookup : (table : ComposedLookupTable f 16 4) -> (c1 c2 c3 c4 : ZKExpr f) -> ZKExpr f
+  | LookupMLE : (table : LookupTableMLE f 64) -> (e1 e2 : ZKExpr f) -> ZKExpr f
+  | RamOp : (op_index : Nat) -> ZKExpr f
 
 instance [Inhabited f]: Inhabited (ZKExpr f) where
   default := ZKExpr.Literal default

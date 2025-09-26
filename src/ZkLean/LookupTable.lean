@@ -1,5 +1,4 @@
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Even
+import ZkLean.Interleaving
 
 /-- Type for subtables, the building blocks to construct lookup tables.
 
@@ -54,12 +53,10 @@ def evalSubtable {f: Type} {num_bits: Nat} (subtable: Subtable f num_bits) (inpu
   | Subtable.SubtableMLE mle => mle input
 
 /-- Evaluation function defining the semantics of `Subtable` --/
-def evalLookupTableMLE {f: Type} {num_bits: Nat} (table: LookupTableMLE f num_bits) (input: Vector f num_bits): f :=
+def evalLookupTableMLE (table: LookupTableMLE f (n + n)) (input1 input2: Vector f n): f :=
   match table.interleaving with
-  | .Interleaved =>
-    let interleaved_input := input -- TODO: interleave here
-    table.mle input
-  | .Concatenated => table.mle input
+  | .Interleaved => table.mle (interleave input1 input2)
+  | .Concatenated => table.mle (input1 ++ input2)
 
 /--
   Evaluation function defining the semantics of `ComposedLookupTable`
