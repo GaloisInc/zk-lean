@@ -5,13 +5,24 @@ import Mathlib.Data.Nat.Prime.Defs
 import Mathlib.Data.ZMod.Defs
 import MPL
 import MPL.Triple
+
 import ZkLean
+import ZkLean.SimpSets
 
 def main : IO Unit :=
   IO.println s!"Hello!"
 
+-- Note: assuming FreeM gets upstreamed, we would need to register these
+attribute [simp_FreeM] bind
+attribute [simp_FreeM] default
+attribute [simp_FreeM] FreeM.bind
+attribute [simp_FreeM] FreeM.foldM
 
-
+attribute [simp_MPL] MPL.Triple
+attribute [simp_MPL] MPL.SPred.entails
+attribute [simp_MPL] MPL.PredTrans.apply
+attribute [simp_MPL] MPL.PredTrans.pure
+attribute [simp_MPL] MPL.wp
 
 -- ZKProof 7 examples
 
@@ -132,6 +143,9 @@ def uniform_jolt_constraint [ZKField f] (jolt_inputs: JoltR1CSInputs f) : ZKBuil
 --   constrainR1CS (step_1.jolt_flag * 872187687 + ...) (step_2.jolt_flag + 1) (1)
 --   ...
 
+attribute [simp_circuit] runFold
+
+@[simp_circuit]
 def run_circuit' [ZKField f] (circuit: ZKBuilder f a) (witness: List f) : Bool :=
   let (_circ_states, zk_builder) := runFold circuit default
   let b := semantics_constraints zk_builder.constraints witness (Array.empty)
@@ -194,10 +208,12 @@ theorem constraints_seq c1 c2 :
 -- {} constrainEq2 a b {a_f == b_f}
 -- {} run_circuit (constrainEq2 a b) {state ws res => res <-> (eval a · ·  == eval b ws state)}
 -- run_circuit : ReaderT [f] (ReaderT (ZKBuilderState f)) bool
+@[simp_ZKBuilder]
 def constrainEq2 [ZKField f] (a b : ZKExpr f) : ZKBuilder f PUnit := do
   -- NOTE: equivalently `constrainR1CS (a - b) 1 0`
   ZKBuilder.constrainR1CS a 1 b
 
+@[simp_circuit]
 def circuit1 [ZKField f] : ZKBuilder f PUnit := do
   let a <- Witnessable.witness
   let b <- Witnessable.witness
@@ -213,7 +229,6 @@ def circuit2 [ZKField f] : ZKBuilder f PUnit := do
   let b <- Witnessable.witness
   let c <- Witnessable.witness
   constrainEq3 a b c
-
 
 instance : Fact (Nat.Prime 7) := by decide
 instance : ZKField (ZMod 7) where
@@ -243,55 +258,11 @@ def circuit12 : ZKBuilder (ZMod 7) PUnit := do
 #eval run_circuit' circuit12 [0, 1]
 #eval run_circuit' circuit12 [0, 0]
 
-#check instZKFieldZModOfNatNat_main
--- #check instWitness
-
-
-theorem circuitEq2SoundTry [ZKField f]: (run_circuit' circuit1 [ (a: f), (a:f )] = true) := by
-  simp [run_circuit', runFold, circuit1, FreeM.foldM, Witnessable.witness, ZKBuilder.witness, FreeM.foldM]
-  unfold constrainEq2
-  unfold ZKBuilder.constrainR1CS
-  unfold default
-  simp
-  unfold instInhabitedZKBuilderState
-  simp
-  unfold default
-  unfold instInhabitedList
-  unfold Array.instInhabited
-  unfold FreeM.foldM
-  simp
-  unfold bind
-  unfold Monad.toBind
-  unfold instMonadZKBuilder
-  unfold inferInstance
-  unfold FreeM.instMonad
-  simp
-  repeat unfold FreeM.bind
-  simp
-  simp [FreeM.foldM, ZKOpInterp, semantics_constraints, semantics_zkexpr, semantics_zkexpr.eval, semantics_zkexpr.eval]
+theorem circuitEq2SoundTry [ZKField f] (a : f) : (run_circuit' circuit1 [a, a] = true) := by
+  simp [simp_circuit, simp_FreeM, simp_ZKBuilder, simp_ZKSemantics]
 
 theorem circuitEq2Eval [ZKField f]: (run_circuit' circuit1 [ (a: f), (b: f)] = (a == b)) := by
-  simp [run_circuit', runFold, circuit1, FreeM.foldM, Witnessable.witness, ZKBuilder.witness, FreeM.foldM]
-  unfold constrainEq2
-  unfold ZKBuilder.constrainR1CS
-  simp
-  unfold default
-  unfold instInhabitedZKBuilderState
-  simp
-  unfold default
-  unfold instInhabitedList
-  unfold Array.instInhabited
-  unfold FreeM.foldM
-  simp
-  unfold bind
-  unfold Monad.toBind
-  unfold instMonadZKBuilder
-  unfold inferInstance
-  unfold FreeM.instMonad
-  simp
-  repeat unfold FreeM.bind
-  simp
-  simp [FreeM.foldM, ZKOpInterp, semantics_constraints, semantics_zkexpr, semantics_zkexpr.eval, semantics_zkexpr.eval]
+  simp [simp_circuit, simp_FreeM, simp_ZKBuilder, simp_ZKSemantics]
 
 #check StateT.run_bind
 attribute [local simp] StateT.run_bind
@@ -373,22 +344,9 @@ theorem constrainEq2Sound' [ZKField f] (a b:ZKExpr f) (witness: List f) :
     eval_exprf a s witness == eval_exprf b s witness ⌝
   ⦄
   := by
-  simp [run_circuit', runFold, circuit1, FreeM.foldM, Witnessable.witness, ZKBuilder.witness, FreeM.foldM]
-  unfold constrainEq2
-  unfold ZKBuilder.constrainR1CS
-  simp
-  unfold MPL.Triple
-  simp [MPL.SPred.entails]
+  simp [simp_circuit, simp_FreeM, simp_MPL, simp_ZKBuilder, simp_ZKSemantics]
   intro s'
-  unfold MPL.PredTrans.apply
-  unfold MPL.wp
-  unfold instWPZKBuilderArgZKBuilderStatePureOfZero
-  unfold MPL.PredTrans.pure
-  simp [runFold]
-  simp [eval_circuit, FreeM.foldM, ZKOpInterp, eval_exprf, semantics, semantics_constraints]
   unfold ZKBuilderState.ram_sizes
-  simp [semantics_zkexpr]
-  simp [semantics_zkexpr.eval]
   constructor
   intro h
   cases h' : (semantics_ram witness s'.3 s'.ram_ops)

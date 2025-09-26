@@ -1,9 +1,11 @@
-import Mathlib.Algebra.Field.Defs
-import ZkLean.AST
-import ZkLean.Builder
-import Init.Prelude
 import Init.Data.Array.Basic
 import Init.Data.Array.Set
+import Init.Prelude
+import Mathlib.Algebra.Field.Defs
+
+import ZkLean.AST
+import ZkLean.Builder
+import ZkLean.SimpSets
 
 /-- Class for Fields with additional properties necessary for ZkLean -/
 class ZKField (f: Type) extends Field f, BEq f, Inhabited f, LawfulBEq f, Hashable f where
@@ -24,12 +26,13 @@ The semantics of the ZKExpr is defined as a recursive function that takes a `ZKE
 a witness vector, some RAM values, and returns an a field value when the expression
 evaluates correctly or nothing if the expression is not well defined.
 -/
+@[simp_ZKSemantics]
 def semantics_zkexpr [ZKField f]
   (expr: ZKExpr f)
   (witness: List f )
   (ram_values: RamOpsEval f)
   : Option f :=
-  let rec eval (e: ZKExpr f) : Option f :=
+  let rec @[simp_ZKSemantics] eval (e: ZKExpr f) : Option f :=
     match e with
     | ZKExpr.Literal lit => some lit
     | ZKExpr.WitnessVar id =>
@@ -136,6 +139,7 @@ def semantics_ram [ZKField f]
 
 It takes a list of constraints, a list of witnesses and a list of RAM operation values
 -/
+@[simp_ZKSemantics]
 def semantics_constraints [ZKField f]
   (constraints: List (ZKExpr f × ZKExpr f))
   (witness: List f)
@@ -159,6 +163,7 @@ def semantics_constraints [ZKField f]
 It takes a list of witnesses and a state of constructed ZK circuit and returns a boolean indicating
 whether the circuit is satisfied.
 -/
+@[simp_ZKSemantics]
 def semantics [ZKField f] (witness: List f) (state: ZKBuilderState f) : Bool :=
   -- First, we need to evaluate the RAM operations and get the values
   let ram_values := semantics_ram witness state.ram_sizes state.ram_ops;
