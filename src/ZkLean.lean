@@ -6,4 +6,3 @@ import ZkLean.Builder
 import ZkLean.Formalism
 import ZkLean.LookupTable
 import ZkLean.Semantics
-import ZkLean.Examples

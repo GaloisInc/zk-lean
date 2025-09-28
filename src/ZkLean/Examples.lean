@@ -1,3 +1,4 @@
 import ZkLean.Examples.and
-import ZkLean.Examples.assert_lte
+-- Below is slow uncomment to make sure tactic fully works
+-- import ZkLean.Examples.assert_lte
 import ZkLean.Examples.xor

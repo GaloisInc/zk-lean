@@ -1,11 +1,5 @@
 import Mathlib.Algebra.Field.Defs
 import ZkLean.LookupTable
-import Mathlib.Init
-import Lean.Meta.Tactic.Simp.SimpTheorems
-import Lean.Meta.Tactic.Simp.RegisterCommand
-import Lean.LabelAttribute
-
-
 
 
 /-- Type to identify witness variables -/
@@ -67,6 +61,3 @@ instance: Neg (ZKExpr f) where
 
 instance: HMul (ZKExpr f) (ZKExpr f) (ZKExpr f) where
   hMul := ZKExpr.Mul
-
-
-register_simp_attr valify_simps

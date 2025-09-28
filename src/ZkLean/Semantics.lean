@@ -79,7 +79,7 @@ def semantics_ram [ZKField f]
   (ram_ops: Array (RamOp f))
   : Option (RamOpsEval f) := do
   -- Let's create the empty environment
-  let empty_env: RamEnv f := Array.replicate ram_sizes.size (Std.HashMap.emptyWithCapacity 0);
+  let empty_env: RamEnv f := Array.mkArray ram_sizes.size (Std.HashMap.empty);
 
   -- For every RAM operation, update the RAM environment and the list of evaluated operations
   let res <- Array.foldlM  (λ (env, ops_eval) ram_op =>
@@ -145,6 +145,3 @@ def semantics [ZKField f] (witness: List f) (state: ZKBuilderState f) : Bool :=
   else
     -- If the RAM values are not valid, we return
     false
-
-
----

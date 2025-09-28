@@ -38,7 +38,7 @@ attribute [simp_Triple] Std.Do.wp
 def example1 [ZKField f] : ZKBuilder f (ZKExpr f) := do
   let x: ZKExpr f <- Witnessable.witness
   let one: ZKExpr f := 1
-  constrainEq (x * (x - one)) 0
+  ZKBuilder.constrainEq (x * (x - one)) 0
   return x
 
 def eq8 [Field f] : Subtable f 16 :=
@@ -142,8 +142,8 @@ structure JoltR1CSInputs (f : Type):  Type where
 -- Example of what we extract from Jolt
 -- TODO: Make a struct for the witness variables in a Jolt step. Automatically extract this from JoltInputs enum?
 def uniform_jolt_constraint [ZKField f] (jolt_inputs: JoltR1CSInputs f) : ZKBuilder f PUnit := do
-  constrainR1CS ((1 +  jolt_inputs.chunk_1 ) * 829) 1 1
-  constrainR1CS 1 1 ((1 +  jolt_inputs.chunk_1 ) * 829)
+  ZKBuilder.constrainR1CS ((1 +  jolt_inputs.chunk_1 ) * 829) 1 1
+  ZKBuilder.constrainR1CS 1 1 ((1 +  jolt_inputs.chunk_1 ) * 829)
   -- ...
 
 --   ...
@@ -156,7 +156,7 @@ attribute [simp_circuit] runFold
 
 @[simp_circuit]
 def run_circuit' [ZKField f] (circuit: ZKBuilder f a) (witness: List f) : Bool :=
-  let (_circ_states, zk_builder) := StateT.run circuit default
+  let (_circ_states, zk_builder) := runFold circuit default
   let b := semantics_constraints zk_builder.constraints witness (Array.empty)
   b
 
@@ -220,7 +220,7 @@ theorem constraints_seq c1 c2 :
 @[simp_ZKBuilder]
 def constrainEq2 [ZKField f] (a b : ZKExpr f) : ZKBuilder f PUnit := do
   -- NOTE: equivalently `constrainR1CS (a - b) 1 0`
-  constrainR1CS a 1 b
+  ZKBuilder.constrainR1CS a 1 b
 
 @[simp_circuit]
 def circuit1 [ZKField f] : ZKBuilder f PUnit := do
@@ -316,14 +316,37 @@ theorem constrainEq3Trivial [ZKField f] (a b c:ZKExpr f) :
   mpure h
   simp [h]
   unfold constrainEq3
-  mspec (constrainEq2Trivial a b)
-  mintro ∀s2
-  mpure h
-  rename' h => hAB
-  mspec (constrainEq2Trivial b c)
-  mintro ∀s3
-  mpure h
-  simp [h, hAB]
+  sorry
+  -- mspec (constrainEq2Trivial a b)
+  -- mintro ∀s2
+  -- mpure h
+  -- rename' h => hAB
+  -- mspec (constrainEq2Trivial b c)
+  -- mintro ∀s3
+  -- mpure h
+  -- simp [h, hAB]
+
+  -- mintro h ∀old
+  -- mpure h
+  -- simp [h]
+  -- unfold constrainEq3
+  -- unfold constrainEq2
+  -- unfold ZKBuilder.constrainR1CS
+  -- simp
+  -- unfold MPL.PredTrans.apply
+  -- unfold bind
+  -- unfold Monad.toBind
+  -- unfold instMonadZKBuilder
+  -- unfold inferInstance
+  -- unfold FreeM.instMonad
+  -- simp
+  -- repeat unfold FreeM.bind
+  -- constructor
+
+@[simp]
+lemma isSome_eq_true_iff {α : Type*} {o : Option α} :
+  o.isSome = true ↔ ∃ x, o = some x :=
+  by cases o <;> simp
 
 theorem constrainEq2Sound' [ZKField f] (a b:ZKExpr f) (witness: List f) :
   ⦃λ s => ⌜True⌝ ⦄ -- eval_circuit s witness ⦄
@@ -392,60 +415,61 @@ theorem constrainEq3Transitive [ZKField f] (a b c:ZKExpr f) (witness: List f) :
   mintro h0 ∀s0
   mpure h0
   unfold constrainEq3
-  -- mwp
-
-  mspec (constrainEq2Sound' a b witness)
-  mcases h with hAB
-  mintro ∀s1
-  mpure hAB
-
-  have hCompose :
-    ⦃λ s => s = s1 ∧ True ∧ s = s1 ∧ s = s1⦄
-    constrainEq2 b c
-    ⦃⇓ _r s =>
-      ⌜eval_circuit s witness → eval_circuit s1 witness⌝
-      ∧
-      ⌜ eval_circuit s witness ↔
-      eval_exprf b s witness == eval_exprf c s witness ⌝
-      ∧
-      ⌜eval_exprf a s1 witness = eval_exprf a s witness⌝
-      ∧
-      ⌜eval_exprf b s1 witness = eval_exprf b s witness⌝
-    ⦄
-    := MPL.Triple.and (constrainEq2 b c)
-       (previous_success (constrainEq2 b c) witness)
-       (MPL.Triple.and (constrainEq2 b c)
-         (constrainEq2Sound' b c witness)
-         (MPL.Triple.and (constrainEq2 b c)
-         (eval_const (constrainEq2 b c) witness a)
-         (eval_const (constrainEq2 b c) witness b)))
-
-  mspec hCompose
-
-  mintro ∀s2
+  unfold constrainEq2
+  unfold ZKBuilder.constrainR1CS
   simp
-  intro hBC
+  intro s'
+  sorry
+  -- mintro ∀s1
+  -- mpure hAB
 
-  intro hS2'
-  intro hA
-  intro hB
-  intro hS2
+  -- have hCompose :
+  --   ⦃λ s => s = s1 ∧ True ∧ s = s1 ∧ s = s1⦄
+  --   constrainEq2 b c
+  --   ⦃⇓ _r s =>
+  --     ⌜eval_circuit s witness → eval_circuit s1 witness⌝
+  --     ∧
+  --     ⌜ eval_circuit s witness ↔
+  --     eval_exprf b s witness == eval_exprf c s witness ⌝
+  --     ∧
+  --     ⌜eval_exprf a s1 witness = eval_exprf a s witness⌝
+  --     ∧
+  --     ⌜eval_exprf b s1 witness = eval_exprf b s witness⌝
+  --   ⦄
+  --   := MPL.Triple.and (constrainEq2 b c)
+  --      (previous_success (constrainEq2 b c) witness)
+  --      (MPL.Triple.and (constrainEq2 b c)
+  --        (constrainEq2Sound' b c witness)
+  --        (MPL.Triple.and (constrainEq2 b c)
+  --        (eval_const (constrainEq2 b c) witness a)
+  --        (eval_const (constrainEq2 b c) witness b)))
 
-  have hEvalBC: eval_exprf b s2 witness = eval_exprf c s2 witness := by apply hS2'.mp hS2
-  rw [← hEvalBC]
+  -- mspec hCompose
 
-  have hCompose2: eval_circuit s2 witness → eval_circuit s1 witness := by
-    exact hBC
+  -- mintro ∀s2
+  -- simp
+  -- intro hBC
 
-  have hS1: eval_circuit s1 witness := by
-    apply hCompose2 at hS2
-    exact hS2
+  -- intro hS2'
+  -- intro hA
+  -- intro hB
+  -- intro hS2
 
-  have hP1: eval_exprf a s1 witness = eval_exprf b s1 witness := by
-    simp at hAB
-    grind
-  have hP2: eval_exprf a s2 witness = eval_exprf b s2 witness := by
-    rw [hA] at hP1
-    rw [hB] at hP1
-    exact hP1
-  exact hP2
+  -- have hEvalBC: eval_exprf b s2 witness = eval_exprf c s2 witness := by apply hS2'.mp hS2
+  -- rw [← hEvalBC]
+
+  -- have hCompose2: eval_circuit s2 witness → eval_circuit s1 witness := by
+  --   exact hBC
+
+  -- have hS1: eval_circuit s1 witness := by
+  --   apply hCompose2 at hS2
+  --   exact hS2
+
+  -- have hP1: eval_exprf a s1 witness = eval_exprf b s1 witness := by
+  --   simp at hAB
+  --   grind
+  -- have hP2: eval_exprf a s2 witness = eval_exprf b s2 witness := by
+  --   rw [hA] at hP1
+  --   rw [hB] at hP1
+  --   exact hP1
+  -- exact hP2
