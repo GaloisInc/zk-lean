@@ -1,14 +1,13 @@
-import ZkLean.Formalism
+
 import Mathlib.Algebra.Field.ZMod
-import ZkLean.valify
+import ZkLean.Formalism
+import BvMod_eq.solve_mle
 
-abbrev ff := 17179869203
+abbrev ff := 17179869211
 abbrev f := ZMod ff
-abbrev b := Nat.log2 ff
-
-
 
 instance : Fact (Nat.Prime ff) := by sorry
+
 instance : ZKField (ZMod ff) where
   hash x :=
     match x.val with
@@ -27,9 +26,7 @@ instance : ZKField (ZMod ff) where
 
 instance : Witnessable (ZMod ff) (ZMod ff) := by sorry
 
-open Mathlib.Tactic.Valify
-
-instance NotTwo: GtTwo (ff) := by
+instance NotTwo: BvMod_eq.GtTwo (ff) := by
   have hlt: 2 < ff := by decide
   sorry
 

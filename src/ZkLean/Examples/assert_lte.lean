@@ -1,3 +1,5 @@
+import ZkLean.def_ff
+
 
 
 def VirtualAssertLTE_32 [Field f] : Subtable f 32 :=
@@ -5,73 +7,80 @@ def VirtualAssertLTE_32 [Field f] : Subtable f 32 :=
 
 
 lemma assert_lte_32_mle_one_chunk_[ZKField f] (bv1 bv2 : BitVec 32) (fv1 fv2 : Vector f 32) :
-  some bvoutput = map_f_to_bv_32 foutput ->
-   some (bool_to_bv_32 bv1[31])  = map_f_to_bv_32 fv1[0]  ->
-   some (bool_to_bv_32 bv2[31]) =map_f_to_bv_32 fv1[1]  ->
-   some (bool_to_bv_32 bv1[30]) = map_f_to_bv_32 fv1[2]  ->
-   some (bool_to_bv_32 bv2[30]) = map_f_to_bv_32 fv1[3]  ->
-   some (bool_to_bv_32 bv1[29]) = map_f_to_bv_32 fv1[4]  ->
-   some (bool_to_bv_32 bv2[29]) = map_f_to_bv_32 fv1[5]  ->
-   some (bool_to_bv_32 bv1[28]) = map_f_to_bv_32 fv1[6]  ->
-   some (bool_to_bv_32 bv2[28]) = map_f_to_bv_32 fv1[7]  ->
-   some (bool_to_bv_32 bv1[27])  = map_f_to_bv_32 fv1[8]  ->
-   some (bool_to_bv_32 bv2[27]) = map_f_to_bv_32 fv1[9]  ->
-   some (bool_to_bv_32 bv1[26]) = map_f_to_bv_32 fv1[10]  ->
-   some (bool_to_bv_32 bv2[26]) = map_f_to_bv_32 fv1[11]  ->
-   some (bool_to_bv_32 bv1[25]) = map_f_to_bv_32 fv1[12]  ->
-   some (bool_to_bv_32 bv2[25]) = map_f_to_bv_32 fv1[13]  ->
-   some (bool_to_bv_32 bv1[24]) = map_f_to_bv_32 fv1[14]  ->
-   some (bool_to_bv_32 bv2[24]) = map_f_to_bv_32 fv1[15]  ->
-   some (bool_to_bv_32 bv1[23])  = map_f_to_bv_32 fv1[16]  ->
-   some (bool_to_bv_32 bv2[23]) =map_f_to_bv_32 fv1[17]  ->
-   some (bool_to_bv_32 bv1[22]) = map_f_to_bv_32 fv1[18]  ->
-   some (bool_to_bv_32 bv2[22]) = map_f_to_bv_32 fv1[19]  ->
-   some (bool_to_bv_32 bv1[21]) = map_f_to_bv_32 fv1[20]  ->
-   some (bool_to_bv_32 bv2[21]) = map_f_to_bv_32 fv1[21]  ->
-   some (bool_to_bv_32 bv1[20]) = map_f_to_bv_32 fv1[22]  ->
-   some (bool_to_bv_32 bv2[20]) = map_f_to_bv_32 fv1[23]  ->
-   some (bool_to_bv_32 bv1[19])  = map_f_to_bv_32 fv1[24]  ->
-   some (bool_to_bv_32 bv2[19]) =map_f_to_bv_32 fv1[25]  ->
-   some (bool_to_bv_32 bv1[18]) = map_f_to_bv_32 fv1[26]  ->
-   some (bool_to_bv_32 bv2[18]) = map_f_to_bv_32 fv1[27]  ->
-   some (bool_to_bv_32 bv1[17]) = map_f_to_bv_32 fv1[28]  ->
-   some (bool_to_bv_32 bv2[17]) = map_f_to_bv_32 fv1[29]  ->
-   some (bool_to_bv_32 bv1[16]) = map_f_to_bv_32 fv1[30]  ->
-   some (bool_to_bv_32 bv2[16]) = map_f_to_bv_32 fv1[31]  ->
-  some (bool_to_bv_32 bv1[15])  = map_f_to_bv_32 fv2[0]  ->
-   some (bool_to_bv_32 bv2[15]) =map_f_to_bv_32 fv2[1]  ->
-   some (bool_to_bv_32 bv1[14]) = map_f_to_bv_32 fv2[2]  ->
-   some (bool_to_bv_32 bv2[14]) = map_f_to_bv_32 fv2[3]  ->
-   some (bool_to_bv_32 bv1[13]) = map_f_to_bv_32 fv2[4]  ->
-   some (bool_to_bv_32 bv2[13]) = map_f_to_bv_32 fv2[5]  ->
-   some (bool_to_bv_32 bv1[12]) = map_f_to_bv_32 fv2[6]  ->
-   some (bool_to_bv_32 bv2[12]) = map_f_to_bv_32 fv2[7]  ->
-  some (bool_to_bv_32 bv1[11]) = map_f_to_bv_32 fv2[8]  ->
-  some (bool_to_bv_32 bv2[11]) = map_f_to_bv_32 fv2[9]  ->
-  some (bool_to_bv_32 bv1[10]) = map_f_to_bv_32  fv2[10]  ->
-  some (bool_to_bv_32 bv2[10]) = map_f_to_bv_32 fv2[11]  ->
-  some (bool_to_bv_32 bv1[9]) = map_f_to_bv_32 fv2[12]  ->
-  some (bool_to_bv_32 bv2[9]) = map_f_to_bv_32 fv2[13]  ->
-  some (bool_to_bv_32 bv1[8]) = map_f_to_bv_32 fv2[14]  ->
-  some (bool_to_bv_32 bv2[8]) = map_f_to_bv_32 fv2[15]  ->
-   some (bool_to_bv_32 bv1[7])  = map_f_to_bv_32 fv2[16]  ->
-   some (bool_to_bv_32 bv2[7]) =map_f_to_bv_32 fv2[17]  ->
-   some (bool_to_bv_32 bv1[6]) = map_f_to_bv_32 fv2[18]  ->
-   some (bool_to_bv_32 bv2[6]) = map_f_to_bv_32 fv2[19]  ->
-   some (bool_to_bv_32 bv1[5]) = map_f_to_bv_32 fv2[20]  ->
-   some (bool_to_bv_32 bv2[5]) = map_f_to_bv_32 fv2[21]  ->
-   some (bool_to_bv_32 bv1[4]) = map_f_to_bv_32 fv2[22]  ->
-   some (bool_to_bv_32 bv2[4]) = map_f_to_bv_32 fv2[23]  ->
-  some (bool_to_bv_32 bv1[3]) = map_f_to_bv_32 fv2[24]  ->
-  some (bool_to_bv_32 bv2[3]) = map_f_to_bv_32 fv2[25]  ->
-  some (bool_to_bv_32 bv1[2]) = map_f_to_bv_32  fv2[26]  ->
-  some (bool_to_bv_32 bv2[2]) = map_f_to_bv_32 fv2[27]  ->
-  some (bool_to_bv_32 bv1[1]) = map_f_to_bv_32 fv2[28]  ->
-  some (bool_to_bv_32 bv2[1]) = map_f_to_bv_32 fv2[29]  ->
-  some (bool_to_bv_32 bv1[0]) = map_f_to_bv_32 fv2[30]  ->
-  some (bool_to_bv_32 bv2[0]) = map_f_to_bv_32 fv2[31]  ->
-  (bvoutput = bool_to_bv_32 (bv1 <= bv2))
+  some bvoutput = BvMod_eq.map_f_to_bv_32 foutput ->
+   some (BvMod_eq.bool_to_bv_32 bv1[31])  = BvMod_eq.map_f_to_bv_32 fv1[0]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[31])  =BvMod_eq.map_f_to_bv_32 fv1[1]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[30]) = BvMod_eq.map_f_to_bv_32 fv1[2]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[30]) = BvMod_eq.map_f_to_bv_32 fv1[3]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[29]) = BvMod_eq.map_f_to_bv_32 fv1[4]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[29]) = BvMod_eq.map_f_to_bv_32 fv1[5]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[28]) = BvMod_eq.map_f_to_bv_32 fv1[6]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[28]) = BvMod_eq.map_f_to_bv_32 fv1[7]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[27])  = BvMod_eq.map_f_to_bv_32 fv1[8]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[27]) = BvMod_eq.map_f_to_bv_32 fv1[9]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[26]) = BvMod_eq.map_f_to_bv_32 fv1[10]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[26]) = BvMod_eq.map_f_to_bv_32 fv1[11]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[25]) = BvMod_eq.map_f_to_bv_32 fv1[12]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[25]) = BvMod_eq.map_f_to_bv_32 fv1[13]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[24]) = BvMod_eq.map_f_to_bv_32 fv1[14]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[24]) = BvMod_eq.map_f_to_bv_32 fv1[15]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[23])  = BvMod_eq.map_f_to_bv_32 fv1[16]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[23]) = BvMod_eq.map_f_to_bv_32 fv1[17]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[22]) = BvMod_eq.map_f_to_bv_32 fv1[18]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[22]) = BvMod_eq.map_f_to_bv_32 fv1[19]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[21]) = BvMod_eq.map_f_to_bv_32 fv1[20]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[21]) = BvMod_eq.map_f_to_bv_32 fv1[21]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[20]) = BvMod_eq.map_f_to_bv_32 fv1[22]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[20]) = BvMod_eq.map_f_to_bv_32 fv1[23]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[19])  = BvMod_eq.map_f_to_bv_32 fv1[24]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[19]) = BvMod_eq.map_f_to_bv_32 fv1[25]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[18]) = BvMod_eq.map_f_to_bv_32 fv1[26]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[18]) = BvMod_eq.map_f_to_bv_32 fv1[27]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[17]) = BvMod_eq.map_f_to_bv_32 fv1[28]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[17]) = BvMod_eq.map_f_to_bv_32 fv1[29]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[16]) = BvMod_eq.map_f_to_bv_32 fv1[30]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[16]) = BvMod_eq.map_f_to_bv_32 fv1[31]  ->
+  some (BvMod_eq.bool_to_bv_32 bv1[15])  = BvMod_eq.map_f_to_bv_32 fv2[0]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[15]) = BvMod_eq.map_f_to_bv_32 fv2[1]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[14]) = BvMod_eq.map_f_to_bv_32 fv2[2]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[14]) = BvMod_eq.map_f_to_bv_32 fv2[3]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[13]) = BvMod_eq.map_f_to_bv_32 fv2[4]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[13]) = BvMod_eq.map_f_to_bv_32 fv2[5]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[12]) = BvMod_eq.map_f_to_bv_32 fv2[6]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[12]) = BvMod_eq.map_f_to_bv_32 fv2[7]  ->
+  some (BvMod_eq.bool_to_bv_32 bv1[11]) = BvMod_eq.map_f_to_bv_32 fv2[8]  ->
+  some (BvMod_eq.bool_to_bv_32 bv2[11]) = BvMod_eq.map_f_to_bv_32 fv2[9]  ->
+  some (BvMod_eq.bool_to_bv_32 bv1[10]) = BvMod_eq.map_f_to_bv_32  fv2[10]  ->
+  some (BvMod_eq.bool_to_bv_32 bv2[10]) = BvMod_eq.map_f_to_bv_32 fv2[11]  ->
+  some (BvMod_eq.bool_to_bv_32 bv1[9]) = BvMod_eq.map_f_to_bv_32 fv2[12]  ->
+  some (BvMod_eq.bool_to_bv_32 bv2[9]) = BvMod_eq.map_f_to_bv_32 fv2[13]  ->
+  some (BvMod_eq.bool_to_bv_32 bv1[8]) = BvMod_eq.map_f_to_bv_32 fv2[14]  ->
+  some (BvMod_eq.bool_to_bv_32 bv2[8]) = BvMod_eq.map_f_to_bv_32 fv2[15]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[7])  = BvMod_eq.map_f_to_bv_32 fv2[16]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[7]) =BvMod_eq.map_f_to_bv_32 fv2[17]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[6]) = BvMod_eq.map_f_to_bv_32 fv2[18]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[6]) = BvMod_eq.map_f_to_bv_32 fv2[19]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[5]) = BvMod_eq.map_f_to_bv_32 fv2[20]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[5]) = BvMod_eq.map_f_to_bv_32 fv2[21]  ->
+   some (BvMod_eq.bool_to_bv_32 bv1[4]) = BvMod_eq.map_f_to_bv_32 fv2[22]  ->
+   some (BvMod_eq.bool_to_bv_32 bv2[4]) = BvMod_eq.map_f_to_bv_32 fv2[23]  ->
+  some (BvMod_eq.bool_to_bv_32 bv1[3]) = BvMod_eq.map_f_to_bv_32 fv2[24]  ->
+  some (BvMod_eq.bool_to_bv_32 bv2[3]) = BvMod_eq.map_f_to_bv_32 fv2[25]  ->
+  some (BvMod_eq.bool_to_bv_32 bv1[2]) = BvMod_eq.map_f_to_bv_32  fv2[26]  ->
+  some (BvMod_eq.bool_to_bv_32 bv2[2]) = BvMod_eq.map_f_to_bv_32 fv2[27]  ->
+  some (BvMod_eq.bool_to_bv_32 bv1[1]) = BvMod_eq.map_f_to_bv_32 fv2[28]  ->
+  some (BvMod_eq.bool_to_bv_32 bv2[1]) = BvMod_eq.map_f_to_bv_32 fv2[29]  ->
+  some (BvMod_eq.bool_to_bv_32 bv1[0]) = BvMod_eq.map_f_to_bv_32 fv2[30]  ->
+  some (BvMod_eq.bool_to_bv_32 bv2[0]) = BvMod_eq.map_f_to_bv_32 fv2[31]  ->
+  (bvoutput = BvMod_eq.bool_to_bv_32 (bv1 <= bv2))
   =
   (foutput = evalSubtable VirtualAssertLTE_32 (Vector.append fv1 fv2))
 := by
- solveMLE VirtualAssertLTE_32 32
+ unfold VirtualAssertLTE_32
+ unfold evalSubtable
+ simp (config := { failIfUnchanged := false })
+ unfold subtableFromMLE
+ simp (config := { failIfUnchanged := false })
+ unfold Vector.append
+ simp (config := { failIfUnchanged := false })
+ solveMLE 32
