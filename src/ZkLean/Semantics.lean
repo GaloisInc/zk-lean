@@ -35,47 +35,15 @@ def semantics_zkexpr [ZKField f]
   let rec @[simp_ZKSemantics] eval (e: ZKExpr f) : Option f :=
     match e with
     | ZKExpr.Literal lit => some lit
-    | ZKExpr.WitnessVar id =>
-      if let some v := witness[id]?
-      then some v
-      else none
-    | ZKExpr.Add lhs rhs =>
-      let a := eval lhs
-      let b := eval rhs
-      match a,b with
-      | some va, some vb => some (va + vb)
-      | _, _ => none
-    | ZKExpr.Sub lhs rhs =>
-      let a := eval lhs
-      let b := eval rhs
-      match a,b with
-      | some va, some vb => some (va - vb)
-      | _, _ => none
-    | ZKExpr.Neg rhs =>
-      let a := eval rhs
-      match a with
-      | some va => some (-va)
-      | _ => none
-    | ZKExpr.Mul lhs rhs =>
-      let a := eval lhs
-      let b := eval rhs
-      match a,b with
-      | some va, some vb => some (va * vb)
-      | _, _ => none
-    | ZKExpr.Lookup table c0 c1 c2 c3 =>
-      let e0 := eval c0
-      let e1 := eval c1
-      let e2 := eval c2
-      let e3 := eval c3
-      match (e0, e1, e2, e3) with
-      | (some v0, some v1, some v2, some v3) =>
-        let chunks := Vector.map (λ f => ZKField.chunk_to_bits f) #v[v0, v1, v2, v3]
-        some (evalComposedLookupTable table chunks)
-      | _ => none
-    | ZKExpr.RamOp op_id =>
-      if let some opt := ram_values[op_id]?
-      then opt
-      else none
+    | ZKExpr.WitnessVar id => witness[id]?
+    | ZKExpr.Add lhs rhs => do (← eval lhs) + (← eval rhs)
+    | ZKExpr.Sub lhs rhs => do (← eval lhs) - (← eval rhs)
+    | ZKExpr.Mul lhs rhs => do (← eval lhs) * (← eval rhs)
+    | ZKExpr.Neg arg => do some (- (← eval arg))
+    | ZKExpr.Lookup table c0 c1 c2 c3 => do
+      let chunks := #v[← eval c0, ← eval c1, ← eval c2, ← eval c3].map ZKField.chunk_to_bits
+      some (evalComposedLookupTable table chunks)
+    | ZKExpr.RamOp op_id => ram_values[op_id]?.join
 
   eval expr
 
