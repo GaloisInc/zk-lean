@@ -45,9 +45,9 @@ inductive ZKOp (f : Type) : Type → Type
 def ZKBuilder (f : Type) := FreeM (ZKOp f)
 
 @[simp_ZKBuilder]
-instance : Monad (ZKBuilder f) := by
- unfold ZKBuilder
- infer_instance
+instance ZKBuilder_Monad : Monad (ZKBuilder f) := by
+  unfold ZKBuilder
+  infer_instance
 
 instance : LawfulMonad (ZKBuilder f) := by
   unfold ZKBuilder
@@ -201,6 +201,30 @@ def runFold [Zero f] (p : ZKBuilder f α) (st : ZKBuilderState f)
       k b st')
     p st
 
+@[simp_ZKBuilder]
+theorem runFold_pure [Zero f] (s : ZKBuilderState f)
+  : runFold (.pure a) s = (a, s) := by
+  rfl
+
+@[simp_ZKBuilder]
+theorem runFold_liftBind [Zero f] (s : ZKBuilderState f)
+  : runFold (.liftBind op k) s = runFold (k (ZKOpInterp op s).1) (ZKOpInterp op s).2 := by
+  rfl
+
+-- theorem runFold_bind [Zero f] (a : ZKBuilder f α)
+--   : runFold (a >>= c) s = runFold (c (runFold a s).1) (runFold a s).2 := by
+--   cases a
+--   · rfl
+--   · case liftBind op k =>
+--       unfold bind
+--       unfold ZKBuilder_Monad
+--       unfold inferInstance
+--       simp
+--       unfold FreeM.instMonad
+--       simp
+
+-- set_option pp.explicit true
+
 /--
 A type is Witnessable if is has an associated building process.
 -/
@@ -238,10 +262,40 @@ The interpretation simply executes the computation with `runFold` and feeds the
 result to the post-condition. -/
 
 @[simp_ZKBuilder]
-instance [Zero f] : WP (ZKBuilder f) (.arg (ZKBuilderState f) .pure) where
+instance ZkBuilder.WP [Zero f] : WP (ZKBuilder f) (.arg (ZKBuilderState f) .pure) where
   wp {α} (x : ZKBuilder f α) :=
     -- We reuse the `StateT` instance for predicate transformers: run the
     -- builder starting from an initial state and hand the resulting
     -- `(value, state)` pair to the post-condition.
-    PredTrans.pushArg (fun s =>
-      PredTrans.pure (runFold x s))
+    PredTrans.pushArg (fun s => PredTrans.pure (runFold x s))
+
+-- Note: assuming FreeM gets upstreamed, we would need to register these
+attribute [simp_FreeM] bind
+attribute [simp_FreeM] default
+attribute [simp_FreeM] FreeM.bind
+attribute [simp_FreeM] FreeM.foldM
+
+theorem runFold_liftBind_bind [Zero f]
+  (op : ZKOp f α) (cont : α → FreeM (ZKOp f) β) (b : β → ZKBuilder f γ)
+  : runFold (do let x ← FreeM.liftBind op cont; b x) s
+    = runFold (do let a ← cont (ZKOpInterp op s).1; b a) (ZKOpInterp op s).2
+  := by rfl
+
+theorem runFold_bind [Zero f] (f : α → ZKBuilder f β) :
+  runFold (do let x ← a; f x) s = runFold (f (runFold a s).1) (runFold a s).2
+  := by
+  induction a generalizing s with
+  | pure x => rfl
+  | liftBind op cont IH =>
+    rw [runFold_liftBind_bind]
+    rw [IH]
+    rfl
+
+@[simp_ZKBuilder]
+instance [Zero f] : WPMonad (ZKBuilder f) (.arg (ZKBuilderState f) .pure) where
+  wp_pure a := by ext; simp [simp_FreeM, simp_ZKBuilder]
+  wp_bind x f := by
+    ext Q : 2
+    simp only [wp, bind, PredTrans.pushArg_apply, PredTrans.pure, PredTrans.bind]
+    ext s : 1
+    simp [runFold_bind]

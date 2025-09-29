@@ -13,12 +13,6 @@ open Std.Do
 def main : IO Unit :=
   IO.println s!"Hello!"
 
--- Note: assuming FreeM gets upstreamed, we would need to register these
-attribute [simp_FreeM] bind
-attribute [simp_FreeM] default
-attribute [simp_FreeM] FreeM.bind
-attribute [simp_FreeM] FreeM.foldM
-
 attribute [simp_Triple] Std.Do.Triple
 attribute [simp_Triple] Std.Do.SPred.entails
 attribute [simp_Triple] Std.Do.PredTrans.apply
@@ -338,127 +332,61 @@ lemma isSome_eq_true_iff {α : Type*} {o : Option α} :
   by cases o <;> simp
 
 theorem constrainEq2Sound' [ZKField f] (a b:ZKExpr f) (witness: List f) :
-  ⦃λ s => ⌜True⌝ ⦄ -- eval_circuit s witness ⦄
+  ⦃λ s => ⌜True⌝⦄
+  -- ⦃λ s => ⌜eval_circuit s witness⌝⦄
   constrainEq2 a b
-  ⦃⇓ _r s =>
-    ⌜ eval_circuit s witness ↔
-    eval_exprf a s witness == eval_exprf b s witness ⌝
-  ⦄
+  ⦃⇓ r s =>
+    ⌜eval_circuit s witness ↔ eval_exprf a s witness = eval_exprf b s witness⌝⦄
   := by
   simp [simp_circuit, simp_FreeM, simp_Triple, simp_ZKBuilder, simp_ZKSemantics]
-  intro s'
+  intro s' -- Pre
   unfold ZKBuilderState.ram_sizes
   constructor
-  intro h
-  cases h' : (semantics_ram witness s'.3 s'.ram_ops)
-  · simp
-  · case mp.some v =>
-    rw [h'] at h
-    simp at *
-    cases h₁ : Option.isSome (semantics_zkexpr.eval witness v a)
-    · simp at h₁
-      simp [h₁] at h
-    · unfold Option.isSome at h₁
-      have exists_x : ∃ x, semantics_zkexpr.eval witness v a = some x := by
-        apply isSome_eq_true_iff.mp h₁
-      cases' exists_x with x hx
-      simp [hx] at h
-      cases h₂ : Option.isSome (semantics_zkexpr.eval witness v b)
-      · simp at h₂
-        simp [h₂] at h
-      · unfold Option.isSome at h₂
-        have exists_y : ∃ y, semantics_zkexpr.eval witness v b = some y := by
-          apply isSome_eq_true_iff.mp h₂
-        cases' exists_y with y hy
-        simp [hy] at h
-        cases' h with xeqy constraints
-        simp [xeqy] at hx
-        rw [← hy] at hx
-        exact hx
   · intro h
-    cases h' : (semantics_ram witness s'.3 s'.ram_ops)
-    simp at h
-    simp
-    simp [h'] at h
-    unfold semantics_ram at h'
-    unfold semantics_zkexpr at h'
-    unfold semantics_zkexpr.eval at h'
-    sorry
-    · case mpr.some v =>
-      simp [h'] at h
+    cases h' : semantics_ram witness s'.3 s'.ram_ops
+    · simp
+    · case some v =>
+      rw [h'] at h
       simp at *
-      cases h₁ : Option.isSome (semantics_zkexpr.eval witness v a)
-      sorry
-      sorry
-
-set_option grind.warning false
+      cases h₁ : semantics_zkexpr.eval witness v a
+      · simp [h₁] at h
+      · case some x =>
+        simp [h₁] at h
+        cases h₂ : semantics_zkexpr.eval witness v b
+        · simp [h₂] at h
+        · case some y =>
+          simp [h₂] at h
+          cases' h with xeqy constraints
+          simp [xeqy]
+  · intro h
+    sorry
+    -- cases h' : semantics_ram witness s'.3 s'.ram_ops
+    -- · simp [h'] at Pre
+    -- · case some v =>
+    --   simp [h'] at h
+    --   simp at *
+    --   cases h₁ : semantics_zkexpr.eval witness v a
+    --   · simp [h'] at Pre
+    --     unfold semantics_constraints at Pre
+    --     simp at Pre
+    --     simp
+    --     sorry
+    --   · sorry
 
 theorem constrainEq3Transitive [ZKField f] (a b c:ZKExpr f) (witness: List f) :
-  ⦃λ _s => ⌜True⌝ ⦄ -- s = s0⦄ -- eval_circuit s witness ⦄
+  -- ⦃λ s => ⌜eval_circuit s witness⌝ ⦄
+  ⦃λ s => ⌜True⌝⦄
   constrainEq3 a b c
-  ⦃⇓ _r s =>
-    ⌜ eval_circuit s witness →
-    eval_exprf a s witness == eval_exprf c s witness ⌝
-  ⦄
+  ⦃⇓ r s =>
+    ⌜eval_circuit s witness →
+     eval_exprf a s witness = eval_exprf c s witness⌝⦄
   := by
-  mintro h0 ∀s0
-  mpure h0
   unfold constrainEq3
-  unfold constrainEq2
-  unfold ZKBuilder.constrainR1CS
-  simp
-  intro s'
+  mintro H1
+  mintro ∀s1
+  -- NOTE This gives a weird error:
+  -- mspec constrainEq2Sound'
+  -- NOTE Doing this instead fixes the next tactic:
+  mspec (constrainEq2Sound' a b (witness := witness))
+  mintro ∀s2
   sorry
-  -- mintro ∀s1
-  -- mpure hAB
-
-  -- have hCompose :
-  --   ⦃λ s => s = s1 ∧ True ∧ s = s1 ∧ s = s1⦄
-  --   constrainEq2 b c
-  --   ⦃⇓ _r s =>
-  --     ⌜eval_circuit s witness → eval_circuit s1 witness⌝
-  --     ∧
-  --     ⌜ eval_circuit s witness ↔
-  --     eval_exprf b s witness == eval_exprf c s witness ⌝
-  --     ∧
-  --     ⌜eval_exprf a s1 witness = eval_exprf a s witness⌝
-  --     ∧
-  --     ⌜eval_exprf b s1 witness = eval_exprf b s witness⌝
-  --   ⦄
-  --   := MPL.Triple.and (constrainEq2 b c)
-  --      (previous_success (constrainEq2 b c) witness)
-  --      (MPL.Triple.and (constrainEq2 b c)
-  --        (constrainEq2Sound' b c witness)
-  --        (MPL.Triple.and (constrainEq2 b c)
-  --        (eval_const (constrainEq2 b c) witness a)
-  --        (eval_const (constrainEq2 b c) witness b)))
-
-  -- mspec hCompose
-
-  -- mintro ∀s2
-  -- simp
-  -- intro hBC
-
-  -- intro hS2'
-  -- intro hA
-  -- intro hB
-  -- intro hS2
-
-  -- have hEvalBC: eval_exprf b s2 witness = eval_exprf c s2 witness := by apply hS2'.mp hS2
-  -- rw [← hEvalBC]
-
-  -- have hCompose2: eval_circuit s2 witness → eval_circuit s1 witness := by
-  --   exact hBC
-
-  -- have hS1: eval_circuit s1 witness := by
-  --   apply hCompose2 at hS2
-  --   exact hS2
-
-  -- have hP1: eval_exprf a s1 witness = eval_exprf b s1 witness := by
-  --   simp at hAB
-  --   grind
-  -- have hP2: eval_exprf a s2 witness = eval_exprf b s2 witness := by
-  --   rw [hA] at hP1
-  --   rw [hB] at hP1
-  --   exact hP1
-  -- exact hP2
