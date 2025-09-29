@@ -1,0 +1,18 @@
+name = "bvmod_eq"
+version = "0.0.1"
+defaultTargets = ["bvmod_eq"]
+
+[[lean_lib]]
+name = "BvMod_eq"
+
+[[lean_exe]]
+name = "bvmod_eq"
+root = "Main"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.18.0"
+
+
+
