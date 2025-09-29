@@ -232,25 +232,16 @@ instance : ZKField (ZMod 7) where
         0
     ) (Vector.range num_bits)
 
-
-
-def test [Field f] (x:f) : f := x
-
-def one : ZMod 7 := 1
-#eval test one
-
-#eval run_circuit' circuit1 [one, 1]
-#eval run_circuit' circuit1 [one, 2]
-
+#eval run_circuit' (f := ZMod 7) circuit1 [1, 1]
+#eval run_circuit' (f := ZMod 7) circuit1 [1, 2]
 
 def circuit12 : ZKBuilder (ZMod 7) PUnit := do
   let a <- Witnessable.witness
   let b <- Witnessable.witness
   constrainEq2 a b
 
-#eval run_circuit' circuit12 [ (0: ZMod 7), (1: ZMod 7)]
-#eval run_circuit' circuit12 [ (0: ZMod 7), (0: ZMod 7)]
-
+#eval run_circuit' circuit12 [0, 1]
+#eval run_circuit' circuit12 [0, 0]
 
 #check instZKFieldZModOfNatNat_main
 -- #check instWitness
