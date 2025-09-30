@@ -29,7 +29,7 @@ evaluates correctly or nothing if the expression is not well defined.
 @[simp_ZKSemantics]
 def semantics_zkexpr [ZKField f]
   (expr: ZKExpr f)
-  (witness: List f )
+  (witness: List f)
   (ram_values: RamOpsEval f)
   : Option f :=
   let rec @[simp_ZKSemantics] eval (e: ZKExpr f) : Option f :=
@@ -102,25 +102,18 @@ def semantics_ram [ZKField f]
   -- Let's create the empty environment
   let empty_env: RamEnv f := Array.mkArray ram_sizes.size (Std.HashMap.empty);
 
-  -- call the function `semantics_zkexpr` and extract the field value in an option
-  let semantics_zkexpr_f expr witness ops_eval :=
-    let x := semantics_zkexpr expr witness ops_eval;
-    match x with
-    | some n => some n
-    | _ => none
-
   -- For every RAM operation, update the RAM environment and the list of evaluated operations
   let res <- Array.foldlM  (λ (env, ops_eval) ram_op =>
     match ram_op with
     | RamOp.Read ram_id addr => do
-      let addr_f <- semantics_zkexpr_f addr witness ops_eval;
+      let addr_f <- semantics_zkexpr addr witness ops_eval;
       let ram <- env[ram_id.ram_id]?;
       let val <- ram[addr_f]?;
       let new_ops_eval := Array.push ops_eval (some val);
         pure (env, new_ops_eval)
     | RamOp.Write ram_id addr val => do
-      let addr_f <- semantics_zkexpr_f addr witness ops_eval;
-      let val_f  <- semantics_zkexpr_f val witness ops_eval;
+      let addr_f <- semantics_zkexpr addr witness ops_eval;
+      let val_f  <- semantics_zkexpr val witness ops_eval;
       let ram <- env[ram_id.ram_id]?;
       let new_ram := ram.insert addr_f val_f
       let new_ops_eval := Array.push ops_eval (none);

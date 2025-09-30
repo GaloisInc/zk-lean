@@ -191,15 +191,15 @@ Internally this is implemented with `FreeM.foldM`, which is quite literally a `f
 @[simp_ZKBuilder]
 def runFold [Zero f] (p : ZKBuilder f α) (st : ZKBuilderState f)
     : (α × ZKBuilderState f) :=
-  (FreeM.foldM
+  FreeM.foldM
     -- pure case : just return the value, leaving the state untouched
     (fun a => fun st => (a, st))
     -- bind case : interpret one primitive with `ZKOpInterp`, then feed the
     -- resulting value into the continuation on the updated state.
-    (fun {_} op k => fun st =>
+    (fun op k => fun st =>
       let (b, st') := ZKOpInterp op st
       k b st')
-    p) st
+    p st
 
 /--
 A type is Witnessable if is has an associated building process.
