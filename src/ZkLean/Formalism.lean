@@ -8,15 +8,18 @@ import ZkLean.LookupTable
 import ZkLean.Semantics
 
 /-- Run a circuit builder given an initial builder state and then evaluate the resulting circuit given witnesses. -/
+@[simp_ZKSemantics]
 def run_circuit [ZKField f] (circuit: ZKBuilder f a) (state0: ZKBuilderState f) (witness: List f) : Bool :=
   let (_circ_output, final_state) := runFold circuit state0
   semantics witness final_state
 
 /-- Evaluate a circuit given some witnesses and a builder final state. -/
+@[simp_ZKSemantics]
 def eval_circuit [ZKField f] (final_state: ZKBuilderState f) (witness: List f) : Prop :=
   semantics witness final_state
 
 /-- Evaluate an expression given a builder state and some witnesses. -/
+@[simp_ZKSemantics]
 def eval_exprf [ZKField f] (expr: ZKExpr f) (state: ZKBuilderState f) (witness: List f) : Option f :=
   let ram_values := semantics_ram witness state.ram_sizes state.ram_ops
   if let some ram_values := ram_values
@@ -25,6 +28,7 @@ def eval_exprf [ZKField f] (expr: ZKExpr f) (state: ZKBuilderState f) (witness: 
   else
     none
 
+@[simp_ZKSemantics]
 def eval_traversable_expr {t: Type -> Type} [Traversable t] [ZKField f] (expr: t (ZKExpr f)) (state: ZKBuilderState f) (witness: List f) : Option (t f) :=
   traverse (eval_exprf · state witness) expr
 
@@ -36,6 +40,7 @@ lemma failure_propagates [ZKField f] (m : ZKBuilder f a) (witness: List f) :
  ⦃⇓_r s1 => ⌜ ¬(eval_circuit s0 witness) → ¬(eval_circuit s1 witness)⌝⦄
  := by
   sorry
+
 /-- If a circuit succeeds at a given state then it must have succeeded in previous state. -/
 lemma previous_success [ZKField f] (m : ZKBuilder f a) (witness: List f) :
  -- TODO: Lawful m

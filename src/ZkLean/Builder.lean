@@ -1,8 +1,10 @@
-import Std.Data.HashMap.Basic
-import ZkLean.AST
-import ZkLean.LookupTable
-import ZkLean.FreeMonad
 import MPL
+import Std.Data.HashMap.Basic
+
+import ZkLean.AST
+import ZkLean.FreeMonad
+import ZkLean.LookupTable
+import ZkLean.SimpSets
 
 /-- Type for RAM operations (Read and Write) -/
 inductive RamOp (f : Type) where
@@ -39,8 +41,10 @@ inductive ZKOp (f : Type) : Type → Type
 | RamWrite       (ram    : RAM f) (addr v: ZKExpr f)  : ZKOp f PUnit
 
 /-- Type for the ZK circuit builder monad. -/
+@[simp_ZKBuilder]
 def ZKBuilder (f : Type) := FreeM (ZKOp f)
 
+@[simp_ZKBuilder]
 instance : Monad (ZKBuilder f) := by
  unfold ZKBuilder
  infer_instance
@@ -54,10 +58,12 @@ namespace ZKBuilder
 -- We define helper functions for each of the primitive operations in the DSL, using `liftM` to lift them to the `ZKBuilder` monad.
 
 /-- Get a fresh witness variable. -/
+@[simp_ZKBuilder]
 def witness : ZKBuilder f (ZKExpr f) :=
   FreeM.lift ZKOp.AllocWitness
 
 /-- Constrain two expressions to be equal in circuit. -/
+@[simp_ZKBuilder]
 def constrainEq (x y : ZKExpr f) : ZKBuilder f PUnit :=
   FreeM.lift (ZKOp.ConstrainEq x y)
 
@@ -68,12 +74,14 @@ Here's an example to constrain `b` to be a boolean (0 or 1):
 constrainR1CS (b) (1 - b) (0)
 ```
 -/
+@[simp_ZKBuilder]
 def constrainR1CS (a b c : ZKExpr f) : ZKBuilder f PUnit :=
   FreeM.lift (ZKOp.ConstrainR1CS a b c)
 
 /--
 Perform a MLE lookup into the given table with the provided argument chunks.
 -/
+@[simp_ZKBuilder]
 def lookup (tbl : ComposedLookupTable f 16 4)
            (args : Vector (ZKExpr f) 4) : ZKBuilder f (ZKExpr f) :=
   FreeM.lift (ZKOp.Lookup tbl args)
@@ -94,6 +102,7 @@ mux_lookup
     ]
 ```
 -/
+@[simp_ZKBuilder]
 def muxLookup (chunks : Vector (ZKExpr f) 4)
               (cases  : Array (ZKExpr f × ComposedLookupTable f 16 4))
   : ZKBuilder f (ZKExpr f) :=
@@ -102,7 +111,8 @@ def muxLookup (chunks : Vector (ZKExpr f) 4)
 /--
 Create a new oblivious RAM in circuit of the given size.
 -/
-def ramNew   (n : Nat)                   : ZKBuilder f (RAM f)       :=
+@[simp_ZKBuilder]
+def ramNew (n : Nat) : ZKBuilder f (RAM f) :=
   FreeM.lift (ZKOp.RamNew n)
 
 /--
@@ -115,7 +125,8 @@ let v    <- ram_read  ram_mem  addr
             ram_write ram_reg  7    v
 ```
 -/
-def ramRead  (r : RAM f) (a : ZKExpr f)  : ZKBuilder f (ZKExpr f)   :=
+@[simp_ZKBuilder]
+def ramRead (r : RAM f) (a : ZKExpr f) : ZKBuilder f (ZKExpr f) :=
   FreeM.lift (ZKOp.RamRead r a)
 
 /--
@@ -128,7 +139,8 @@ let v    <- ram_read  ram_mem  addr
             ram_write ram_reg  7    v
 ```
 -/
-def ramWrite (r : RAM f) (a v : ZKExpr f): ZKBuilder f PUnit        :=
+@[simp_ZKBuilder]
+def ramWrite (r : RAM f) (a v : ZKExpr f) : ZKBuilder f PUnit :=
   FreeM.lift (ZKOp.RamWrite r a v)
 
 end ZKBuilder
@@ -136,6 +148,7 @@ end ZKBuilder
 open ZKBuilder
 
 /-- Execute one `ZKOp` instruction and update the `ZKBuilderState`. -/
+@[simp_ZKBuilder]
 def ZKOpInterp [Zero f] {β} (op : ZKOp f β) (st : ZKBuilderState f) : (β × ZKBuilderState f) :=
   match op with
   | ZKOp.AllocWitness =>
@@ -161,6 +174,7 @@ def ZKOpInterp [Zero f] {β} (op : ZKOp f β) (st : ZKBuilderState f) : (β × Z
       ((), { st with ram_ops := st.ram_ops.push (RamOp.Write ram.id a v) })
 
 /-- Convert a `ZKBuilder` computation into a `StateM` computation. -/
+@[simp_ZKBuilder]
 def toStateM [Zero f] {α : Type} (comp : ZKBuilder f α) : StateM (ZKBuilderState f) α :=
   comp.mapM ZKOpInterp
 
@@ -174,6 +188,7 @@ The function walks through the program step-by-step:
 
 Internally this is implemented with `FreeM.foldM`, which is quite literally a `fold` over the `FreeM` tree.
 -/
+@[simp_ZKBuilder]
 def runFold [Zero f] (p : ZKBuilder f α) (st : ZKBuilderState f)
     : (α × ZKBuilderState f) :=
   (FreeM.foldM
@@ -194,11 +209,13 @@ class Witnessable (f: Type) (t: Type) where
   witness : ZKBuilder f t
 
 /- Expressions of type `ZKExpr` are `Witnessable`. -/
-instance: Witnessable f (ZKExpr f) where
+@[simp_ZKBuilder]
+instance : Witnessable f (ZKExpr f) where
   witness := witness
 
 /- A vector of  `Witnessable` expressions is `Witnessable`. -/
-instance [Witnessable f a]: Witnessable f (Vector a n) where
+@[simp_ZKBuilder]
+instance [Witnessable f a] : Witnessable f (Vector a n) where
   witness :=
     let rec helper n : ZKBuilder f (Vector a n) :=
       match n with
@@ -220,6 +237,7 @@ implicit `ZKBuilderState`; therefore its predicate shape is `PostShape.arg
 The interpretation simply executes the computation with `runFold` and feeds the
 result to the post-condition. -/
 
+@[simp_ZKBuilder]
 instance [Zero f] : MPL.WP (ZKBuilder f) (.arg (ZKBuilderState f) .pure) where
   wp {α} (x : ZKBuilder f α) :=
     -- We reuse the `StateT` instance for predicate transformers: run the
