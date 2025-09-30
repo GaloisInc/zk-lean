@@ -12,9 +12,4 @@ root = "Main"
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
-rev = "v4.18.0"
-
-[[require]]
-name = "mpl"
-git = "https://github.com/sgraf812/mpl"
-rev = "0b7f3b834ae67391b276c00679e60fd6da42619a"
+rev = "v4.23.0"
