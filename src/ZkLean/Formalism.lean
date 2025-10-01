@@ -1,6 +1,5 @@
-
 import Mathlib.Control.Traversable.Basic
-import MPL
+import Std.Do
 
 import ZkLean.AST
 import ZkLean.Builder
@@ -32,19 +31,21 @@ def eval_exprf [ZKField f] (expr: ZKExpr f) (state: ZKBuilderState f) (witness: 
 def eval_traversable_expr {t: Type -> Type} [Traversable t] [ZKField f] (expr: t (ZKExpr f)) (state: ZKBuilderState f) (witness: List f) : Option (t f) :=
   traverse (eval_exprf · state witness) expr
 
+open Std.Do
+
 /-- If a circuit fails at a given state then it must fail for subsequent state. -/
-lemma failure_propagates [ZKField f] (m : ZKBuilder f a) (witness: List f) :
+lemma failure_propagates [ZKField f] (m : ZKBuilder f a) (witness: List f) s0 :
  -- TODO: Lawful m
- ⦃λ s => s = s0⦄
+ ⦃λ s => ⌜s = s0⌝⦄
  m
- ⦃⇓_r s1 => ⌜ ¬(eval_circuit s0 witness) → ¬(eval_circuit s1 witness)⌝⦄
+ ⦃⇓_r s1 => ⌜¬(eval_circuit s0 witness) → ¬(eval_circuit s1 witness)⌝⦄
  := by
   sorry
 
 /-- If a circuit succeeds at a given state then it must have succeeded in previous state. -/
 lemma previous_success [ZKField f] (m : ZKBuilder f a) (witness: List f) :
  -- TODO: Lawful m
- ⦃λ s => s = s0⦄
+ ⦃λ s => ⌜s = s0⌝⦄
  m
  ⦃⇓_r s1 => ⌜eval_circuit s1 witness → eval_circuit s0 witness⌝⦄
  := by
@@ -53,7 +54,7 @@ lemma previous_success [ZKField f] (m : ZKBuilder f a) (witness: List f) :
 /-- If an expression evaluates to a value at a given state then it must evaluate at the same value for a subsequent state. -/
 lemma eval_const [ZKField f] (m : ZKBuilder f a) (witness: List f) (expr: ZKExpr f) :
  -- TODO: Lawful m
- ⦃λ s => s = s0⦄
+ ⦃λ s => ⌜s = s0⌝⦄
  m
  ⦃⇓_r s1 => ⌜eval_exprf expr s0 witness = eval_exprf expr s1 witness⌝⦄
  := by

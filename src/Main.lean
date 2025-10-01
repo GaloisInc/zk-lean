@@ -1,13 +1,14 @@
+import Std.Do
 import Mathlib.Algebra.Field.Defs
 import Mathlib.Algebra.Field.ZMod
 import Mathlib.Control.Fold
 import Mathlib.Data.Nat.Prime.Defs
 import Mathlib.Data.ZMod.Defs
-import MPL
-import MPL.Triple
 
 import ZkLean
 import ZkLean.SimpSets
+
+open Std.Do
 
 def main : IO Unit :=
   IO.println s!"Hello!"
@@ -18,11 +19,11 @@ attribute [simp_FreeM] default
 attribute [simp_FreeM] FreeM.bind
 attribute [simp_FreeM] FreeM.foldM
 
-attribute [simp_MPL] MPL.Triple
-attribute [simp_MPL] MPL.SPred.entails
-attribute [simp_MPL] MPL.PredTrans.apply
-attribute [simp_MPL] MPL.PredTrans.pure
-attribute [simp_MPL] MPL.wp
+attribute [simp_Triple] Std.Do.Triple
+attribute [simp_Triple] Std.Do.SPred.entails
+attribute [simp_Triple] Std.Do.PredTrans.apply
+attribute [simp_Triple] Std.Do.PredTrans.pure
+attribute [simp_Triple] Std.Do.wp
 
 -- ZKProof 7 examples
 
@@ -285,9 +286,9 @@ theorem circuitEq2Sound [ZKField f] (x y : f) : (x = y ↔ run_circuit' circuit1
   simp_all
 
 theorem constrainEq2Trivial [ZKField f] (a b:ZKExpr f) :
-  ⦃λ s => s = old_s ⦄
+  ⦃λ s => ⌜s = old_s⌝⦄
   constrainEq2 a b
-  ⦃⇓ _r s => s.constraints.length = old_s.constraints.length + 1⦄
+  ⦃⇓ _r s => ⌜s.constraints.length = old_s.constraints.length + 1⌝⦄
   := by
   mintro h ∀old
   mpure h
@@ -296,9 +297,9 @@ theorem constrainEq2Trivial [ZKField f] (a b:ZKExpr f) :
   constructor
 
 theorem constrainEq3Trivial [ZKField f] (a b c:ZKExpr f) :
-  ⦃λ s => s = old_s ⦄
+  ⦃λ s => ⌜s = old_s⌝⦄
   constrainEq3 a b c
-  ⦃⇓ _r s => s.constraints.length = old_s.constraints.length + 2⦄
+  ⦃⇓ _r s => ⌜s.constraints.length = old_s.constraints.length + 2⌝⦄
   := by
   mintro h ∀old
   mpure h
@@ -337,14 +338,14 @@ lemma isSome_eq_true_iff {α : Type*} {o : Option α} :
   by cases o <;> simp
 
 theorem constrainEq2Sound' [ZKField f] (a b:ZKExpr f) (witness: List f) :
-  ⦃λ s => True ⦄ -- eval_circuit s witness ⦄
+  ⦃λ s => ⌜True⌝ ⦄ -- eval_circuit s witness ⦄
   constrainEq2 a b
   ⦃⇓ _r s =>
     ⌜ eval_circuit s witness ↔
     eval_exprf a s witness == eval_exprf b s witness ⌝
   ⦄
   := by
-  simp [simp_circuit, simp_FreeM, simp_MPL, simp_ZKBuilder, simp_ZKSemantics]
+  simp [simp_circuit, simp_FreeM, simp_Triple, simp_ZKBuilder, simp_ZKSemantics]
   intro s'
   unfold ZKBuilderState.ram_sizes
   constructor
@@ -372,7 +373,6 @@ theorem constrainEq2Sound' [ZKField f] (a b:ZKExpr f) (witness: List f) :
         simp [hy] at h
         cases' h with xeqy constraints
         simp [xeqy] at hx
-        simp [constraints] at hy
         rw [← hy] at hx
         exact hx
   · intro h
@@ -394,7 +394,7 @@ theorem constrainEq2Sound' [ZKField f] (a b:ZKExpr f) (witness: List f) :
 set_option grind.warning false
 
 theorem constrainEq3Transitive [ZKField f] (a b c:ZKExpr f) (witness: List f) :
-  ⦃λ _s => True ⦄ -- s = s0⦄ -- eval_circuit s witness ⦄
+  ⦃λ _s => ⌜True⌝ ⦄ -- s = s0⦄ -- eval_circuit s witness ⦄
   constrainEq3 a b c
   ⦃⇓ _r s =>
     ⌜ eval_circuit s witness →

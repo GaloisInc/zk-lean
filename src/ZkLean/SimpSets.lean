@@ -10,6 +10,6 @@ this module.
 
 register_simp_attr simp_circuit
 register_simp_attr simp_FreeM
-register_simp_attr simp_MPL
+register_simp_attr simp_Triple
 register_simp_attr simp_ZKBuilder
 register_simp_attr simp_ZKSemantics
