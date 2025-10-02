@@ -51,7 +51,7 @@ def semantics_zkexpr [ZKField f]
           (ZKField.field_to_bits (num_bits := 32) v1)
           (ZKField.field_to_bits (num_bits := 32) v2))
       | _ => none
-    | ZKExpr.LookupMaterialized n table e =>
+    | ZKExpr.LookupMaterialized table e =>
       let ev := eval e
       match ev with
       | (some v0) =>
