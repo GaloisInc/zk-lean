@@ -26,6 +26,7 @@ import Mathlib.Tactic.Ring
 import Mathlib.Tactic.Ring
 import Std.Data.HashMap.Basic
 import Std.Tactic.BVDecide
+import BvMod_eq.lemmas
 
 namespace Mathlib.Tactic.BVify
 
@@ -44,10 +45,6 @@ lemma BitVec.ofNat_mul {w a b : ℕ} :
     simp_all
     apply Fin.eq_of_val_eq
     simp_all
-
-lemma split_one (x : ℕ) : (x ≤ 1) -> (x = 0 ∨ x = 1) := by omega
-
-lemma Nat.lt_sub (a : ℕ) (h: a ≤ 1) : (1 - a) ≤ 1 := by omega
 
 lemma ult_bv {x y : ℕ} (hx : x ≤ 1) (hy : y ≤ 1) :
   (BitVec.ofNat 8 (1 - x + x * y - y))

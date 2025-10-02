@@ -28,8 +28,8 @@ import Mathlib.Tactic.Bound
 import Mathlib.Tactic.Positivity
 import Mathlib.Data.Fin.Basic
 import BvMod_eq.range_analysis
+import BvMod_eq.lemmas
 import BvMod_eq.mappings
-
 
 /-!
 # `valify` tactic
@@ -41,8 +41,6 @@ Hello :)
 -/
 
 namespace BvMod_eq
-
-
 
 open Lean
 open Lean.Meta
@@ -73,20 +71,7 @@ open Lean.Elab.Tactic
       evalTactic (←  `(tactic|apply Nat.le_refl))
   catch _ => pure ()
 
-
-Hello.
 -/
-lemma split_one (x : ℕ): (x <= 1) -> (x = 0 ∨ x = 1) := by
-  intro hx
-  cases x with
-    | zero => trivial
-    | succ n => cases n with
-      | zero =>
-        apply Or.inr
-        decide
-      | succ m => exfalso
-                  simp at hx
-
 
 --abbrev ff := 4139
 -- abbrev f := ZMod ff

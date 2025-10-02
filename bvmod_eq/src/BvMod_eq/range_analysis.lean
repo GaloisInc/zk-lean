@@ -7,10 +7,9 @@ import Mathlib.Control.Monad.Cont
 import Mathlib.Data.Nat.Basic
 import Mathlib.Tactic
 import Mathlib.Tactic.Eval
+import BvMod_eq.lemmas
 
 open Lean Meta Elab Tactic
-
-
 
 lemma Nat.mul_comm_ofNat (a n : Nat) :
    (OfNat.ofNat n) * a = a* (OfNat.ofNat n : Nat) := by
@@ -19,39 +18,6 @@ lemma Nat.mul_comm_ofNat (a n : Nat) :
  lemma mul_comm_num_left (n t : ℕ) :
   (n : ℕ) * t = t * (n : ℕ) := by
   simpa using Nat.mul_comm (n : ℕ) t
-
-lemma split_one (x : ℕ): (x <= 1) -> (x = 0 ∨ x = 1) := by
-  intro hx
-  cases x with
-    | zero => trivial
-    | succ n => cases n with
-      | zero =>
-        apply Or.inr
-        decide
-      | succ m => exfalso
-                  simp at hx
-
-lemma Nat.lt_sub (a :ℕ) (h: a <= 1) :
-  (1 - a) <= 1 := by
-   apply split_one at h
-   apply Or.elim h
-   simp
-   simp
-
-
-
-lemma Nat.mux_if_then {a y x : ℕ} (h: a <= 1) :
-  (1 - a) * x  + (a * y) = if a == 0 then x else y := by
-  apply split_one at h
-  apply Or.elim h
-  simp
-  intros h1
-  rw [h1]
-  simp
-  intros h1
-  rw [h1]
-  simp
-
 
 def mkAddNat (es : List Expr) : Expr :=
   match es with
