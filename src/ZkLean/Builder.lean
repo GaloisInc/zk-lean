@@ -82,12 +82,25 @@ def constrainR1CS (a b c : ZKExpr f) : ZKBuilder f PUnit :=
   FreeM.lift (ZKOp.ConstrainR1CS a b c)
 
 /--
-Perform a MLE lookup into the given table with the provided argument chunks.
+Perform a lookup into the given MLE composed table with the provided argument chunks.
 -/
 @[simp_ZKBuilder]
-def lookup (tbl : ComposedLookupTable f 16 4)
-           (args : Vector (ZKExpr f) 4) : ZKBuilder f (ZKExpr f) :=
+def lookup_mle_composed (tbl : ComposedLookupTable f 16 4)
+  (args : Vector (ZKExpr f) 4) : ZKBuilder f (ZKExpr f) :=
   FreeM.lift (ZKOp.ComposedLookupMLE tbl args)
+
+/--
+Perform a lookup into the given MLE table with the provided arguments.
+-/
+def lookup_mle (tbl : LookupTableMLE f 64) (e1 e2: ZKExpr f) : ZKBuilder f (ZKExpr f) :=
+  FreeM.lift (ZKOp.LookupMLE tbl e1 e2)
+
+/--
+Perform a lookup in a given materialized table with the provided argument.
+-/
+def lookup_materialized (tbl: Vector f n) (e: ZKExpr f) : ZKBuilder f (ZKExpr f) :=
+  FreeM.lift (ZKOp.LookupMaterialized tbl e)
+
 
 /--
 Helper function to perform a mux over a set of lookup tables.

@@ -64,7 +64,7 @@ def step [ZKField f] (prev_st : RISCVState f) : ZKBuilder f (RISCVState f) := do
   let r1 := prev_st.registers[1]
   let r2 := prev_st.registers[2]
 
-  let isEq <- ZKBuilder.lookup eq32 #v[r1, r1, r2, r2] -- Note: This example doesn't really make sense anymore.
+  let isEq <- ZKBuilder.lookup_mle_composed eq32 #v[r1, r1, r2, r2] -- Note: This example doesn't really make sense anymore.
   ZKBuilder.constrainEq new_st.registers[0] isEq
 
   return new_st
