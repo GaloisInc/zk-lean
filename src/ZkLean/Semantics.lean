@@ -11,6 +11,7 @@ import ZkLean.SimpSets
 class ZKField (f: Type) extends Field f, BEq f, Inhabited f, LawfulBEq f, Hashable f where
   -- Mask the lower `num_bits` of a field element and convert to a vector of bits.
   field_to_bits {num_bits: Nat} (val: f) : Vector f num_bits
+  field_to_nat (val: f) : Nat
 
 
 /-- Type for the evaluation of RAM operations
@@ -44,8 +45,23 @@ def semantics_zkexpr [ZKField f]
       let chunks := #v[← eval c0, ← eval c1, ← eval c2, ← eval c3].map ZKField.field_to_bits
       some (evalComposedLookupTable table chunks)
     | ZKExpr.LookupMLE table e1 e2 =>
-      do some (evalLookupTableMLE table (ZKField.field_to_bits (← eval e1)) (ZKField.field_to_bits (← eval e2)))
-    | ZKExpr.RamOp op_id => ram_values[op_id]?.join
+      match (eval e1, eval e2) with
+      | (some v1, some v2) =>
+        some (evalLookupTableMLE table
+          (ZKField.field_to_bits (num_bits := 32) v1)
+          (ZKField.field_to_bits (num_bits := 32) v2))
+      | _ => none
+    | ZKExpr.LookupMaterialized n table e =>
+      let ev := eval e
+      match ev with
+      | (some v0) =>
+        let idx := ZKField.field_to_nat v0
+        table[idx]?
+      | _ => none
+    | ZKExpr.RamOp op_id =>
+      if let some opt := ram_values[op_id]?
+      then opt
+      else none
 
   eval expr
 

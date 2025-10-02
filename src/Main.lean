@@ -247,6 +247,7 @@ instance : ZKField (ZMod 7) where
       else
         0
     ) (Vector.range num_bits)
+  field_to_nat f := f.val
 
 #eval run_circuit' (f := ZMod 7) circuit1 [1, 1]
 #eval run_circuit' (f := ZMod 7) circuit1 [1, 2]

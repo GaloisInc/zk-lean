@@ -35,6 +35,7 @@ inductive ZKOp (f : Type) : Type → Type
                     (args : Vector (ZKExpr f) 4) : ZKOp f (ZKExpr f)
 | LookupMLE (lookupMLE: LookupTableMLE f 64)
             (arg1 arg2: ZKExpr f) : ZKOp f (ZKExpr f)
+| LookupMaterialized (n: Nat) (table: Vector f n) (arg: ZKExpr f) : ZKOp f (ZKExpr f)
 | MuxLookup      (chunks : Vector (ZKExpr f) 4)
                  (cases  : Array (ZKExpr f × ComposedLookupTable f 16 4))
                                                      : ZKOp f (ZKExpr f)
@@ -164,6 +165,8 @@ def ZKOpInterp [Zero f] {β} (op : ZKOp f β) (st : ZKBuilderState f) : (β × Z
       (ZKExpr.ComposedLookup tbl args[0] args[1] args[2] args[3], st)
   | ZKOp.LookupMLE tbl arg1 arg2 =>
       (ZKExpr.LookupMLE tbl arg1 arg2, st)
+  | ZKOp.LookupMaterialized n tbl arg =>
+      (ZKExpr.LookupMaterialized n tbl arg, st)
   | ZKOp.MuxLookup ch cases =>
       let sum := Array.foldl (fun acc (flag, tbl) =>
         acc + ZKExpr.Mul flag (ZKExpr.ComposedLookup tbl ch[0] ch[1] ch[2] ch[3])) (ZKExpr.Literal (0 : f)) cases
