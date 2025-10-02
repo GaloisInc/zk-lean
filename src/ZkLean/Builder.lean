@@ -236,16 +236,7 @@ instance : Witnessable f (ZKExpr f) where
 /- A vector of  `Witnessable` expressions is `Witnessable`. -/
 @[simp_ZKBuilder]
 instance [Witnessable f a] : Witnessable f (Vector a n) where
-  witness :=
-    let rec helper n : ZKBuilder f (Vector a n) :=
-      match n with
-      | 0 => pure (Vector.mkEmpty 0)
-      | m+1 => do
-        let w <- Witnessable.witness
-        let v <- helper m
-        pure (Vector.push v w)
-    do
-      helper n
+  witness := Vector.ofFnM (λ _ => Witnessable.witness)
 
 open Std.Do
 
