@@ -3,55 +3,41 @@ Copyright (c) 2022 Moritz Doll. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Moritz Doll, Mario Carneiro, Robert Y. Lewis
 -/
-import Mathlib.Tactic.Basic
-import Mathlib.Tactic.Attr.Register
-import Mathlib.Data.Int.Cast.Basic
-import Mathlib.Order.Basic
-import Lean.Meta.Tactic.Simp.SimpTheorems
-import Lean.Meta.Tactic.Simp.RegisterCommand
+import Lean.Elab.Term
 import Lean.LabelAttribute
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic.Ring
+import Lean.Meta.Basic
+import Lean.Meta.Tactic.Simp.RegisterCommand
+import Lean.Meta.Tactic.Simp.SimpTheorems
 import Mathlib.Algebra.Field.Defs
 import Mathlib.Algebra.Field.ZMod
-import Mathlib.Control.Fold
-import Mathlib.Data.Nat.Prime.Defs
-import Mathlib.Data.ZMod.Defs
 import Mathlib.Algebra.Order.Kleene
-import Std.Data.HashMap.Basic
-import Lean.Meta.Basic
-import Lean.Elab.Term
-import Mathlib.Tactic.Ring
-import Std.Tactic.BVDecide
-import Mathlib.Tactic.Linarith
+import Mathlib.Control.Fold
+import Mathlib.Data.Int.Cast.Basic
+import Mathlib.Data.Nat.Prime.Defs
+import Mathlib.Data.ZMod.Basic
+import Mathlib.Data.ZMod.Defs
+import Mathlib.Order.Basic
+import Mathlib.Tactic.Attr.Register
+import Mathlib.Tactic.Basic
 import Mathlib.Tactic.Bound
+import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Positivity
-
-
-
-/-!
-# `valify` tactic
-
-Hello :)
-```
-
-```
--/
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.Ring
+import Std.Data.HashMap.Basic
+import Std.Tactic.BVDecide
 
 namespace Mathlib.Tactic.BVify
 
-
-
+open Fin
 open Lean
+open Lean.Elab.Tactic
 open Lean.Meta
 open Lean.Parser.Tactic
-open Lean.Elab.Tactic
 
-open Fin
-
- lemma BitVec.ofNat_mul {w a b : ℕ} :
-  BitVec.ofNat w (a * b) =
-    (BitVec.ofNat w a) * (BitVec.ofNat w b) := by
+lemma BitVec.ofNat_mul {w a b : ℕ} :
+  BitVec.ofNat w (a * b) = (BitVec.ofNat w a) * (BitVec.ofNat w b)
+  := by
     rw [BitVec.ofNat, BitVec.ofNat, BitVec.ofNat]
     rw [Fin.ofNat, Fin.ofNat,  Fin.ofNat]
     apply congrArg
@@ -59,27 +45,14 @@ open Fin
     apply Fin.eq_of_val_eq
     simp_all
 
-lemma split_one (x : ℕ): (x <= 1) -> (x = 0 ∨ x = 1) := by
-  intro hx
-  cases x with
-    | zero => trivial
-    | succ n => cases n with
-      | zero =>
-        apply Or.inr
-        decide
-      | succ m => exfalso
-                  simp at hx
+lemma split_one (x : ℕ) : (x ≤ 1) -> (x = 0 ∨ x = 1) := by omega
 
-lemma Nat.lt_sub (a :ℕ) (h: a <= 1) :
-  (1 - a) <= 1 := by
-   apply split_one at h
-   apply Or.elim h
-   simp
-   simp
+lemma Nat.lt_sub (a : ℕ) (h: a ≤ 1) : (1 - a) ≤ 1 := by omega
 
-lemma ult_bv {x y :ℕ }
-    (hx : x ≤ 1) (hy : y <= 1) :
-     (BitVec.ofNat 8 (1 - x + x * y - y)) = (BitVec.ofNat 8 (1) - BitVec.ofNat 8 x + BitVec.ofNat 8 x * BitVec.ofNat 8 y - BitVec.ofNat 8 y) := by
+lemma ult_bv {x y : ℕ} (hx : x ≤ 1) (hy : y ≤ 1) :
+  (BitVec.ofNat 8 (1 - x + x * y - y))
+  = (BitVec.ofNat 8 1 - BitVec.ofNat 8 x + BitVec.ofNat 8 x * BitVec.ofNat 8 y - BitVec.ofNat 8 y)
+  := by
     apply split_one at hx
     apply split_one at hy
     apply Or.elim hx
@@ -104,10 +77,9 @@ lemma ult_bv {x y :ℕ }
     rw [hy']
     decide
 
-
-lemma BitVec.ofNat_sub_8{ b : ℕ} (h: 1 >= b) :
-  BitVec.ofNat 8 (1 - b) =
-    (BitVec.ofNat 8 1) - (BitVec.ofNat 8 b) := by
+lemma BitVec.ofNat_sub_8 {b : ℕ} (h : 1 ≥ b) :
+  BitVec.ofNat 8 (1 - b) = (BitVec.ofNat 8 1) - (BitVec.ofNat 8 b)
+  := by
     unfold BitVec.ofNat
     rw [Fin.ofNat, Fin.ofNat,  Fin.ofNat]
     apply congrArg
@@ -122,9 +94,9 @@ lemma BitVec.ofNat_sub_8{ b : ℕ} (h: 1 >= b) :
             exfalso
             simp at h
 
-lemma BitVec.ofNat_sub_32{ b : ℕ} (h: 1 >= b) :
-  BitVec.ofNat 32 (1 - b) =
-    (BitVec.ofNat 32 1) - (BitVec.ofNat 32 b) := by
+lemma BitVec.ofNat_sub_32 {b : ℕ} (h : 1 ≥ b) :
+  BitVec.ofNat 32 (1 - b) = (BitVec.ofNat 32 1) - (BitVec.ofNat 32 b)
+  := by
     unfold BitVec.ofNat
     rw [Fin.ofNat, Fin.ofNat,  Fin.ofNat]
     apply congrArg
@@ -139,9 +111,9 @@ lemma BitVec.ofNat_sub_32{ b : ℕ} (h: 1 >= b) :
             exfalso
             simp at h
 
-lemma BitVec.ofNat_sub_16{ b : ℕ} (h: 1 >= b) :
-  BitVec.ofNat 16 (1 - b) =
-    (BitVec.ofNat 16 1) - (BitVec.ofNat 16 b) := by
+lemma BitVec.ofNat_sub_16 {b : ℕ} (h : 1 ≥ b) :
+  BitVec.ofNat 16 (1 - b) = (BitVec.ofNat 16 1) - (BitVec.ofNat 16 b)
+  := by
     unfold BitVec.ofNat
     rw [Fin.ofNat, Fin.ofNat,  Fin.ofNat]
     apply congrArg
@@ -156,86 +128,67 @@ lemma BitVec.ofNat_sub_16{ b : ℕ} (h: 1 >= b) :
             exfalso
             simp at h
 
+lemma trust_me_bv {x y : ℕ} (hx : x ≤ 1) (hy : y ≤ 1) :
+  BitVec.ofNat 8 (x + y - x*y) = BitVec.ofNat 8 (x + y) - BitVec.ofNat 8 (x * y)
+  := by
+    apply split_one at hx
+    apply split_one at hy
+    apply Or.elim hx
+    intro hx'
+    apply Or.elim hy
+    intro hy'
+    rw [hx']
+    rw [hy']
+    decide
+    intro hy'
+    rw [hx']
+    rw [hy']
+    decide
+    intro hx'
+    apply Or.elim hy
+    intro hy'
+    rw [hx']
+    rw [hy']
+    decide
+    intro hy'
+    rw [hx']
+    rw [hy']
+    decide
 
+lemma trust_me_bv_32 {x y : ℕ} (hx : x ≤ 1) (hy : y ≤ 1) :
+  BitVec.ofNat 32 (x + y - x*y) = BitVec.ofNat 32 (x + y) - BitVec.ofNat 32 (x * y)
+  := by
+    apply split_one at hx
+    apply split_one at hy
+    apply Or.elim hx
+    intro hx'
+    apply Or.elim hy
+    intro hy'
+    rw [hx']
+    rw [hy']
+    decide
+    intro hy'
+    rw [hx']
+    rw [hy']
+    decide
+    intro hx'
+    apply Or.elim hy
+    intro hy'
+    rw [hx']
+    rw [hy']
+    decide
+    intro hy'
+    rw [hx']
+    rw [hy']
+    decide
 
-lemma trust_me_bv {x y :ℕ }
-    (hx : x ≤ 1) (hy : y <= 1) :
-   BitVec.ofNat 8 (x + y - x*y)=
-   BitVec.ofNat 8 (x + y)  -  BitVec.ofNat 8 (x * y)  := by
-   apply split_one at hx
-   apply split_one at hy
-   apply Or.elim hx
-   intro hx'
-   apply Or.elim hy
-   intro hy'
-   rw [hx']
-   rw [hy']
-   decide
-   intro hy'
-   rw [hx']
-   rw [hy']
-   decide
-   intro hx'
-   apply Or.elim hy
-   intro hy'
-   rw [hx']
-   rw [hy']
-   decide
-   intro hy'
-   rw [hx']
-   rw [hy']
-   decide
-
-lemma trust_me_bv_32 {x y :ℕ }
-    (hx : x ≤ 1) (hy : y <= 1) :
-   BitVec.ofNat 32 (x + y - x*y)=
-   BitVec.ofNat 32 (x + y)  -  BitVec.ofNat 32 (x * y)  := by
-   apply split_one at hx
-   apply split_one at hy
-   apply Or.elim hx
-   intro hx'
-   apply Or.elim hy
-   intro hy'
-   rw [hx']
-   rw [hy']
-   decide
-   intro hy'
-   rw [hx']
-   rw [hy']
-   decide
-   intro hx'
-   apply Or.elim hy
-   intro hy'
-   rw [hx']
-   rw [hy']
-   decide
-   intro hy'
-   rw [hx']
-   rw [hy']
-   decide
-
-    --rw [Nat.mod_sub_eq]
-
-  -- BitVec multiplication is just modulo 2^w
-
-/--
-Hello.
--/
 syntax (name := bvify) "bvify" (simpArgs)? (location)? : tactic
-
-
-
-
 
 macro_rules
 | `(tactic| bvify $[[$simpArgs,*]]? $[at $location]?) =>
   let args := simpArgs.map (·.getElems) |>.getD #[]
   `(tactic|
     simp -decide only [ult_bv, trust_me_bv, trust_me_bv_32, BitVec.ofNat_add, BitVec.ofNat_mul, BitVec.ofNat_sub_8, BitVec.ofNat_sub_32, push_cast, $args,*] $[at $location]? )
-
-
-
--- name: ZModify
 
 -- /-- The `Simp.Context` generated by `zify`. -/
 def mkZifyContext (simpArgs : Option (Syntax.TSepArray `Lean.Parser.Tactic.simpStar ",")) :
@@ -262,8 +215,6 @@ def zifyProof (simpArgs : Option (Syntax.TSepArray `Lean.Parser.Tactic.simpStar 
   let ctx_result ← mkZifyContext simpArgs
   let (r, _) ← simp prop ctx_result.ctx
   applySimpResultToProp' proof prop r
-
-
 
 end BVify
 
