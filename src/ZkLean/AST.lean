@@ -32,7 +32,7 @@ inductive ZKExpr (f : Type) where
   | Neg : (arg : ZKExpr f) -> ZKExpr f
   | Mul : (lhs rhs : ZKExpr f) -> ZKExpr f
   -- TODO: this should be a Vector (ZKExpr f) 4 instead the 4 expressions
-  | ComposedLookup : (table : ComposedLookupTable f 16 4) -> (c1 c2 c3 c4 : ZKExpr f) -> ZKExpr f
+  | ComposedLookupMLE : (table : ComposedLookupTable f 16 4) -> (c1 c2 c3 c4 : ZKExpr f) -> ZKExpr f
   | LookupMLE : (table : LookupTableMLE f 64) -> (e1 e2 : ZKExpr f) -> ZKExpr f
   | LookupMaterialized : (table: Vector f n) -> (e: ZKExpr f) -> (ZKExpr f)
   | RamOp : (op_index : Nat) -> ZKExpr f
