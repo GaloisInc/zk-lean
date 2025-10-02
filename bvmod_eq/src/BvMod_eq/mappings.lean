@@ -15,17 +15,7 @@ class GtTwo (n : ℕ) : Prop where
   out : 2 < n
 
 
-def bool_to_bv (b: Bool) : (BitVec 8) := if b == true then 1 else 0
---if b == false then 1
-
-def bool_to_bv_16 (b: Bool) : (BitVec 16) := if b == true then 1 else 0
---if b == false then 1
-
-def bool_to_bv_32 (b: Bool) : (BitVec 32) := if b == true then 1 else 0
---if b == false then 1
-
-def bool_to_bv_64 (b: Bool) : (BitVec 64) := if b == true then 1 else 0
---if b == false then 1
+def bool_to_bv (b: Bool) : (BitVec n) := if b then 1 else 0
 
 
 def map_f_to_bv_8 {ff : ℕ} (rs1_val : ZMod ff) : Option (BitVec 8) :=
@@ -97,9 +87,9 @@ lemma extract_bv_rel_8 {ff}  {bf} {x:ZMod ff}: some (bool_to_bv bf) = map_f_to_b
   linarith
 
 
-lemma extract_bv_rel_16{bf} (x: ZMod ff) : some (bool_to_bv_16 bf) = map_f_to_bv_16 x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#16 else 0#16) = BitVec.ofNat 16 x.val) := by
+lemma extract_bv_rel_16{bf} (x: ZMod ff) : some (bool_to_bv bf) = map_f_to_bv_16 x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#16 else 0#16) = BitVec.ofNat 16 x.val) := by
   unfold map_f_to_bv_16
-  unfold bool_to_bv_16
+  unfold bool_to_bv
   dsimp
   simp
   intros h
@@ -131,9 +121,9 @@ lemma extract_bv_rel_16{bf} (x: ZMod ff) : some (bool_to_bv_16 bf) = map_f_to_bv
   linarith
 
 
-lemma extract_bv_rel_32{bf } (x: ZMod ff) : some (bool_to_bv_32 bf) = map_f_to_bv_32 x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#32 else 0#32) = BitVec.ofNat 32 x.val) := by
+lemma extract_bv_rel_32{bf } (x: ZMod ff) : some (bool_to_bv bf) = map_f_to_bv_32 x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#32 else 0#32) = BitVec.ofNat 32 x.val) := by
   unfold map_f_to_bv_32
-  unfold bool_to_bv_32
+  unfold bool_to_bv
   dsimp
   simp
   intros h
@@ -166,9 +156,9 @@ lemma extract_bv_rel_32{bf } (x: ZMod ff) : some (bool_to_bv_32 bf) = map_f_to_b
   linarith
 
 
-lemma extract_bv_rel_64{bf } (x: ZMod ff): some (bool_to_bv_64 bf) = map_f_to_bv_64 x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#64 else 0#64) = BitVec.ofNat 64 x.val) := by
+lemma extract_bv_rel_64{bf } (x: ZMod ff): some (bool_to_bv bf) = map_f_to_bv_64 x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#64 else 0#64) = BitVec.ofNat 64 x.val) := by
   unfold map_f_to_bv_64
-  unfold bool_to_bv_64
+  unfold bool_to_bv
   dsimp
   simp
   intros h
