@@ -17,43 +17,18 @@ class GtTwo (n : ℕ) : Prop where
 
 def bool_to_bv (b: Bool) : (BitVec n) := if b then 1 else 0
 
-
-def map_f_to_bv_8 {ff : ℕ} (rs1_val : ZMod ff) : Option (BitVec 8) :=
-  let n : ℕ := ZMod.val rs1_val
-  if n < 2^8 then
-    some (BitVec.ofNat 8 n)
-  else
-    none
-
-
-#check map_f_to_bv_8
-
-def map_f_to_bv_16  (rs1_val : ZMod ff) : Option (BitVec 16) :=
-  let n := (rs1_val.val : Nat)
-  if n < 2^16 then
-    some (BitVec.ofNat 16 n)
-  else
-    none
-
-def map_f_to_bv_32  (rs1_val : ZMod ff) : Option (BitVec 32) :=
-  let n := (rs1_val.val : Nat)
-  if n < 2^32 then
-    some (BitVec.ofNat 32 n)
-  else
-    none
-
-def map_f_to_bv_64 {ff} (rs1_val : ZMod ff) : Option (BitVec 64) :=
-  let n := (rs1_val.val : Nat)
-  if n < 2^64 then
-    some (BitVec.ofNat 64 n)
+def map_f_to_bv {ff : ℕ} n (rs1_val : ZMod ff) : Option (BitVec n) :=
+  let m : ℕ := ZMod.val rs1_val
+  if m < 2^n then
+    some (BitVec.ofNat n m)
   else
     none
 
 set_option maxHeartbeats 2000000
 
 
-lemma extract_bv_rel_8 {ff}  {bf} {x:ZMod ff}: some (bool_to_bv bf) = map_f_to_bv_8 x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#8 else 0#8) = BitVec.ofNat 8 x.val) := by
-  unfold map_f_to_bv_8
+lemma extract_bv_rel_8 {ff}  {bf} {x:ZMod ff}: some (bool_to_bv bf) = map_f_to_bv 8 x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#8 else 0#8) = BitVec.ofNat 8 x.val) := by
+  unfold map_f_to_bv
   unfold bool_to_bv
   dsimp
   simp
@@ -87,8 +62,8 @@ lemma extract_bv_rel_8 {ff}  {bf} {x:ZMod ff}: some (bool_to_bv bf) = map_f_to_b
   linarith
 
 
-lemma extract_bv_rel_16{bf} (x: ZMod ff) : some (bool_to_bv bf) = map_f_to_bv_16 x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#16 else 0#16) = BitVec.ofNat 16 x.val) := by
-  unfold map_f_to_bv_16
+lemma extract_bv_rel_16{bf} (x: ZMod ff) : some (bool_to_bv bf) = map_f_to_bv 16 x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#16 else 0#16) = BitVec.ofNat 16 x.val) := by
+  unfold map_f_to_bv
   unfold bool_to_bv
   dsimp
   simp
@@ -121,8 +96,8 @@ lemma extract_bv_rel_16{bf} (x: ZMod ff) : some (bool_to_bv bf) = map_f_to_bv_16
   linarith
 
 
-lemma extract_bv_rel_32{bf } (x: ZMod ff) : some (bool_to_bv bf) = map_f_to_bv_32 x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#32 else 0#32) = BitVec.ofNat 32 x.val) := by
-  unfold map_f_to_bv_32
+lemma extract_bv_rel_32{bf } (x: ZMod ff) : some (bool_to_bv bf) = map_f_to_bv 32 x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#32 else 0#32) = BitVec.ofNat 32 x.val) := by
+  unfold map_f_to_bv
   unfold bool_to_bv
   dsimp
   simp
@@ -156,8 +131,8 @@ lemma extract_bv_rel_32{bf } (x: ZMod ff) : some (bool_to_bv bf) = map_f_to_bv_3
   linarith
 
 
-lemma extract_bv_rel_64{bf } (x: ZMod ff): some (bool_to_bv bf) = map_f_to_bv_64 x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#64 else 0#64) = BitVec.ofNat 64 x.val) := by
-  unfold map_f_to_bv_64
+lemma extract_bv_rel_64{bf } (x: ZMod ff): some (bool_to_bv bf) = map_f_to_bv 64 x <-> (x.val <= 1 /\ (if (bf = true) = true then 1#64 else 0#64) = BitVec.ofNat 64 x.val) := by
+  unfold map_f_to_bv
   unfold bool_to_bv
   dsimp
   simp
