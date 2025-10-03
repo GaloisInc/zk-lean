@@ -1,5 +1,4 @@
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Even
+import ZkLean.Interleaving
 
 /-- Type for subtables, the building blocks to construct lookup tables.
 
@@ -13,6 +12,16 @@ inductive Subtable (f: Type) (n: Nat) where
 
 /-- Construct a `Subtable` from an MLE. -/
 def subtableFromMLE {n: Nat} (mle : Vector f n -> f) : Subtable f n := Subtable.SubtableMLE mle
+
+
+inductive Interleaving where
+  | Interleaved
+  | Concatenated
+
+structure LookupTableMLE (f: Type) (n: Nat) where
+  interleaving: Interleaving
+  mle : Vector f n -> f
+
 
 
 /-- Type for composed lookup tables
@@ -43,6 +52,11 @@ def evalSubtable {f: Type} {num_bits: Nat} (subtable: Subtable f num_bits) (inpu
   match subtable with
   | Subtable.SubtableMLE mle => mle input
 
+/-- Evaluation function defining the semantics of `Subtable` --/
+def evalLookupTableMLE (table: LookupTableMLE f (n + n)) (input1 input2: Vector f n): f :=
+  match table.interleaving with
+  | .Interleaved => table.mle (interleave input1 input2)
+  | .Concatenated => table.mle (input1 ++ input2)
 
 /--
   Evaluation function defining the semantics of `ComposedLookupTable`

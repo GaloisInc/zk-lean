@@ -64,7 +64,7 @@ def step [ZKField f] (prev_st : RISCVState f) : ZKBuilder f (RISCVState f) := do
   let r1 := prev_st.registers[1]
   let r2 := prev_st.registers[2]
 
-  let isEq <- ZKBuilder.lookup eq32 #v[r1, r1, r2, r2] -- Note: This example doesn't really make sense anymore.
+  let isEq <- ZKBuilder.lookup_mle_composed eq32 #v[r1, r1, r2, r2] -- Note: This example doesn't really make sense anymore.
   ZKBuilder.constrainEq new_st.registers[0] isEq
 
   return new_st
@@ -238,7 +238,7 @@ instance : ZKField (ZMod 7) where
     | 0 => 0
     | n + 1 => hash n
 
-  chunk_to_bits {num_bits: Nat} f :=
+  field_to_bits {num_bits: Nat} f :=
     let bv : BitVec 3 := BitVec.ofFin (Fin.castSucc f)
     -- TODO: Double check the endianess.
     Vector.map (fun i =>
@@ -247,6 +247,7 @@ instance : ZKField (ZMod 7) where
       else
         0
     ) (Vector.range num_bits)
+  field_to_nat f := f.val
 
 #eval run_circuit' (f := ZMod 7) circuit1 [1, 1]
 #eval run_circuit' (f := ZMod 7) circuit1 [1, 2]

@@ -31,8 +31,11 @@ inductive ZKOp (f : Type) : Type → Type
 | AllocWitness                         : ZKOp f (ZKExpr f)
 | ConstrainEq    (x y    : ZKExpr f)   : ZKOp f PUnit
 | ConstrainR1CS  (a b c  : ZKExpr f)   : ZKOp f PUnit
-| Lookup         (tbl    : ComposedLookupTable f 16 4)
-                 (args   : Vector (ZKExpr f) 4)        : ZKOp f (ZKExpr f)
+| ComposedLookupMLE (tbl : ComposedLookupTable f 16 4)
+                    (args : Vector (ZKExpr f) 4) : ZKOp f (ZKExpr f)
+| LookupMLE (lookupMLE: LookupTableMLE f 64)
+            (arg1 arg2: ZKExpr f) : ZKOp f (ZKExpr f)
+| LookupMaterialized (table: Vector f n) (arg: ZKExpr f) : ZKOp f (ZKExpr f)
 | MuxLookup      (chunks : Vector (ZKExpr f) 4)
                  (cases  : Array (ZKExpr f × ComposedLookupTable f 16 4))
                                                      : ZKOp f (ZKExpr f)
@@ -79,12 +82,25 @@ def constrainR1CS (a b c : ZKExpr f) : ZKBuilder f PUnit :=
   FreeM.lift (ZKOp.ConstrainR1CS a b c)
 
 /--
-Perform a MLE lookup into the given table with the provided argument chunks.
+Perform a lookup into the given MLE composed table with the provided argument chunks.
 -/
 @[simp_ZKBuilder]
-def lookup (tbl : ComposedLookupTable f 16 4)
-           (args : Vector (ZKExpr f) 4) : ZKBuilder f (ZKExpr f) :=
-  FreeM.lift (ZKOp.Lookup tbl args)
+def lookup_mle_composed (tbl : ComposedLookupTable f 16 4)
+  (args : Vector (ZKExpr f) 4) : ZKBuilder f (ZKExpr f) :=
+  FreeM.lift (ZKOp.ComposedLookupMLE tbl args)
+
+/--
+Perform a lookup into the given MLE table with the provided arguments.
+-/
+def lookup_mle (tbl : LookupTableMLE f 64) (e1 e2: ZKExpr f) : ZKBuilder f (ZKExpr f) :=
+  FreeM.lift (ZKOp.LookupMLE tbl e1 e2)
+
+/--
+Perform a lookup in a given materialized table with the provided argument.
+-/
+def lookup_materialized (tbl: Vector f n) (e: ZKExpr f) : ZKBuilder f (ZKExpr f) :=
+  FreeM.lift (ZKOp.LookupMaterialized tbl e)
+
 
 /--
 Helper function to perform a mux over a set of lookup tables.
@@ -158,11 +174,15 @@ def ZKOpInterp [Zero f] {β} (op : ZKOp f β) (st : ZKBuilderState f) : (β × Z
       ((), { st with constraints := (x, y) :: st.constraints })
   | ZKOp.ConstrainR1CS a b c =>
       ((), { st with constraints := (ZKExpr.Mul a b, c) :: st.constraints })
-  | ZKOp.Lookup tbl args =>
-      (ZKExpr.Lookup tbl args[0] args[1] args[2] args[3], st)
+  | ZKOp.ComposedLookupMLE tbl args =>
+      (ZKExpr.ComposedLookupMLE tbl args[0] args[1] args[2] args[3], st)
+  | ZKOp.LookupMLE tbl arg1 arg2 =>
+      (ZKExpr.LookupMLE tbl arg1 arg2, st)
+  | ZKOp.LookupMaterialized tbl arg =>
+      (ZKExpr.LookupMaterialized tbl arg, st)
   | ZKOp.MuxLookup ch cases =>
       let sum := Array.foldl (fun acc (flag, tbl) =>
-        acc + ZKExpr.Mul flag (ZKExpr.Lookup tbl ch[0] ch[1] ch[2] ch[3])) (ZKExpr.Literal (0 : f)) cases
+        acc + ZKExpr.Mul flag (ZKExpr.ComposedLookupMLE tbl ch[0] ch[1] ch[2] ch[3])) (ZKExpr.Literal (0 : f)) cases
       (sum, st)
   | ZKOp.RamNew n =>
       let id := st.ram_sizes.size
