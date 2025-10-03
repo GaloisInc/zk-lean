@@ -13,3 +13,7 @@ root = "Main"
 name = "mathlib"
 scope = "leanprover-community"
 rev = "v4.23.0"
+
+[[require]]
+name = "bvmod_eq"
+path = "../bvmod_eq/src"

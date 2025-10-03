@@ -1,14 +1,21 @@
-import Std.Do
+import Lean.Elab.Term
+import Lean.Meta.Basic
 import Mathlib.Algebra.Field.Defs
 import Mathlib.Algebra.Field.ZMod
+import Mathlib.Algebra.Order.Kleene
 import Mathlib.Control.Fold
 import Mathlib.Data.Nat.Prime.Defs
 import Mathlib.Data.ZMod.Defs
-
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
+import Std.Data.HashMap.Basic
+import Std.Do
+import Std.Tactic.BVDecide
 import ZkLean
 import ZkLean.SimpSets
 
-open Std.Do
+open Lean Meta Elab Term
+open Std Do
 
 def main : IO Unit :=
   IO.println s!"Hello!"
@@ -248,6 +255,8 @@ instance : ZKField (ZMod 7) where
         0
     ) (Vector.range num_bits)
   field_to_nat f := f.val
+
+#check run_circuit'
 
 #eval run_circuit' (f := ZMod 7) circuit1 [1, 1]
 #eval run_circuit' (f := ZMod 7) circuit1 [1, 2]
