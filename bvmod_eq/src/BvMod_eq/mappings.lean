@@ -13,6 +13,9 @@ namespace BvMod_eq
 class GtTwo (n : ℕ) : Prop where
   out : 2 < n
 
+theorem GtTwo.gt_two [G : GtTwo n] : 2 < n :=
+  G.out
+
 def bool_to_bv (b: Bool) : (BitVec n) := if b then 1 else 0
 
 def map_f_to_bv {ff : ℕ} n (rs1_val : ZMod ff) : Option (BitVec n) :=

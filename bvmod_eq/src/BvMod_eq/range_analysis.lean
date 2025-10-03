@@ -15,7 +15,7 @@ lemma Nat.mul_comm_ofNat (a n : Nat) :
    (OfNat.ofNat n) * a = a* (OfNat.ofNat n : Nat) := by
   rw [Nat.mul_comm ]
 
- lemma mul_comm_num_left (n t : ℕ) :
+lemma mul_comm_num_left (n t : ℕ) :
   (n : ℕ) * t = t * (n : ℕ) := by
   simpa using Nat.mul_comm (n : ℕ) t
 
