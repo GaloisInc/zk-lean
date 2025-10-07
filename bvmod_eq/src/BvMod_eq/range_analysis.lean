@@ -269,7 +269,6 @@ elab_rules : tactic
   let mut did_mux := false
   -- as long as we are making progress then continue
   while progress do
-    --count := count+ 1
     if did_mux then do
       didMux
       did_mux := false
