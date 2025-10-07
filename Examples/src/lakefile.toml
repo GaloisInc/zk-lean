@@ -1,0 +1,20 @@
+name = "examples"
+version = "0.0.1"
+defaultTargets = ["examples"]
+
+[[lean_lib]]
+name = "Examples"
+
+[[lean_exe]]
+name = "examples"
+root = "Examples"
+
+[[require]]
+name = "zkLean"
+path = "../../src"
+
+[[require]]
+name = "bvmod_eq"
+path = "../../bvmod_eq/src"
+
+
