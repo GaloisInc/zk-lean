@@ -121,22 +121,42 @@ syntax (name := findInsideVal) "findInsideVal" (ppSpace "=>" ident)? : tactic
     let prop2 <- g.withContext do mkAppM ``LE.le #[rhs, lhs]
     let pr2 ← g.withContext do mkFreshExprMVar prop2
     let hm ← g.withContext do pr.mvarId!.assert `vNat prop2 pr2
-    -- setGoals [pr2.mvarId!]
-    -- evalTactic (← `(tactic|  valify stx))
 
 
     let gWithHyp ← g.withContext do g.assert `vNat prop pr
     let gWithHyp2 <- g.withContext do  gWithHyp.assert `subleq prop2 pr2
     setGoals [pr2.mvarId!, hm, gWithHyp2]
 
+set_option maxHeartbeats  20000000000000000000
 
-lemma ZMod.val_sub_mod  (h: x.val <= (1 : ZMod ff).val): ( (1 : ZMod ff) -x).val = ( 1 - x.val) % ff := by sorry
+lemma ZMod.val_sub_mod (h0: Fact (1 < ff))  (h: x.val <= (1 : ZMod ff).val): ( (1 : ZMod ff) -x).val = ( 1 - x.val) % ff := by
+  valify [h0] at h
+  valify [h]
+  -- TODO: try_apply_lemmas can no longer do this proof, need to debug
+  rw [Nat.mod_eq_of_lt]
+  apply Nat.lt_of_le_of_lt
+  apply Nat.sub_le
+  apply h0.out
 
-lemma Nat.val_sub_mod  (h: x <= 1 ): ( (1 - (x % ff) )% ff )= ( 1 - x ) % ff := by sorry
 
 
-
-
+lemma Nat.val_sub_mod (h0: Fact (1 < ff))  (h: x <= 1 ): ( (1 - (x % ff) )% ff )= ( 1 - x ) % ff := by
+  rw [Nat.mod_eq_of_lt]
+  rw [Nat.mod_eq_of_lt]
+  rw [Nat.mod_eq_of_lt]
+  apply Nat.lt_of_le_of_lt
+  apply Nat.sub_le
+  apply h0.out
+  apply Nat.lt_of_le_of_lt
+  apply h
+  apply h0.out
+  rw [Nat.mod_eq_of_lt]
+  apply Nat.lt_of_le_of_lt
+  apply Nat.sub_le
+  apply h0.out
+  apply Nat.lt_of_le_of_lt
+  apply h
+  apply h0.out
 
 
 def assertFirstAcrossGoals (name : Name) : TacticM Unit := do
@@ -225,192 +245,4 @@ elab_rules : tactic
     evalTactic (← `(tactic| valify [$[$sargs],*] ))
     evalTactic (← `(tactic| try simp  ))
     evalTactic (← `(tactic|  rw [ Nat.val_sub_mod ]; ))
-    --evalTactic (← `(tactic|  try simp [mul_assoc]; ))
     evalTactic (← `(tactic|  simp [<- Nat.lt_add_one_iff]; apply NatLeq ; ))
-    -- last goal TODO this should be inside solve_mle b/c of names
-
-    --evalTactic (← `(tactic| intro NatLeq; intro Leq; intro Eq; simp at Eq ; rw [Eq] ;   valify [$[$sargs],*]))
-
-
-    --simp [<- Nat.lt_add_one_iff]; try_apply_lemma_hyps [$[$ids],*]; ))
-    --  -- STEP 2: now prove ( 1- exp.val) = 1 - exp.val using g1
-    -- evalTactic (← `(tactic| intro h; try simp; simp [ZMod.val_sub_mod h]; try valify [$[$sargs],*]; try simp; rw [Nat.val_sub_mod]; try simp [mul_assoc] ))
-    -- -- STEP 3: prove We end up with exp.val <= 1
-
-
--- example (fv : Vector (ZMod ff) 8): (fv[0].val <= 1) -> (fv[1].val <= 1 ) -> (fv[2].val <= 1 ) -> ( (1: ZMod ff) - ( (fv[0]*fv[1] + (1-fv[0]) * (1-fv[1])) * ( fv[2]))).val < 7 := by
---   intros h1 h2 h3
---   -- Scenario we have 1 - exp
---   try valify [ h1, h2, h3]
---   --have h: (fv[0].val * fv[1].val + (1 - fv[0].val) * (1 - fv[1].val)) * fv[2].val < 2 := by sorry
---   valify_helper [h1, h2, h3]
---   sorry
-  -- valify [ h1, h2, h3]
-  --all_goals intro NatLeq
-
-  -- exact Nat.lt_of_lt_of_le NatLeq (by decide)
-  -- exact Nat.lt_of_lt_of_le NatLeq (by decide)
-  -- all_goals intro Leq
-  -- valify [h1, h2, h3]
-  -- try simp
-  -- --rw [Nat.mod_eq_of_lt]
-  -- simp [ZMod.val_sub_mod Leq]
-  -- valify [h1, h2, h3]
-  -- simp
-  -- rw [ Nat.val_sub_mod ]
-  -- try simp [mul_assoc]
-  -- simp [<- Nat.lt_add_one_iff]
-  -- apply NatLeq
-  -- intro Eq
-  -- simp at Eq
-
-  -- rw [Eq]
-  -- valify [h1, h2, h3]
-  -- rw [Nat.mod_eq_of_lt]
-  -- try_apply_lemma_hyps [h1, h2, h3]
-  -- simp [<- Nat.lt_add_one_iff]
-  -- exact Nat.lt_of_lt_of_le NatLeq (by decide)
-  -- simp [<- Nat.lt_add_one_iff]
-  -- exact Nat.lt_of_lt_of_le NatLeq (by decide)
-
-
-
-
-
-
-
-
-  -- sorry
-  -- -- STEP 1: first prove exp.val <= 1
-  -- -- so I have my first h1 but I actually want h0 which is h1 that is valified simplified & without the mod  can I call valify while I am constructing an expression in a tactic?
-  --valify [h1, h2, h3]
-  -- simp
-  -- rw [Nat.mod_eq_of_lt]
-  --  -- note we end up with val(exp) <= 1
-  -- simp [<- Nat.lt_add_one_iff]
-
-  -- try_apply_lemma_hyps [h1, h2, h3]
-  -- --apply h
-
-  -- intro h
-  -- --- Now prove: (1-exp).val = val(exp)
-  -- try simp
-  -- simp [ZMod.val_sub_mod h]
-
-  -- valify [h1, h2, h3]
-  -- simp
-  -- rw [ Nat.val_sub_mod ]
-  -- try simp [mul_assoc]
-
-
-  -- -- We end up with exp.val <= 1
-  -- simp [<- Nat.lt_add_one_iff]
-  -- try_apply_lemma_hyps [h1, h2, h3]
-  -- intros hx hy
-  -- simp at hy
-  -- rw [hy]
-  -- rw [Nat.mod_eq_of_lt]
-
-
-
-
-
-  --rw [Nat.mod_eq_of_lt]
-
-
-
-  -- lemma or_val {n : ℕ} [h: NeZero n] [h': GtTwo n] {x y : ZMod n}
-  --   (hx : x.val ≤ 1) (hy : y.val <= 1) :
-  -- (x + y - x*y).val =
-  -- ((x.val + y.val)  - (x.val * y.val) )% n := by
-  -- have h:  (x + y).val >=  (x * y).val := by
-  --         simp [ZMod.val_mul]
-  --         simp [ZMod.val_add]
-  --         apply split_one at hx
-  --         apply split_one at hy
-  --         apply Or.elim hx
-  --         intro hx'
-  --         apply Or.elim hy
-  --         intro hy'
-  --         rw [hx']
-  --         rw [hy']
-  --         intro hy'
-  --         rw [hx']
-  --         rw [hy']
-  --         simp
-  --         intro hx'
-  --         apply Or.elim hy
-  --         intro hy'
-  --         rw [hx']
-  --         rw [hy']
-  --         simp
-  --         intro hy'
-  --         rw [hx']
-  --         rw [hy']
-  --         simp
-  --         cases n with
-  --           | zero => simp
-  --           | succ m => cases m with
-  --              | zero => simp
-  --              | succ m' => cases m' with
-  --                   | zero => simp
-  --                             simp at h'
-  --                             exact (lt_irrefl 2) h'.out
-  --                   | succ n' =>
-  --                         have h3 : 3 ≤ n' + 1 + 1 +1 := by simp
-  --                         have hlt : 2 < n' + 1 + 1 + 1 := by apply h3
-  --                         rw [Nat.mod_eq_of_lt hlt]
-  --                         simp
-  -- simp [ZMod.val_sub h]
-  -- simp [ZMod.val_mul]
-  -- simp [ZMod.val_add]
-  -- apply split_one at hx
-  -- apply split_one at hy
-  -- apply Or.elim hx
-  -- intro hx'
-  -- apply Or.elim hy
-  -- intro hy'
-  -- rw [hx']
-  -- rw [hy']
-  -- simp
-  -- intro hy'
-  -- rw [hx']
-  -- rw [hy']
-  -- simp
-  -- intro hx'
-  -- apply Or.elim hy
-  -- intro hy'
-  -- rw [hx']
-  -- rw [hy']
-  -- simp
-  -- intro hy'
-  -- rw [hx']
-  -- rw [hy']
-  -- simp
-  -- cases n with
-  --           | zero => simp
-  --           | succ m => cases m with
-  --              | zero => simp
-  --              | succ m' => cases m' with
-  --                   | zero => simp
-  --                             simp at h'
-  --                             exact (lt_irrefl 2) h'.out
-  --                   | succ n' =>
-  --                         have h3 : 3 ≤ n' + 1 + 1 +1 := by simp
-  --                         have hlt : 2 < n' + 1 + 1 + 1 := by apply h3
-  --                         rw [Nat.mod_eq_of_lt hlt]
-  --                         simp
-
-
-
-
-
-
-
-
-
-
--- Solution we do a have
---- in the have we move things around how we want them to be
---- and then we do a proof
----- we use simp

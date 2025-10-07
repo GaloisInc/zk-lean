@@ -4,7 +4,7 @@ import ZkLean.Formalism
 import BvMod_eq.solve_mle
 
 abbrev ff := 17179869211
-abbrev f := ZMod ff
+abbrev f := ZMod  17179869211
 
 instance : Fact (Nat.Prime ff) := by sorry
 
@@ -14,15 +14,17 @@ instance : ZKField (ZMod ff) where
     | 0 => 0
     | n + 1 => hash n
 
-  chunk_to_bits {num_bits: Nat} f :=
-     let bv : BitVec 32 := BitVec.ofFin (Fin.castSucc 2^32)
-  --   -- TODO: Double check the endianess.
+  field_to_bits {num_bits: Nat} f :=
+    let bv : BitVec 64 := BitVec.ofFin ⟨f.val, Nat.lt_trans (ZMod.val_lt f) (by decide : ff < 2 ^ 64)⟩
+    -- TODO: Double check the endianess.
     Vector.map (fun i =>
       if _:i < 3 then
         if bv[i] then 1 else 0
       else
-         0
+        0
     ) (Vector.range num_bits)
+  field_to_nat f := f.val
+
 
 instance : Witnessable (ZMod ff) (ZMod ff) := by sorry
 
