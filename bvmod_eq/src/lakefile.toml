@@ -7,7 +7,7 @@ name = "BvMod_eq"
 
 [[lean_exe]]
 name = "bvmod_eq"
-root = "Main"
+root = "BvMod_eq"
 
 [[require]]
 name = "mathlib"
