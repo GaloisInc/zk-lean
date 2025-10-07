@@ -49,7 +49,7 @@ partial def firstCompositeInsideVal? (e : Expr) : MetaM (Option Expr) := do
   | .app f a =>
       if let some r ← firstCompositeInsideVal? f then return some r
       firstCompositeInsideVal? a
-  | _                   =>
+  | _ =>
     pure none
 
 
@@ -100,7 +100,7 @@ syntax (name := findInsideVal) "findInsideVal" (ppSpace "=>" ident)? : tactic
 
 @[tactic findInsideVal] def evalFindInsideVal : Tactic := fun stx => do
   let g ← getMainGoal
-  let gt <- g.getType
+  let gt ← g.getType
   g.withContext do
     let ty ← instantiateMVars (← g.getType)
     logInfo m!"{gt.getAppApps}"
@@ -114,22 +114,22 @@ syntax (name := findInsideVal) "findInsideVal" (ppSpace "=>" ident)? : tactic
     let args2 := args[1]!.getAppApps
     let e2 := args2[args2.size-1]!
     let args3:= e2.getAppArgs
-    let prop <- mkEq t e
+    let prop ← mkEq t e
     let pr ←  g.withContext do mkFreshExprMVar prop
     let rhs := mkApp2 (mkConst ``ZMod.val) args[0]! args3[args3.size -1]!
     let lhs := mkApp2 (mkConst ``ZMod.val) args[0]! args3[args3.size -2]!
-    let prop2 <- g.withContext do mkAppM ``LE.le #[rhs, lhs]
+    let prop2 ← g.withContext do mkAppM ``LE.le #[rhs, lhs]
     let pr2 ← g.withContext do mkFreshExprMVar prop2
     let hm ← g.withContext do pr.mvarId!.assert `vNat prop2 pr2
 
-
     let gWithHyp ← g.withContext do g.assert `vNat prop pr
-    let gWithHyp2 <- g.withContext do  gWithHyp.assert `subleq prop2 pr2
+    let gWithHyp2 ← g.withContext do  gWithHyp.assert `subleq prop2 pr2
     setGoals [pr2.mvarId!, hm, gWithHyp2]
 
 set_option maxHeartbeats  20000000000000000000
 
-lemma ZMod.val_sub_mod (h0: Fact (1 < ff))  (h: x.val <= (1 : ZMod ff).val): ( (1 : ZMod ff) -x).val = ( 1 - x.val) % ff := by
+lemma ZMod.val_sub_mod (h0 : Fact (1 < ff)) (h : x.val ≤ (1 : ZMod ff).val)
+  : ((1 : ZMod ff) - x).val = (1 - x.val)%ff := by
   valify [h0] at h
   valify [h]
   rw [Nat.mod_eq_of_lt]
@@ -137,8 +137,8 @@ lemma ZMod.val_sub_mod (h0: Fact (1 < ff))  (h: x.val <= (1 : ZMod ff).val): ( (
   apply h0.out
 
 
-
-lemma Nat.val_sub_mod (h0: Fact (1 < ff))  (h: x <= 1 ): ( (1 - (x % ff) )% ff )= ( 1 - x ) % ff := by
+lemma Nat.val_sub_mod (h0 : Fact (1 < ff)) (h : x ≤ 1)
+  : (1 - (x%ff))%ff = (1 - x)%ff := by
   rw [Nat.mod_eq_of_lt]
   rw [Nat.mod_eq_of_lt]
   rw [Nat.mod_eq_of_lt]
@@ -176,13 +176,12 @@ def assertFirstAcrossGoals (name : Name) : TacticM Unit := do
 elab "share_first_goal" : tactic => assertFirstAcrossGoals `h
 
 
-
 syntax (name := valifyHelper) "valify_helper" ("[" ident,* "]")? : tactic
 
 
 @[tactic valifyHelper]
 elab_rules : tactic
- | `( tactic| valify_helper [$ids,*]) =>  withMainContext do
+ | `( tactic| valify_helper [$ids,*]) => withMainContext do
     let mut sargs :
     Array (TSyntax [`Lean.Parser.Tactic.simpStar,
                     `Lean.Parser.Tactic.simpErase,
@@ -195,15 +194,14 @@ elab_rules : tactic
                `Lean.Parser.Tactic.simpLemma] :=
       ⟨sa.raw⟩
       sargs := sargs.push ua
-  -- what this does given an  (1 - exp).val ∈ g we get
-  -- g1: exp.val <= 1
-  -- g2: g1 -> ( 1- exp.val) = 1 - exp.val
-  -- g3: g2 -> g
-  -- TODO: This is not efficient!! we end up proving some  things
-  -- twice; need to look into how to make this more efficient!
+    -- what this does given an (1 - exp).val ∈ g we get
+    -- g1: exp.val <= 1
+    -- g2: g1 -> ( 1- exp.val) = 1 - exp.val
+    -- g3: g2 -> g
+    -- TODO: This is not efficient!! we end up proving some things
+    -- twice; need to look into how to make this more efficient!
     --evalTactic (← `(tactic| findInsideVal))
     let g ← getMainGoal
-    let gt <- g.getType
     let ty ← instantiateMVars (← g.getType)
     let some t ← firstCompositeInsideVal? ty
           | return ()
@@ -213,34 +211,33 @@ elab_rules : tactic
     let args2 := args[1]!.getAppApps
     let e2 := args2[args2.size-1]!
     let args3:= e2.getAppArgs
-    let prop <- mkEq t e
-    let pr ←  g.withContext do mkFreshExprMVar prop
+    let prop ← mkEq t e
+    let pr ← g.withContext do mkFreshExprMVar prop
     let rhs := mkApp2 (mkConst ``ZMod.val) args[0]! args3[args3.size -1]!
     let lhs := mkApp2 (mkConst ``ZMod.val) args[0]! args3[args3.size -2]!
-    let prop2 <- g.withContext do mkAppM ``LE.le #[rhs, lhs]
+    let prop2 ← g.withContext do mkAppM ``LE.le #[rhs, lhs]
     let pr2 ← g.withContext do mkFreshExprMVar prop2
     let hm ← g.withContext do pr.mvarId!.assert `vNat prop2 pr2
     let gWithHyp ← g.withContext do g.assert `vNat prop pr
-    let gWithHyp2 <- g.withContext do  gWithHyp.assert `subleq prop2 pr2
+    let gWithHyp2 ← g.withContext do gWithHyp.assert `subleq prop2 pr2
     setGoals [pr2.mvarId!, hm, gWithHyp2]
 
-    evalTactic (← `(tactic|
-       valify [$[$sargs],*]; ))
+    evalTactic (← `(tactic| valify [$[$sargs],*]; ))
     evalTactic (← `(tactic| try simp; ))
-    evalTactic (← `(tactic| rw [Nat.mod_eq_of_lt];
-    simp [<- Nat.lt_add_one_iff];))
+    evalTactic (← `(tactic| rw [Nat.mod_eq_of_lt]; simp [← Nat.lt_add_one_iff]))
     assertFirstAcrossGoals `h
-    evalTactic (← `(tactic| focus try_apply_lemma_hyps [$[$ids],*];))
-    evalTactic (← `(tactic| intro NatLeq ))
-    evalTactic (← `(tactic| exact Nat.lt_of_lt_of_le NatLeq (by decide) ;
-    intro NatLeq;
-    exact Nat.lt_of_lt_of_le NatLeq (by decide);
-    intro NatLeq;
-    intro Leq;
+    evalTactic (← `(tactic| focus try_apply_lemma_hyps [$[$ids],*]))
+    evalTactic (← `(tactic| intro NatLeq))
+    evalTactic (← `(tactic|
+      exact Nat.lt_of_lt_of_le NatLeq (by decide)
+      intro NatLeq
+      exact Nat.lt_of_lt_of_le NatLeq (by decide)
+      intro NatLeq
+      intro Leq
     ))
-    evalTactic (← `(tactic| valify [$[$sargs],*]; try simp;))
-    evalTactic (← `(tactic| simp [ZMod.val_sub_mod Leq]; ))
-    evalTactic (← `(tactic| valify [$[$sargs],*] ))
-    evalTactic (← `(tactic| try simp  ))
-    evalTactic (← `(tactic|  rw [ Nat.val_sub_mod ]; ))
-    evalTactic (← `(tactic|  simp [<- Nat.lt_add_one_iff]; apply NatLeq ; ))
+    evalTactic (← `(tactic| valify [$[$sargs],*]; try simp))
+    evalTactic (← `(tactic| simp [ZMod.val_sub_mod Leq]))
+    evalTactic (← `(tactic| valify [$[$sargs],*]))
+    evalTactic (← `(tactic| try simp))
+    evalTactic (← `(tactic| rw [Nat.val_sub_mod]))
+    evalTactic (← `(tactic| simp [← Nat.lt_add_one_iff]; apply NatLeq))
