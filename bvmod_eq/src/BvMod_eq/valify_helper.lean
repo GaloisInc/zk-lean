@@ -132,10 +132,8 @@ set_option maxHeartbeats  20000000000000000000
 lemma ZMod.val_sub_mod (h0: Fact (1 < ff))  (h: x.val <= (1 : ZMod ff).val): ( (1 : ZMod ff) -x).val = ( 1 - x.val) % ff := by
   valify [h0] at h
   valify [h]
-  -- TODO: try_apply_lemmas can no longer do this proof, need to debug
   rw [Nat.mod_eq_of_lt]
-  apply Nat.lt_of_le_of_lt
-  apply Nat.sub_le
+  try_apply_lemma_hyps [h]
   apply h0.out
 
 

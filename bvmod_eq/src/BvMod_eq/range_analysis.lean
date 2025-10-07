@@ -230,6 +230,7 @@ def findAndApplyRangeAnalysisLemma (loopBodyReturn : LoopBodyLabel)
       | Expr.const name _ =>
         match name with
         | ``ite => applyIfLemma loopBodyReturn
+        | ``OfNat.ofNat => pure ()
         | _ => applyThisLemma lt
       | _ => pure ()
     | _ => pure ()
@@ -259,7 +260,7 @@ elab_rules : tactic
   -- important for mux discovery
   evalTactic (← `(tactic| try all_goals simp [Nat.mul_assoc]))
   let mut cont := true
-  while cont do
+  while cont  do
     try
       evalTactic (← `(tactic| all_goals rw [Nat.mul_comm_ofNat]))
     catch _ =>
@@ -268,6 +269,7 @@ elab_rules : tactic
   let mut did_mux := false
   -- as long as we are making progress then continue
   while progress do
+    --count := count+ 1
     if did_mux then do
       didMux
       did_mux := false
@@ -299,13 +301,14 @@ elab_rules : tactic
           let args := e.getAppArgs
           -- First check if we are dealing with a mux
           handleIfMux loopBodyReturn g args
+
           -- if not a mux but we have only two variables do a case by case reasoning
           -- this is necessary in case of variable dependencies
           -- Ex: x1 + x2 - x1*x2 --> Can't be negative but needs to be proven
           -- - First check that only 2 variables exist & a subtraction is involved
           -- then make sure all variables are bounded <= 1
           if terms.size == 2 && (← containsSub instantiatedGoalType) then
-            caseByCaseOnTwoVariables loopBodyReturn g hyps terms
+             caseByCaseOnTwoVariables loopBodyReturn g hyps terms
           --try to apply Lean's range analysis lemmas
           findAndApplyRangeAnalysisLemma loopBodyReturn terms g instantiatedGoalType hyps
         -- if other techniques did not work try decide
@@ -324,30 +327,3 @@ elab_rules : tactic
     -- Note: we built the updated goals list in reverse to avoid repeatedly
     -- traversing an ever-growingly long prefix.
     setGoals (updatedGoalsReversed.reverse ++ goalQueue.dList ++ goalQueue.eList.reverse)
-
-
---(x[0]*x[1] + (1 - x[0])*(1 - x[1]))*(x[2]*x[3] + (1 - x[2])*(1 - x[3]))*(x[4]*x[5] + (1 - x[4])*(1 - x[5]))*(x[6]*x[7] + (1 - x[6])*(1 - x[7]))*(x[8]*x[9] + (1 - x[8])*(1 - x[9]))*(x[10]*x[11] + (1 - x[10])*(1 - x[11]))*(x[12]*x[13] + (1 - x[12])*(1 - x[13]))*(x[14]*x[15] + (1 - x[14])*(1 - x[15]))*(x[16]*x[17] + (1 - x[16])*(1 - x[17]))*(x[18]*x[19] + (1 - x[18])*(1 - x[19]))*(x[20]*x[21] + (1 - x[20])*(1 - x[21]))*(x[22]*x[23] + (1 - x[22])*(1 - x[23]))*(x[24]*x[25] + (1 - x[24])*(1 - x[25]))*(x[26]*x[27] + (1 - x[26])*(1 - x[27]))*(x[28]*x[29] + (1 - x[28])*(1 - x[29]))*(x[30]*x[31] + (1 - x[30])*(1 - x[31]))*(x[32]*x[33] + (1 - x[32])*(1 - x[33]))*(x[34]*x[35] + (1 - x[34])*(1 - x[35]))*(x[36]*x[37] + (1 - x[36])*(1 - x[37]))*(x[38]*x[39] + (1 - x[38])*(1 - x[39]))*(x[40]*x[41] + (1 - x[40])*(1 - x[41]))*(x[42]*x[43] + (1 - x[42])*(1 - x[43]))*(x[44]*x[45] + (1 - x[44])*(1 - x[45]))*(x[46]*x[47] + (1 - x[46])*(1 - x[47]))*(x[48]*x[49] + (1 - x[48])*(1 - x[49]))*(x[50]*x[51] + (1 - x[50])*(1 - x[51]))*(x[52]*x[53] + (1 - x[52])*(1 - x[53]))*(x[54]*x[55] + (1 - x[54])*(1 - x[55]))*(x[56]*x[57] + (1 - x[56])*(1 - x[57]))*(x[58]*x[59] + (1 - x[58])*(1 - x[59]))*(x[60]*x[61] + (1 - x[60])*(1 - x[61]))*(x[62]*x[63] + (1 - x[62])*(1 - x[63])))
-
--- example (x: Vector (ZMod 7) 32)  (h1: x[0].val <= 1) (h2: x[1].val <= 1) (h3: x[2].val <= 1) (h4: x[3].val <= 1) (h5: x[4].val <= 1) (h6: x[5].val <= 1) (h7: x[6].val <= 1) (h8: x[7].val <= 1) (h9: x[8].val <= 1) (h10: x[9].val <= 1): (x[0].val*x[1].val + (1 - x[0].val)*(1 - x[1].val))*(x[2].val*x[3].val + (1 - x[2].val)*(1 - x[3].val)) *(x[4].val*x[5].val + (1 - x[4].val)*(1 - x[5].val))* (x[6].val*x[7].val + (1 - x[6].val)*(1 - x[7].val))*(x[8].val*x[9].val + (1 - x[8].val)*(1 - x[9].val))  < 2 :=
--- by try_apply_lemma_hyps [h1, h2, h3, h4, h5, h6, h7 , h8, h9, h10]
-
-example (y x : ℕ) (h: x<=1 ) (h2: y<=1) (h3: z<=1):
-     2 * ((x) * (1-y) * z) +
-       8 * (x * (y) * (1-z)) +
-      7* ((1-x) * y) * z +
-      1 * (1-x)* (1-y) * (1-z)
-       < 9 := by
-      --  all_goals simp [Nat.mul_assoc]
-      --  all_goals rw [Nat.mul_comm_ofNat]
-      --  all_goals rw [Nat.mul_comm_ofNat]
-      --  all_goals rw [Nat.mul_comm_ofNat]
-       try_apply_lemma_hyps [h2, h, h3]
-
-
---       -- simp
-      -- apply h3
-      -- simp
-      -- apply h4
-      -- apply Nat.mul_le_mul
-       --+
-      -- (1-x) * y * (1-z) *(4*a + b) +
