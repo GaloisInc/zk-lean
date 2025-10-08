@@ -1,0 +1,11 @@
+name = "BVModEq"
+version = "0.0.1"
+defaultTargets = ["BVModEq"]
+
+[[lean_lib]]
+name = "BVModEq"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.23.0"
