@@ -19,6 +19,11 @@ lemma mul_comm_num_left (n t : ℕ) :
   (n : ℕ) * t = t * (n : ℕ) := by
   simpa using Nat.mul_comm (n : ℕ) t
 
+lemma BitVec.toNatLT {bw} {a : BitVec bw}:
+  a.toNat <= 2^bw := by
+  have h := a.toFin.isLt        -- h : ↑a.toFin < 2 ^ bw
+  exact Nat.le_of_lt h
+
 def mkAddNat (es : List Expr) : Expr :=
   match es with
   | []      => mkNatLit 0
@@ -89,14 +94,20 @@ partial def collectTerms (e : Expr) : MetaM NameSet := do
       return {decl.userName}
   if e.isApp then
     let (fn, args) := e.getAppFnArgs
+
     match (fn, args) with
     | (``getElem, #[_,_,_,_,_, vectorExpr, indexExpr, _]) =>
       if vectorExpr.isFVar then
         if let some decl := lctx.find? vectorExpr.fvarId! then
           let idxPretty ← PrettyPrinter.ppExpr indexExpr
           return {Name.mkSimple s!"{decl.userName}[{idxPretty}]"}
+      if vectorExpr.isApp then
+        let idxPretty ← PrettyPrinter.ppExpr indexExpr
+        return {Name.mkSimple s!"{vectorExpr}[{idxPretty}]"}
     | _ =>
       return (← args.mapM collectTerms).foldl (· ++ ·) {}
+  if e.isMData then
+      return (← collectTerms e.mdataExpr!)
   return {}
 
 -- | Introduces a name in the local context, passing a term for it to the continuation, so that it
@@ -116,7 +127,7 @@ def test1 : TacticM NameSet := do
     let e ← elabTerm (← `($x[8].val + ($y[2] * $z[5]).val = 0)) none
     collectTerms e
 
-#eval testCollectVarsAppAndConst test1
+--#eval testCollectVarsAppAndConst test1
 
 -- Main Range Analysis Tactic
 -- Args: list of hypothesis
@@ -219,6 +230,7 @@ def findAndApplyRangeAnalysisLemma (loopBodyReturn : LoopBodyLabel)
   let add ← monadLift (m := TacticM) ``(Nat.add_le_add)
   let mul ← monadLift (m := TacticM) ``(Nat.mul_le_mul)
   let rfl ← monadLift (m := TacticM) ``(Nat.le_refl)
+  let bitvec ← monadLift (m := TacticM) ``(BitVec.toNatLT)
   let (fn, args) := mainGoalType.getAppFnArgs
   let unfolded := ← monadLift $ withTransparency .reducible (whnf args[2]!)
   let fn3 := unfolded.getAppFn
@@ -246,7 +258,9 @@ def findAndApplyRangeAnalysisLemma (loopBodyReturn : LoopBodyLabel)
       -- rfl is a place holder should be something else
       | ``ite => applyIfLemma loopBodyReturn
       | ``ZMod.val => applyZModLemma loopBodyReturn g hyps
-      | _ => pure ()
+      | ``BitVec.toNat => applyThisLemma bitvec
+      | _ =>
+         pure ()
     | _ =>
       if fn3.isFVar then applyZModLemma loopBodyReturn g hyps
   | _ => pure ()
