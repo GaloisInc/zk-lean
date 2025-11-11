@@ -152,11 +152,11 @@ def uniform_jolt_constraint [ZKField f] (jolt_inputs: JoltR1CSInputs f) : ZKBuil
 --   constrainR1CS (step_1.jolt_flag * 872187687 + ...) (step_2.jolt_flag + 1) (1)
 --   ...
 
-attribute [simp_circuit] runFold
+attribute [simp_circuit] runFold_old
 
 @[simp_circuit]
 def run_circuit' [ZKField f] (circuit: ZKBuilder f a) (witness: List f) : Bool :=
-  let (_circ_states, zk_builder) := runFold circuit default
+  let (_circ_states, zk_builder) := runFold_old circuit default
   let b := semantics_constraints zk_builder.constraints witness (Array.empty)
   b
 

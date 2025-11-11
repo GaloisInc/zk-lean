@@ -27,6 +27,19 @@ structure ZKBuilderState (f : Type) where
   ram_ops: (Array (RamOp f))
 deriving instance Inhabited for ZKBuilderState
 
+structure ZKState (f : Type) where
+  allocated_witness_count: Nat
+  -- -- Pairs of expressions that are constrained to be equal to one another.
+  -- constraints: List (ZKExpr f × ZKExpr f)
+  -- -- Array of sizes and array of operations for each RAM.
+  -- ram_sizes: Array Nat
+  -- ram_ops: (Array (RamOp f))
+deriving instance Inhabited for ZKBuilderState
+
+def ZKState.eval_expr [Zero f] (st: ZKState f) (e: ZKExpr f) : f := 
+  Zero.zero -- TODO!
+
+
 /-- Primitive instructions for the circuit DSL - the effect 'functor'. -/
 inductive ZKOp (f : Type) : Type → Type
 | AllocWitness                         : ZKOp f (ZKExpr f)
@@ -166,7 +179,7 @@ open ZKBuilder
 
 /-- Execute one `ZKOp` instruction and update the `ZKBuilderState`. -/
 @[simp_ZKBuilder]
-def ZKOpInterp [Zero f] {β} (op : ZKOp f β) (st : ZKBuilderState f) : (β × ZKBuilderState f) :=
+def ZKOpInterp_old [Zero f] {β} (op : ZKOp f β) (st : ZKBuilderState f) : (β × ZKBuilderState f) :=
   match op with
   | ZKOp.AllocWitness =>
       let idx := st.allocated_witness_count
@@ -194,31 +207,32 @@ def ZKOpInterp [Zero f] {β} (op : ZKOp f β) (st : ZKBuilderState f) : (β × Z
   | ZKOp.RamWrite ram a v =>
       ((), { st with ram_ops := st.ram_ops.push (RamOp.Write ram.id a v) })
 
+
 /-- Convert a `ZKBuilder` computation into a `StateM` computation. -/
 @[simp_ZKBuilder]
 def toStateM [Zero f] {α : Type} (comp : ZKBuilder f α) : StateM (ZKBuilderState f) α :=
-  comp.mapM ZKOpInterp
+  comp.mapM ZKOpInterp_old
 
 /--
 Run a `ZKBuilder` program starting from an initial state.
 
 The function walks through the program step-by-step:
 • when it reaches `pure`, it simply returns the value without changing the state;
-• when it sees an operation, it uses `ZKOpInterp` to update the state, then
+• when it sees an operation, it uses `ZKOpInterp_old` to update the state, then
   continues with the rest of the program.
 
 Internally this is implemented with `FreeM.foldM`, which is quite literally a `fold` over the `FreeM` tree.
 -/
 @[simp_ZKBuilder]
-def runFold [Zero f] (p : ZKBuilder f α) (st : ZKBuilderState f)
+def runFold_old [Zero f] (p : ZKBuilder f α) (st : ZKBuilderState f)
     : (α × ZKBuilderState f) :=
   FreeM.foldM
     -- pure case : just return the value, leaving the state untouched
     (fun a => fun st => (a, st))
-    -- bind case : interpret one primitive with `ZKOpInterp`, then feed the
+    -- bind case : interpret one primitive with `ZKOpInterp_old`, then feed the
     -- resulting value into the continuation on the updated state.
     (fun op k => fun st =>
-      let (b, st') := ZKOpInterp op st
+      let (b, st') := ZKOpInterp_old op st
       k b st')
     p st
 
@@ -246,7 +260,7 @@ open Std.Do
 implicit `ZKBuilderState`; therefore its predicate shape is `PostShape.arg
 (ZKBuilderState f) .pure`.
 
-The interpretation simply executes the computation with `runFold` and feeds the
+The interpretation simply executes the computation with `runFold_old` and feeds the
 result to the post-condition. -/
 
 @[simp_ZKBuilder]
@@ -256,4 +270,4 @@ instance [Zero f] : WP (ZKBuilder f) (.arg (ZKBuilderState f) .pure) where
     -- builder starting from an initial state and hand the resulting
     -- `(value, state)` pair to the post-condition.
     PredTrans.pushArg (fun s =>
-      PredTrans.pure (runFold x s))
+      PredTrans.pure (runFold_old x s))

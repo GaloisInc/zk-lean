@@ -14,6 +14,63 @@ class ZKField (f: Type) extends Field f, BEq f, Inhabited f, LawfulBEq f, Hashab
   field_to_nat (val: f) : Nat
 
 
+/-- Interprets a ZK operation give a state. On success, it returns the result of the operation and the updated state. If a constraint in the circuit is not satisfied, it short circuits and returns `.none`. -/
+@[simp_ZKBuilder]
+def ZKOpInterp [ZKField f] {β} (op : ZKOp f β) (st : ZKState f) : Option (β × ZKState f) :=
+  match op with
+  | ZKOp.AllocWitness => -- JP: Could just return the witness value instead?
+      let idx := st.allocated_witness_count
+      .some (ZKExpr.WitnessVar idx, { st with allocated_witness_count := idx + 1 })
+  | ZKOp.ConstrainEq x y =>
+      let fx := st.eval_expr x
+      let fy := st.eval_expr y
+      if fx == fy then
+        .some ((), st)
+      else
+        .none
+  | ZKOp.ConstrainR1CS a b c =>
+      let fa := st.eval_expr a
+      let fb := st.eval_expr b
+      let fc := st.eval_expr c
+      if fa * fb == fc then
+        .some ((), st)
+      else
+        .none
+  | ZKOp.ComposedLookupMLE tbl args =>
+      (ZKExpr.ComposedLookupMLE tbl args[0] args[1] args[2] args[3], st)
+  | ZKOp.LookupMLE tbl arg1 arg2 =>
+      (ZKExpr.LookupMLE tbl arg1 arg2, st)
+  | ZKOp.LookupMaterialized tbl arg =>
+      (ZKExpr.LookupMaterialized tbl arg, st)
+  | ZKOp.MuxLookup ch cases =>
+      let sum := Array.foldl (fun acc (flag, tbl) =>
+        acc + ZKExpr.Mul flag (ZKExpr.ComposedLookupMLE tbl ch[0] ch[1] ch[2] ch[3])) (ZKExpr.Literal (0 : f)) cases
+      (sum, st)
+  | ZKOp.RamNew n =>
+      panic! ("TODO")
+  | ZKOp.RamRead ram a =>
+      panic! ("TODO")
+  | ZKOp.RamWrite ram a v =>
+      panic! ("TODO")
+
+@[simp_ZKBuilder]
+def runFold [ZKField f] (p : ZKBuilder f α) (st : ZKState f)
+    : Option (α × ZKState f) :=
+  FreeM.foldM
+    -- pure case : just return the value, leaving the state untouched
+    (fun a => fun st => .some (a, st))
+    -- bind case : interpret one primitive with `ZKOpInterp`, then feed the
+    -- resulting value into the continuation on the updated state.
+    (fun op k => fun st => do
+      let (b, st') <- ZKOpInterp op st
+      k b st')
+    p st
+
+
+
+
+
+
 /-- Type for the evaluation of RAM operations
 
 It is an array of options, where each option is either some value when it is the result of a read operation,
@@ -145,3 +202,8 @@ def semantics [ZKField f] (witness: List f) (state: ZKBuilderState f) : Bool :=
   else
     -- If the RAM values are not valid, we return
     false
+
+def semantics_new [ZKField f] (witness: List f) (circuit: ZKBuilder f α) : Bool :=
+  let st : ZKState f := {}
+  let res := runFold circuit st
+  res.isSome

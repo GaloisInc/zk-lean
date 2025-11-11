@@ -9,7 +9,7 @@ import ZKLean.Semantics
 /-- Run a circuit builder given an initial builder state and then evaluate the resulting circuit given witnesses. -/
 @[simp_ZKSemantics]
 def run_circuit [ZKField f] (circuit: ZKBuilder f a) (state0: ZKBuilderState f) (witness: List f) : Bool :=
-  let (_circ_output, final_state) := runFold circuit state0
+  let (_circ_output, final_state) := runFold_old circuit state0
   semantics witness final_state
 
 /-- Evaluate a circuit given some witnesses and a builder final state. -/
