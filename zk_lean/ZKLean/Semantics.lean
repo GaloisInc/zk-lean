@@ -18,9 +18,9 @@ class ZKField (f: Type) extends Field f, BEq f, Inhabited f, LawfulBEq f, Hashab
 @[simp_ZKBuilder]
 def ZKOpInterp [ZKField f] {β} (op : ZKOp f β) (st : ZKState f) : Option (β × ZKState f) :=
   match op with
-  | ZKOp.AllocWitness => -- JP: Could just return the witness value instead?
+  | ZKOp.AllocWitness => do
       let idx := st.allocated_witness_count
-      .some (ZKExpr.WitnessVar idx, { st with allocated_witness_count := idx + 1 })
+      .some (ZKExpr.Field (<- st.witness[idx]?), { st with allocated_witness_count := idx + 1 })
   | ZKOp.ConstrainEq x y =>
       let fx := st.eval_expr x
       let fy := st.eval_expr y
@@ -44,7 +44,7 @@ def ZKOpInterp [ZKField f] {β} (op : ZKOp f β) (st : ZKState f) : Option (β �
       (ZKExpr.LookupMaterialized tbl arg, st)
   | ZKOp.MuxLookup ch cases =>
       let sum := Array.foldl (fun acc (flag, tbl) =>
-        acc + ZKExpr.Mul flag (ZKExpr.ComposedLookupMLE tbl ch[0] ch[1] ch[2] ch[3])) (ZKExpr.Literal (0 : f)) cases
+        acc + ZKExpr.Mul flag (ZKExpr.ComposedLookupMLE tbl ch[0] ch[1] ch[2] ch[3])) (ZKExpr.Field (0 : f)) cases
       (sum, st)
   | ZKOp.RamNew n =>
       panic! ("TODO")
@@ -92,7 +92,7 @@ def semantics_zkexpr [ZKField f]
   : Option f :=
   let rec @[simp_ZKSemantics] eval (e: ZKExpr f) : Option f :=
     match e with
-    | ZKExpr.Literal lit => some lit
+    | ZKExpr.Field lit => some lit
     | ZKExpr.WitnessVar id => witness[id]?
     | ZKExpr.Add lhs rhs => do (← eval lhs) + (← eval rhs)
     | ZKExpr.Sub lhs rhs => do (← eval lhs) - (← eval rhs)
@@ -204,6 +204,6 @@ def semantics [ZKField f] (witness: List f) (state: ZKBuilderState f) : Bool :=
     false
 
 def semantics_new [ZKField f] (witness: List f) (circuit: ZKBuilder f α) : Bool :=
-  let st : ZKState f := {}
+  let st : ZKState f := {witness := witness.toArray, allocated_witness_count := 0}
   let res := runFold circuit st
   res.isSome

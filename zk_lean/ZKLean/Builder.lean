@@ -29,6 +29,7 @@ deriving instance Inhabited for ZKBuilderState
 
 structure ZKState (f : Type) where
   allocated_witness_count: Nat
+  witness: Array f
   -- -- Pairs of expressions that are constrained to be equal to one another.
   -- constraints: List (ZKExpr f × ZKExpr f)
   -- -- Array of sizes and array of operations for each RAM.
@@ -196,7 +197,7 @@ def ZKOpInterp_old [Zero f] {β} (op : ZKOp f β) (st : ZKBuilderState f) : (β 
       (ZKExpr.LookupMaterialized tbl arg, st)
   | ZKOp.MuxLookup ch cases =>
       let sum := Array.foldl (fun acc (flag, tbl) =>
-        acc + ZKExpr.Mul flag (ZKExpr.ComposedLookupMLE tbl ch[0] ch[1] ch[2] ch[3])) (ZKExpr.Literal (0 : f)) cases
+        acc + ZKExpr.Mul flag (ZKExpr.ComposedLookupMLE tbl ch[0] ch[1] ch[2] ch[3])) (ZKExpr.Field (0 : f)) cases
       (sum, st)
   | ZKOp.RamNew n =>
       let id := st.ram_sizes.size

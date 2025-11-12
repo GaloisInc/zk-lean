@@ -25,8 +25,8 @@ It includes also a constructor for looking up values in a lookup table
 and a constructor for RAM operations.
 -/
 inductive ZKExpr (f : Type) where
-  | Literal : (lit : f) -> ZKExpr f
-  | WitnessVar : (id : WitnessId) -> ZKExpr f
+  | Field : (element : f) -> ZKExpr f
+  | WitnessVar : (id : WitnessId) -> ZKExpr f -- TODO(JP): Delete this.
   | Add : (lhs rhs : ZKExpr f) -> ZKExpr f
   | Sub : (lhs rhs : ZKExpr f) -> ZKExpr f
   | Neg : (arg : ZKExpr f) -> ZKExpr f
@@ -39,13 +39,13 @@ inductive ZKExpr (f : Type) where
 
 
 instance [Inhabited f]: Inhabited (ZKExpr f) where
-  default := ZKExpr.Literal default
+  default := ZKExpr.Field default
 
 instance [OfNat f n] : OfNat (ZKExpr f) n where
-  ofNat := ZKExpr.Literal (OfNat.ofNat n)
+  ofNat := ZKExpr.Field (OfNat.ofNat n)
 
 instance [Zero f]: Zero (ZKExpr f) where
-  zero := ZKExpr.Literal 0
+  zero := ZKExpr.Field 0
 
 instance: HAdd (ZKExpr f) (ZKExpr f) (ZKExpr f) where
   hAdd := ZKExpr.Add
