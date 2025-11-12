@@ -26,7 +26,7 @@ and a constructor for RAM operations.
 -/
 inductive ZKExpr (f : Type) where
   | Field : (element : f) -> ZKExpr f
-  | WitnessVar : (id : WitnessId) -> ZKExpr f -- TODO(JP): Delete this.
+  | WitnessVar : (id : WitnessId) -> ZKExpr f -- TODO(JP): Delete this?
   | Add : (lhs rhs : ZKExpr f) -> ZKExpr f
   | Sub : (lhs rhs : ZKExpr f) -> ZKExpr f
   | Neg : (arg : ZKExpr f) -> ZKExpr f
@@ -35,7 +35,7 @@ inductive ZKExpr (f : Type) where
   | ComposedLookupMLE : (table : ComposedLookupTable f 16 4) -> (c1 c2 c3 c4 : ZKExpr f) -> ZKExpr f
   | LookupMLE : (table : LookupTableMLE f 64) -> (e1 e2 : ZKExpr f) -> ZKExpr f
   | LookupMaterialized : (table: Vector f n) -> (e: ZKExpr f) -> (ZKExpr f)
-  | RamOp : (op_index : Nat) -> ZKExpr f
+  | RamOp : (op_index : Nat) -> ZKExpr f -- TODO(JP): Delete this?
 
 
 instance [Inhabited f]: Inhabited (ZKExpr f) where

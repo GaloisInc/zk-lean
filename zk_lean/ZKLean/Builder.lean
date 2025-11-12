@@ -27,19 +27,6 @@ structure ZKBuilderState (f : Type) where
   ram_ops: (Array (RamOp f))
 deriving instance Inhabited for ZKBuilderState
 
-structure ZKState (f : Type) where
-  allocated_witness_count: Nat
-  witness: Array f
-  -- -- Pairs of expressions that are constrained to be equal to one another.
-  -- constraints: List (ZKExpr f × ZKExpr f)
-  -- -- Array of sizes and array of operations for each RAM.
-  -- ram_sizes: Array Nat
-  -- ram_ops: (Array (RamOp f))
-deriving instance Inhabited for ZKBuilderState
-
-def ZKState.eval_expr [Zero f] (st: ZKState f) (e: ZKExpr f) : f := 
-  Zero.zero -- TODO!
-
 
 /-- Primitive instructions for the circuit DSL - the effect 'functor'. -/
 inductive ZKOp (f : Type) : Type → Type
