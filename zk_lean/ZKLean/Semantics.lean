@@ -30,6 +30,7 @@ structure ZKState (f : Type) [ZKField f] where
   -- ram_ops: (Array (RamOp f))
 deriving instance Inhabited for ZKBuilderState
 
+@[simp_ZKBuilder]
 def ZKState.eval_expr [ZKField f] (st: ZKState f) (e: ZKExpr f) : Option f := 
   match e with
     | ZKExpr.Field f => f
@@ -247,7 +248,7 @@ It takes a list of witnesses and a state of constructed ZK circuit and returns a
 whether the circuit is satisfied.
 -/
 @[simp_ZKSemantics]
-def semantics [ZKField f] (witness: List f) (state: ZKBuilderState f) : Bool :=
+def semantics_old [ZKField f] (witness: List f) (state: ZKBuilderState f) : Bool :=
   -- First, we need to evaluate the RAM operations and get the values
   let ram_values := semantics_ram witness state.ram_sizes state.ram_ops;
   -- Then, we need to evaluate the constraints
@@ -257,7 +258,8 @@ def semantics [ZKField f] (witness: List f) (state: ZKBuilderState f) : Bool :=
     -- If the RAM values are not valid, we return
     false
 
-def semantics_new [ZKField f] (witness: List f) (circuit: ZKBuilder f α) : Bool :=
+@[simp_ZKSemantics]
+def semantics [ZKField f] (circuit: ZKBuilder f α) (witness: List f) : Bool :=
   let st : ZKState f := {witness := witness.toArray, allocated_witness_count := 0, rams:= Array.empty}
   let res := runFold circuit st
   res.isSome

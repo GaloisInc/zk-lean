@@ -10,12 +10,12 @@ import ZKLean.Semantics
 @[simp_ZKSemantics]
 def run_circuit [ZKField f] (circuit: ZKBuilder f a) (state0: ZKBuilderState f) (witness: List f) : Bool :=
   let (_circ_output, final_state) := runFold_old circuit state0
-  semantics witness final_state
+  semantics_old witness final_state
 
 /-- Evaluate a circuit given some witnesses and a builder final state. -/
 @[simp_ZKSemantics]
 def eval_circuit [ZKField f] (final_state: ZKBuilderState f) (witness: List f) : Prop :=
-  semantics witness final_state
+  semantics_old witness final_state
 
 /-- Evaluate an expression given a builder state and some witnesses. -/
 @[simp_ZKSemantics]

@@ -156,9 +156,8 @@ attribute [simp_circuit] runFold_old
 
 @[simp_circuit]
 def run_circuit' [ZKField f] (circuit: ZKBuilder f a) (witness: List f) : Bool :=
-  let (_circ_states, zk_builder) := runFold_old circuit default
-  let b := semantics_constraints zk_builder.constraints witness (Array.empty)
-  b
+  semantics circuit witness
+
 
 
 
@@ -274,7 +273,8 @@ theorem circuitEq2SoundTry [ZKField f] (a : f) : (run_circuit' circuit1 [a, a] =
   simp [simp_circuit, simp_FreeM, simp_ZKBuilder, simp_ZKSemantics]
 
 theorem circuitEq2Eval [ZKField f]: (run_circuit' circuit1 [ (a: f), (b: f)] = (a == b)) := by
-  simp [simp_circuit, simp_FreeM, simp_ZKBuilder, simp_ZKSemantics]
+  simp [mul_one, simp_circuit, simp_FreeM, simp_ZKBuilder, simp_ZKSemantics]
+  grind
 
 #check StateT.run_bind
 attribute [local simp] StateT.run_bind
