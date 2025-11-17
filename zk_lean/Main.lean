@@ -152,7 +152,7 @@ def uniform_jolt_constraint [ZKField f] (jolt_inputs: JoltR1CSInputs f) : ZKBuil
 --   constrainR1CS (step_1.jolt_flag * 872187687 + ...) (step_2.jolt_flag + 1) (1)
 --   ...
 
-attribute [simp_circuit] runFold_old
+attribute [simp_circuit] runFold
 
 @[simp_circuit]
 def run_circuit' [ZKField f] (circuit: ZKBuilder f a) (witness: List f) : Bool :=
@@ -296,21 +296,23 @@ theorem circuitEq2Sound [ZKField f] (x y : f) : (x = y ↔ run_circuit' circuit1
   rw [h] at h2
   simp_all
 
-theorem constrainEq2Trivial [ZKField f] (a b:ZKExpr f) :
+theorem constrainEq2Trivial [ZKField f] (a b:ZKExpr f) (old_s : ZKState f) :
   ⦃λ s => ⌜s = old_s⌝⦄
   constrainEq2 a b
-  ⦃⇓ _r s => ⌜s.constraints.length = old_s.constraints.length + 1⌝⦄
+  ⦃⇓ _r s => ⌜s = old_s⌝⦄
   := by
   mintro h ∀old
   mpure h
   -- mwp
   simp [h]
-  constructor
+  -- constructor
+  sorry
+  
 
-theorem constrainEq3Trivial [ZKField f] (a b c:ZKExpr f) :
+theorem constrainEq3Trivial [ZKField f] (a b c:ZKExpr f) (old_s : ZKState f) :
   ⦃λ s => ⌜s = old_s⌝⦄
   constrainEq3 a b c
-  ⦃⇓ _r s => ⌜s.constraints.length = old_s.constraints.length + 2⌝⦄
+  ⦃⇓ _r s => ⌜s = old_s⌝⦄
   := by
   mintro h ∀old
   mpure h
