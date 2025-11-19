@@ -350,6 +350,20 @@ lemma isSome_eq_true_iff {α : Type*} {o : Option α} :
   o.isSome = true ↔ ∃ x, o = some x :=
   by cases o <;> simp
 
+theorem constrainEq2Sound'' [ZKField f] (a b:ZKExpr f) :
+  ⦃λ s => ⌜True⌝ ⦄ -- eval_circuit s witness ⦄
+  constrainEq2 a b
+  ⦃⇓ _r s =>
+    ⌜ 
+    s.eval_expr a = s.eval_expr b
+    ∧ (s.eval_expr a).isSome
+    ⌝
+
+    -- eval_exprf a witness == eval_exprf b witness ⌝
+  ⦄
+  := by
+  sorry
+
 theorem constrainEq2Sound' [ZKField f] (a b:ZKExpr f) (witness: List f) :
   ⦃λ s => ⌜True⌝ ⦄ -- eval_circuit s witness ⦄
   constrainEq2 a b
