@@ -97,9 +97,9 @@ lemma expr_immutable [ZKField f] (c: ZKBuilder f α) (e: ZKExpr f) (ef: f) :
 --   sorry
 
 /--
-The following machinery is not needed to prove properties about circuits in zkLean, but they may be useful to prove completeness.
+The following machinery is not needed to prove properties about circuits in zkLean, but they may be useful to prove completeness and determinism.
 -/
-class CircuitInput (i: Type) (f: Type) [ZKField f] where
+class CircuitInput (i: Type) (f: Type) where
   -- /-- Circuit representation of input i. For example, the circuit representation of `f` might be `ZKExpr f`. -/
   -- CircuitInputRepr : Type
 
@@ -114,8 +114,16 @@ def sound [ZKField f] (circuit: input_exprs → ZKBuilder f α) (specification :
   ⦃ λ output s => ⌜ specification s inputs output ⌝ ⦄
   -- semantics circuit extended_witness → specification inputs
 
-/-- Proposition that states that a circuit is complete with respect to a specification. -/
+/-- Proposition that states that a circuit is complete with respect to witness generation and given preconditions on the input. -/
 def complete [ZKField f] [I: CircuitInput i f] (circuit: ZKBuilder f α) (preconditions : i → Prop) : i → Prop :=
   λ inputs =>
     let extended_witness := I.witness_generation inputs
     preconditions inputs → semantics circuit extended_witness
+
+/-- Proposition that states that a circuit is deterministic and only has one satisfying assignment. -/
+def deterministic [ZKField f] [I: CircuitInput i f] (circuit: ZKBuilder f α) : i → List f → Prop :=
+  λ inputs1 extended_witness2 =>
+    let extended_witness1 := I.witness_generation inputs1
+    semantics circuit extended_witness1 ∧ semantics circuit extended_witness2 →
+    extended_witness1 = extended_witness2
+
