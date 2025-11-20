@@ -30,29 +30,6 @@ structure ZKState (f : Type) [ZKField f] where
   -- ram_ops: (Array (RamOp f))
 deriving instance Inhabited for ZKState
 
-@[simp_ZKBuilder]
-def ZKState.eval_expr [ZKField f] (st: ZKState f) (e: ZKExpr f) : Option f := 
-  match e with
-    | ZKExpr.Field f => f
-    | ZKExpr.WitnessVar id => panic! "TODO"
-    | ZKExpr.Add lhs rhs => do
-        pure ((← st.eval_expr lhs) + (← st.eval_expr rhs))
-    | ZKExpr.Sub lhs rhs => do
-        pure ((← st.eval_expr lhs) - (← st.eval_expr rhs))
-    | ZKExpr.Mul lhs rhs => do
-        pure ((← st.eval_expr lhs) * (← st.eval_expr rhs))
-    | ZKExpr.Neg arg => do
-        pure (-(← st.eval_expr arg))
-    | ZKExpr.ComposedLookupMLE table c0 c1 c2 c3 => do
-      let chunks := #v[← st.eval_expr c0, ← st.eval_expr c1, ← st.eval_expr c2, ← st.eval_expr c3].map ZKField.field_to_bits
-      pure (evalComposedLookupTable table chunks)
-    | ZKExpr.LookupMLE table e1 e2 => do
-        pure (evalLookupTableMLE table
-          (ZKField.field_to_bits (num_bits := 32) (← st.eval_expr e1))
-          (ZKField.field_to_bits (num_bits := 32) (← st.eval_expr e2)))
-    | ZKExpr.LookupMaterialized table e => do
-      table[ZKField.field_to_nat (← st.eval_expr e)]?
-    | ZKExpr.RamOp op_id => panic! "TODO"
 
 
 /-- Interprets a ZK operation give a state. On success, it returns the result of the operation and the updated state. If a constraint in the circuit is not satisfied, it short circuits and returns `.none`. -/
@@ -63,42 +40,47 @@ def ZKOpInterp [ZKField f] {β} (op : ZKOp f β) (st : ZKState f) : Option (β �
       let idx := st.allocated_witness_count
       .some (ZKExpr.Field (<- st.witness[idx]?), { st with allocated_witness_count := idx + 1 })
   | ZKOp.ConstrainEq x y => do
-      let fx ← st.eval_expr x
-      let fy ← st.eval_expr y
-      if fx == fy then
+      if x.eval == y.eval then
         .some ((), st)
       else
         .none
   | ZKOp.ConstrainR1CS a b c => do
-      let fa ← st.eval_expr a
-      let fb ← st.eval_expr b
-      let fc ← st.eval_expr c
+      let fa := a.eval
+      let fb := b.eval
+      let fc := c.eval
       if fa * fb == fc then
         .some ((), st)
       else
         .none
-  | ZKOp.ComposedLookupMLE tbl args =>
-      (ZKExpr.ComposedLookupMLE tbl args[0] args[1] args[2] args[3], st)
+  | ZKOp.ComposedLookupMLE tbl args => -- #v[c0, c1, c2, c3] => do
+      let chunks := args.map (λ e => ZKField.field_to_bits e.eval)
+      let res := evalComposedLookupTable tbl chunks
+      .some (ZKExpr.Field res, st)
   | ZKOp.LookupMLE tbl arg1 arg2 =>
-      (ZKExpr.LookupMLE tbl arg1 arg2, st)
-  | ZKOp.LookupMaterialized tbl arg =>
-      (ZKExpr.LookupMaterialized tbl arg, st)
-  | ZKOp.MuxLookup ch cases =>
+      let res := evalLookupTableMLE tbl
+         (ZKField.field_to_bits (num_bits := 32) arg1.eval)
+         (ZKField.field_to_bits (num_bits := 32) arg2.eval)
+      pure (ZKExpr.Field res, st)
+  | ZKOp.LookupMaterialized table arg => do
+      let res ← table[ZKField.field_to_nat arg.eval]?
+      pure (ZKExpr.Field res, st)
+  | ZKOp.MuxLookup chunks cases =>
+      let chunks := chunks.map (λ e => ZKField.field_to_bits e.eval)
       let sum := Array.foldl (fun acc (flag, tbl) =>
-        acc + ZKExpr.Mul flag (ZKExpr.ComposedLookupMLE tbl ch[0] ch[1] ch[2] ch[3])) (ZKExpr.Field (0 : f)) cases
-      (sum, st)
+        acc + flag.eval * (evalComposedLookupTable tbl chunks)) 0 cases
+      pure (ZKExpr.Field sum, st)
   | ZKOp.RamNew n =>
       let id := st.rams.size
       let state := { capacity:= n, state:= Std.HashMap.emptyWithCapacity n }
       pure ({id := { ram_id := id}}, {st with rams := st.rams.push state})
   | ZKOp.RamRead ram_id a => do
-      let addr_f ← st.eval_expr a
+      let addr_f := a.eval
       let ram ← st.rams[ram_id.id.ram_id]?
       let val ← ram.state[addr_f]?
       pure (ZKExpr.Field val, st)
   | ZKOp.RamWrite ram_id a v => do
-      let addr_f ← st.eval_expr a
-      let val_f ← st.eval_expr v
+      let addr_f ← a.eval
+      let val_f ← v.eval
       if h:ram_id.id.ram_id < st.rams.size then
         let ram := st.rams[ram_id.id.ram_id]
         let new_ram := {ram with state := ram.state.insert addr_f val_f}

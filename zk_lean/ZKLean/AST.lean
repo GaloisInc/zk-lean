@@ -1,6 +1,9 @@
 import Mathlib.Algebra.Field.Defs
 
 import ZKLean.LookupTable
+import ZKLean.SimpSets
+
+-- TODO(JP): Delete these?
 
 /-- Type to identify witness variables -/
 abbrev WitnessId := Nat
@@ -16,27 +19,32 @@ structure RAM (f: Type) where
   id: RamId
 deriving instance Inhabited for RAM
 
+-- JP: Do we even need this type anymore???
 /--
 Type for expressions to define computation to be verified by a Zero-Knowledge protocol.
 
 The expressions are parametrized by a field type `f`.
 The construtors include the usual arithmetic operations.
-It includes also a constructor for looking up values in a lookup table
-and a constructor for RAM operations.
 -/
 inductive ZKExpr (f : Type) where
   | Field : (element : f) -> ZKExpr f
-  | WitnessVar : (id : WitnessId) -> ZKExpr f -- TODO(JP): Delete this?
   | Add : (lhs rhs : ZKExpr f) -> ZKExpr f
   | Sub : (lhs rhs : ZKExpr f) -> ZKExpr f
   | Neg : (arg : ZKExpr f) -> ZKExpr f
   | Mul : (lhs rhs : ZKExpr f) -> ZKExpr f
-  -- TODO: this should be a Vector (ZKExpr f) 4 instead the 4 expressions
-  | ComposedLookupMLE : (table : ComposedLookupTable f 16 4) -> (c1 c2 c3 c4 : ZKExpr f) -> ZKExpr f
-  | LookupMLE : (table : LookupTableMLE f 64) -> (e1 e2 : ZKExpr f) -> ZKExpr f
-  | LookupMaterialized : (table: Vector f n) -> (e: ZKExpr f) -> (ZKExpr f)
-  | RamOp : (op_index : Nat) -> ZKExpr f -- TODO(JP): Delete this?
 
+@[simp_ZKBuilder]
+def ZKExpr.eval [HAdd f f f] [HSub f f f] [HMul f f f] [_root_.Neg f] (e: ZKExpr f) : f := 
+  match e with
+    | ZKExpr.Field f => f
+    | ZKExpr.Add lhs rhs =>
+        lhs.eval + rhs.eval
+    | ZKExpr.Sub lhs rhs =>
+        lhs.eval - rhs.eval
+    | ZKExpr.Mul lhs rhs =>
+        lhs.eval * rhs.eval
+    | ZKExpr.Neg arg =>
+        -(arg.eval)
 
 instance [Inhabited f]: Inhabited (ZKExpr f) where
   default := ZKExpr.Field default

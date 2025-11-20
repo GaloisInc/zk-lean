@@ -47,9 +47,9 @@ instance [ZKField f] : WP (ZKBuilder f) (.arg (ZKState f) (.except PUnit .pure))
 
 @[simp_ZKSemantics]
 lemma expr_immutable [ZKField f] (c: ZKBuilder f α) (e: ZKExpr f) (ef: f) :
-  ⦃λ s => ⌜ s.eval_expr e = some ef ⌝ ⦄
+  ⦃λ s => ⌜ e.eval = some ef ⌝ ⦄
   c
-  ⦃λ _r s => ⌜ s.eval_expr e = some ef ⌝ ⦄
+  ⦃λ _r s => ⌜ e.eval = some ef ⌝ ⦄
   -- ⦃λ (_r: Unit) (s : ZKState f) => ⌜ True ⌝ ⦄ -- s.eval_expr e = some ef ⌝ ⦄
   := sorry
 
