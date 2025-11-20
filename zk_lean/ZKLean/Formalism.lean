@@ -95,3 +95,30 @@ lemma expr_immutable [ZKField f] (c: ZKBuilder f α) (e: ZKExpr f) (ef: f) :
 --  ⦃⇓_r s1 => ⌜eval_exprf expr s0 witness = eval_exprf expr s1 witness⌝⦄
 --  := by
 --   sorry
+
+/--
+The following machinery is not needed to prove properties about circuits in zkLean, but they may be useful.
+-/
+class CircuitInput (i: Type) (f: Type) [ZKField f] where
+  /-- Circuit representation of input i. For example, the circuit representation of `f` might be `ZKExpr f`. -/
+  CircuitInputRepr : Type
+
+  /-- Whether or not the circuit representation of the input is well formed. -/
+  well_formed : ZKState f → CircuitInputRepr → Prop
+
+  /-- Function that generates the extended witness from the input to a circuit. -/
+  witness_generation : i → List f -- JP: Does a `Writer` make more sense?
+
+/-- Proposition that states that a circuit is sound with respect to a specification. -/
+def sound [ZKField f] [I: CircuitInput i f] (circuit: I.CircuitInputRepr → ZKBuilder f α) (specification : ZKState f → I.CircuitInputRepr → α → Prop) : I.CircuitInputRepr → Prop :=
+  λ inputs => 
+  ⦃ λ s => ⌜ I.well_formed s inputs ⌝ ⦄ 
+  circuit inputs
+  ⦃ λ output s => ⌜ specification s inputs output ⌝ ⦄
+  -- semantics circuit extended_witness → specification inputs
+
+/-- Proposition that states that a circuit is complete with respect to a specification. -/
+def complete [ZKField f] [I: CircuitInput i f] (circuit: ZKBuilder f α) (specification : i → Prop) : i → Prop :=
+  λ inputs =>
+    let extended_witness := I.witness_generation inputs
+    specification inputs → semantics circuit extended_witness
