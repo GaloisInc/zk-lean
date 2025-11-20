@@ -118,7 +118,7 @@ def sound [ZKField f] [I: CircuitInput i f] (circuit: I.CircuitInputRepr → ZKB
   -- semantics circuit extended_witness → specification inputs
 
 /-- Proposition that states that a circuit is complete with respect to a specification. -/
-def complete [ZKField f] [I: CircuitInput i f] (circuit: ZKBuilder f α) (specification : i → Prop) : i → Prop :=
+def complete [ZKField f] [I: CircuitInput i f] (circuit: ZKBuilder f α) (preconditions : i → Prop) : i → Prop :=
   λ inputs =>
     let extended_witness := I.witness_generation inputs
-    specification inputs → semantics circuit extended_witness
+    preconditions inputs → semantics circuit extended_witness
