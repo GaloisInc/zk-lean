@@ -120,10 +120,10 @@ def complete [ZKField f] [I: CircuitInput i f] (circuit: ZKBuilder f α) (precon
     let extended_witness := I.witness_generation inputs
     preconditions inputs → semantics circuit extended_witness
 
-/-- Proposition that states that a circuit is deterministic and only has one satisfying assignment. -/
-def deterministic [ZKField f] [I: CircuitInput i f] (circuit: ZKBuilder f α) : i → List f → Prop :=
-  λ inputs1 extended_witness2 =>
-    let extended_witness1 := I.witness_generation inputs1
-    semantics circuit extended_witness1 ∧ semantics circuit extended_witness2 →
-    extended_witness1 = extended_witness2
+-- /-- Proposition that states that a circuit is deterministic and only has one satisfying assignment. -/
+-- def deterministic [ZKField f] [I: CircuitInput i f] (circuit: ZKBuilder f α) : i → List f → Prop :=
+--   λ inputs1 extended_witness2 =>
+--     let extended_witness1 := I.witness_generation inputs1
+--     semantics circuit extended_witness1 ∧ semantics circuit extended_witness2 →
+--     extended_witness1 = extended_witness2
 
