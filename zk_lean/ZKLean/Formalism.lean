@@ -45,6 +45,14 @@ instance [ZKField f] : WP (ZKBuilder f) (.arg (ZKState f) (.except PUnit .pure))
   --   PredTrans.pushArg (fun s =>
   --     PredTrans.pure (runFold x s))
 
+@[simp_ZKSemantics]
+lemma expr_immutable [ZKField f] (c: ZKBuilder f α) (e: ZKExpr f) (ef: f) :
+  ⦃λ s => ⌜ s.eval_expr e = some ef ⌝ ⦄
+  c
+  ⦃λ _r s => ⌜ s.eval_expr e = some ef ⌝ ⦄
+  -- ⦃λ (_r: Unit) (s : ZKState f) => ⌜ True ⌝ ⦄ -- s.eval_expr e = some ef ⌝ ⦄
+  := sorry
+
 -- /-- Evaluate an expression given a builder state and some witnesses. -/
 -- @[simp_ZKSemantics]
 -- def eval_exprf [ZKField f] (expr: ZKExpr f) (state: ZKBuilderState f) (witness: List f) : Option f :=
