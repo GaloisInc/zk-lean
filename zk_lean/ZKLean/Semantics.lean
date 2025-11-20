@@ -79,8 +79,8 @@ def ZKOpInterp [ZKField f] {β} (op : ZKOp f β) (st : ZKState f) : Option (β �
       let val ← ram.state[addr_f]?
       pure (ZKExpr.Field val, st)
   | ZKOp.RamWrite ram_id a v => do
-      let addr_f ← a.eval
-      let val_f ← v.eval
+      let addr_f := a.eval
+      let val_f := v.eval
       if h:ram_id.id.ram_id < st.rams.size then
         let ram := st.rams[ram_id.id.ram_id]
         let new_ram := {ram with state := ram.state.insert addr_f val_f}

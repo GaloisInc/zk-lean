@@ -28,6 +28,16 @@ import ZKLean.SimpSets
 -- deriving instance Inhabited for ZKBuilderState
 
 
+/-- Type to identify a specific RAM -/
+structure RamId where
+  ram_id: Nat
+deriving instance Inhabited for RamId
+
+/-- Type for RAM -/
+structure RAM (f: Type) where
+  id: RamId
+deriving instance Inhabited for RAM
+
 /-- Primitive instructions for the circuit DSL - the effect 'functor'. -/
 inductive ZKOp (f : Type) : Type → Type
 | AllocWitness                         : ZKOp f (ZKExpr f)
