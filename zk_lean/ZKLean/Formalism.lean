@@ -5,6 +5,19 @@ import ZKLean.AST
 import ZKLean.Builder
 import ZKLean.LookupTable
 import ZKLean.Semantics
+import ZKLean.SimpSets
+
+-- Note: assuming FreeM gets upstreamed, we would need to register these
+attribute [simp_FreeM] bind
+attribute [simp_FreeM] default
+attribute [simp_FreeM] FreeM.bind
+attribute [simp_FreeM] FreeM.foldM
+
+attribute [simp_Triple] Std.Do.Triple
+attribute [simp_Triple] Std.Do.SPred.entails
+attribute [simp_Triple] Std.Do.PredTrans.apply
+attribute [simp_Triple] Std.Do.PredTrans.pure
+attribute [simp_Triple] Std.Do.wp
 
 /-- Run a circuit builder given the witness and then evaluate the resulting circuit. -/
 @[simp_ZKSemantics]
@@ -28,7 +41,6 @@ result to the post-condition. -/
 
 
 @[simp_ZKBuilder]
--- instance [Zero f] : WP (ZKBuilder f) (.arg (ZKState f) .pure) where
 instance [ZKField f] : WP (ZKBuilder f) (.arg (ZKState f) (.except PUnit .pure)) where
   wp {α} (x : ZKBuilder f α) :=
     PredTrans.pushArg (fun s =>
@@ -38,20 +50,21 @@ instance [ZKField f] : WP (ZKBuilder f) (.arg (ZKState f) (.except PUnit .pure))
         | .none => ExceptT.mk (PredTrans.pure (Except.error ()))
       )
     )
-  -- wp {α} (x : ZKBuilder f α) :=
-  --   -- We reuse the `StateT` instance for predicate transformers: run the
-  --   -- builder starting from an initial state and hand the resulting
-  --   -- `(value, state)` pair to the post-condition.
-  --   PredTrans.pushArg (fun s =>
-  --     PredTrans.pure (runFold x s))
 
-@[simp_ZKSemantics]
-lemma expr_immutable [ZKField f] (c: ZKBuilder f α) (e: ZKExpr f) (ef: f) :
-  ⦃λ s => ⌜ e.eval = some ef ⌝ ⦄
-  c
-  ⦃λ _r s => ⌜ e.eval = some ef ⌝ ⦄
-  -- ⦃λ (_r: Unit) (s : ZKState f) => ⌜ True ⌝ ⦄ -- s.eval_expr e = some ef ⌝ ⦄
-  := sorry
+
+instance [ZKField f] : WPMonad (ZKBuilder f) (.arg (ZKState f) (.except PUnit .pure)) where
+  wp_pure a := by
+    aesop
+  wp_bind x f := by
+    ext
+    simp [simp_FreeM]
+    unfold bind
+    unfold instMonadZKBuilder
+    unfold inferInstance
+    unfold FreeM.instMonad
+    simp
+    sorry
+
 
 -- /-- Evaluate an expression given a builder state and some witnesses. -/
 -- @[simp_ZKSemantics]
@@ -62,13 +75,13 @@ lemma expr_immutable [ZKField f] (c: ZKBuilder f α) (e: ZKExpr f) (ef: f) :
 --     semantics_zkexpr expr witness ram_values
 --   else
 --     none
--- 
+--
 -- @[simp_ZKSemantics]
 -- def eval_traversable_expr {t: Type -> Type} [Traversable t] [ZKField f] (expr: t (ZKExpr f)) (state: ZKBuilderState f) (witness: List f) : Option (t f) :=
 --   traverse (eval_exprf · state witness) expr
--- 
+--
 -- open Std.Do
--- 
+--
 -- /-- If a circuit fails at a given state then it must fail for subsequent state. -/
 -- lemma failure_propagates [ZKField f] (m : ZKBuilder f a) (witness: List f) s0 :
 --  -- TODO: Lawful m
@@ -77,7 +90,7 @@ lemma expr_immutable [ZKField f] (c: ZKBuilder f α) (e: ZKExpr f) (ef: f) :
 --  ⦃⇓_r s1 => ⌜¬(eval_circuit s0 witness) → ¬(eval_circuit s1 witness)⌝⦄
 --  := by
 --   sorry
--- 
+--
 -- /-- If a circuit succeeds at a given state then it must have succeeded in previous state. -/
 -- lemma previous_success [ZKField f] (m : ZKBuilder f a) (witness: List f) :
 --  -- TODO: Lawful m
@@ -86,7 +99,7 @@ lemma expr_immutable [ZKField f] (c: ZKBuilder f α) (e: ZKExpr f) (ef: f) :
 --  ⦃⇓_r s1 => ⌜eval_circuit s1 witness → eval_circuit s0 witness⌝⦄
 --  := by
 --   sorry
--- 
+--
 -- /-- If an expression evaluates to a value at a given state then it must evaluate at the same value for a subsequent state. -/
 -- lemma eval_const [ZKField f] (m : ZKBuilder f a) (witness: List f) (expr: ZKExpr f) :
 --  -- TODO: Lawful m
@@ -108,10 +121,10 @@ class CircuitInput (i: Type) (f: Type) where
 
 /-- Proposition that states that a circuit is sound with respect to a specification. -/
 def sound [ZKField f] (circuit: input_exprs → ZKBuilder f α) (specification : ZKState f → input_exprs → α → Prop) : input_exprs → Prop :=
-  λ inputs => 
+  λ inputs =>
   ⦃ λ s => ⌜ true ⌝ ⦄
   circuit inputs
-  ⦃ λ output s => ⌜ specification s inputs output ⌝ ⦄
+  ⦃ ⇓ output s => ⌜ specification s inputs output ⌝ ⦄
   -- semantics circuit extended_witness → specification inputs
 
 /-- Proposition that states that a circuit is complete with respect to witness generation and given preconditions on the input. -/
@@ -125,4 +138,3 @@ def deterministic [ZKField f] (circuit: ZKBuilder f α) : List f → List f → 
   λ extended_witness1 extended_witness2 =>
     semantics circuit extended_witness1 ∧ semantics circuit extended_witness2 →
     extended_witness1 = extended_witness2
-

@@ -12,10 +12,10 @@ import ZKLean.SimpSets
 --   | Read  (ram_id: RamId) (addr: ZKExpr f)
 --   | Write (ram_id: RamId) (addr: ZKExpr f) (value: ZKExpr f)
 -- deriving instance Inhabited for RamOp
--- 
+--
 -- /--
 -- State associated with the building process of a ZK circuit.
--- 
+--
 -- It holds witnesses, constraints, and RAM operations.
 -- -/
 -- structure ZKBuilderState (f : Type) where
@@ -204,21 +204,21 @@ open ZKBuilder
 --       (ZKExpr.RamOp i, { st with ram_ops := st.ram_ops.push (RamOp.Read ram.id a) })
 --   | ZKOp.RamWrite ram a v =>
 --       ((), { st with ram_ops := st.ram_ops.push (RamOp.Write ram.id a v) })
--- 
--- 
+--
+--
 -- /-- Convert a `ZKBuilder` computation into a `StateM` computation. -/
 -- @[simp_ZKBuilder]
 -- def toStateM [Zero f] {α : Type} (comp : ZKBuilder f α) : StateM (ZKBuilderState f) α :=
 --   comp.mapM ZKOpInterp_old
--- 
+--
 -- /--
 -- Run a `ZKBuilder` program starting from an initial state.
--- 
+--
 -- The function walks through the program step-by-step:
 -- • when it reaches `pure`, it simply returns the value without changing the state;
 -- • when it sees an operation, it uses `ZKOpInterp_old` to update the state, then
 --   continues with the rest of the program.
--- 
+--
 -- Internally this is implemented with `FreeM.foldM`, which is quite literally a `fold` over the `FreeM` tree.
 -- -/
 -- @[simp_ZKBuilder]
@@ -250,4 +250,3 @@ instance : Witnessable f (ZKExpr f) where
 @[simp_ZKBuilder]
 instance [Witnessable f a] : Witnessable f (Vector a n) where
   witness := Vector.ofFnM (λ _ => Witnessable.witness)
-

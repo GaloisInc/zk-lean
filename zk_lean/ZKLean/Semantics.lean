@@ -31,7 +31,6 @@ structure ZKState (f : Type) [ZKField f] where
 deriving instance Inhabited for ZKState
 
 
-
 /-- Interprets a ZK operation give a state. On success, it returns the result of the operation and the updated state. If a constraint in the circuit is not satisfied, it short circuits and returns `.none`. -/
 @[simp_ZKBuilder]
 def ZKOpInterp [ZKField f] {β} (op : ZKOp f β) (st : ZKState f) : Option (β × ZKState f) :=
@@ -102,11 +101,6 @@ def runFold [ZKField f] (p : ZKBuilder f α) (st : ZKState f)
       let (b, st') <- ZKOpInterp op st
       k b st')
     p st
-
-
-
-
-
 
 
 /-- Main semantics function
