@@ -270,11 +270,20 @@ def circuit12 : ZKBuilder (ZMod 7) PUnit := do
 #eval run_circuit' circuit12 [0, 0]
 
 theorem circuitEq2SoundTry [ZKField f] (a : f) : (run_circuit' circuit1 [a, a] = true) := by
-  simp [simp_circuit, simp_FreeM, simp_ZKBuilder, simp_ZKSemantics]
+  simp [simp_circuit, simp_FreeM, simp_ZKBuilder, simp_ZKSemantics] -- , OptionT.bind, OptionT.mk, StateT.bind, OptionT.lift, StateT.get] -- , OptionT.lift, OptionT.mk, OptionT.bind, StateT.get.eq_1, Option.isSome, StateT.bind, StateT.pure, ExceptConds.true, ExceptConds.const, SPred.pure, simp_FreeM, simp_ZKBuilder, OptionT.fail, OptionT.mk, OptionT.pure, OptionT.bind, OptionT.mk, pure, StateT.pure, Id.run, StateT.bind, StateT.get]
+  -- simp [ExceptConds.true, ExceptConds.const, SPred.pure]
+  -- simp [simp_FreeM, simp_ZKBuilder, OptionT.fail, OptionT.mk, OptionT.pure]
+  -- simp [OptionT.bind, OptionT.mk, wp]
+  -- simp [pure, StateT.pure, Id.run]
+  sorry
 
 theorem circuitEq2Eval [ZKField f]: (run_circuit' circuit1 [ (a: f), (b: f)] = (a == b)) := by
-  simp [mul_one, simp_circuit, simp_FreeM, simp_ZKBuilder, simp_ZKSemantics]
-  grind
+  -- simp [pure, StateT.pure, bind, get, Id.run, StateT.run_bind, StateT.get, mul_one, simp_circuit, simp_FreeM, simp_ZKBuilder, simp_ZKSemantics, OptionT.lift, OptionT.mk, OptionT.bind, StateT.bind, StateT.pure, OptionT.pure, Option.isSome] -- , StateT.bind] -- , get, set]
+  -- rw [StateT.pure.eq_1]
+  -- simp []
+
+  -- grind
+  sorry 
 
 #check StateT.run_bind
 attribute [local simp] StateT.run_bind
@@ -350,19 +359,116 @@ theorem constrainEq3Trivial [ZKField f] (a b c:ZKExpr f) (old_s : ZKState f) :
 --   o.isSome = true ↔ ∃ x, o = some x :=
 --   by cases o <;> simp
 
+-- theorem myLemma [ZKField f]
+--   (foo : Option (PUnit.{1} × ZKState f))
+--   (bar : @SPred (PostShape.except PUnit.{1} .pure).args)
+--   (baz eep : Assertion PostShape.pure)
+--   (oop : PUnit.{1}) :
+--   Eq (α := Assertion .pure)
+--   ((
+--     match foo with
+--     | some r => ExceptT.mk (PredTrans.pure (Except.ok (ε := PUnit.{1}) r))
+--     | none => ExceptT.mk (PredTrans.pure (Except.error ()))
+--   ).apply
+--   (fun x =>
+--     match x with
+--     | Except.ok x => bar
+--     | Except.error e => (ExceptConds.true (ps := .arg (ZKState f) (.except _ .pure))).1 e
+--   , (ExceptConds.true (ps := .arg (ZKState f) (.except _ .pure))).2 (α := PUnit.{1} → Assertion .pure)
+--   ))
+--   (match foo with
+--   | some r => bar
+--   | none => baz)
+--   := by sorry
+-- 
+-- theorem myLemma2
+-- [Monad m]
+-- [WPMonad m ps]
+-- (cond : Prop)
+-- [Decidable cond]
+-- (s: α)
+-- :
+-- ((match if cond then
+--   some ((), s) else none with
+--         | some r => PredTrans.pure (Except.ok r)
+--         | none => PredTrans.pure (Except.error ())
+--   ).apply
+--       (fun x =>
+--         match x with
+--         | Except.ok x => ⌜res⌝
+--         | Except.error e => ⌜True⌝,
+--         -- PUnit.unit)).down
+--         (ress : ExceptConds ps))).down
+-- = cond -> res
+-- := by sorry
+
+-- lemma mylemma 
+--   (cond : Prop)
+--   [Decidable cond]
+--   [Monad m]
+--   [WPMonad m ps]
+-- : (wp⟦(if cond then pure (some ()) else (pure none: m (Option PUnit))).bind (fun b => pure
+--    (some b)) s⟧
+--        (fun x =>
+--          (match x.1 with
+--            | some _r => fun _s => ⌜res⌝
+--            | none => ⌜True⌝)
+--            x.2,
+--          PUnit.unit)).down = (cond → res) := by sorry
+
+lemma match_if {α: Type} (cond: Prop) [Decidable cond] (a b: β) (s1: α): 
+  (match if cond then some s1 else none with
+     | .some x => a
+     | .none => b
+  ) = (if cond then a else b) := by
+    split
+    · grind
+    · grind
+  
+
 theorem constrainEq2.soundness [ZKField f] (a b : ZKExpr f) :
   ⦃ λ _s => ⌜True⌝ ⦄
   constrainEq2 a b
   ⦃ ⇓? _r _s => ⌜a.eval = b.eval⌝ ⦄
   := by
   mintro _ ∀s
-  simp [simp_FreeM, simp_ZKBuilder]
-  unfold ExceptT.mk
-  cases H : a.eval * 1 == b.eval
-  · simp
-    tauto
-  · simp
-    aesop
+  simp [simp_FreeM, simp_ZKBuilder, simp_Triple, simp_circuit, OptionT.fail, OptionT.mk, OptionT.pure]
+  -- unfold ExceptT.mk
+  simp [ExceptConds.true, ExceptConds.const] -- , SPred.pure]
+  -- split
+
+  simp [liftM, monadLift, MonadLift.monadLift, StateT.lift, StateT.run, StateT.pure, Id.run, bind, StateT.bind, StateT.pure, ite_apply]
+  rw [ite_apply]
+  simp [StateT.pure, StateT.lift]
+  -- simp [SPred.pure]
+
+  
+  
+  -- conv =>
+  --   pattern (match if (a.eval * 1 == b.eval) = true then some ((), s) else none with
+  --    | some _ => a
+  --    | none => b
+  --    )
+
+  -- apply match_if
+  -- simp only [match_if]
+  rw [match_if ((a.eval * 1 == b.eval) = true) ⌜a.eval = b.eval⌝ ⌜True⌝ ((), s)]
+  -- grind
+
+  -- congr
+  -- tauto
+
+  -- simp [pure, StateT.pure, some, OptionT.bind, OptionT.mk, Id.run, reduceIte, bind, StateT.bind]
+  -- -- rw [StateT.pure]
+
+  -- -- rw [myLemma]
+  -- cases H : a.eval * 1 == b.eval
+  -- · simp? [OptionT.bind]
+  --   tauto
+  -- · -- simp [OptionT.bind, OptionT.mk, wp]
+  --   rw [mul_one] at H
+  --   simp [↓reduceIte]
+  --   aesop
 
 theorem constrainEq3.soundness [ZKField f] (a b c : ZKExpr f) :
   ⦃ λ _s => ⌜True⌝ ⦄

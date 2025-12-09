@@ -40,19 +40,36 @@ The interpretation simply executes the computation with `runFold_old` and feeds 
 result to the post-condition. -/
 
 
+
 @[simp_ZKBuilder]
 instance [ZKField f] : WP (ZKBuilder f) (.arg (ZKState f) (.except PUnit .pure)) where
+-- instance [ZKField f] : WP (ZKBuilder f) (.except PUnit (.arg (ZKState f) .pure)) where
   wp {α} (x : ZKBuilder f α) :=
-    PredTrans.pushArg (fun s =>
-      PredTrans.pushExcept (
-        match runFold x s with
-        | .some r => ExceptT.mk (PredTrans.pure (Except.ok r))
-        | .none => ExceptT.mk (PredTrans.pure (Except.error ()))
+    PredTrans.pushArg (fun s => 
+      PredTrans.pushOption (
+        -- OptionT (PredTrans PostShape.pure) (α × ZKState f)
+        -- let x := wp ((runFold x).run s)
+        -- x
+        let v := ((runFold x).run s)
+        .mk (.pure v)
+
+      -- PredTrans.pushExcept (
+        -- do
+        -- let m := runFold x s
+
+        -- set_option diagnostics true in
+        -- (wp ((runFold x) s))
+        -- wp ((runFold x : StateT (ZKState f) Option α) s)
+      -- Std.Do.PredTrans.pushOption (
+      --   match runFold x s with
+      --   | .some r => ExceptT.mk (PredTrans.pure (Except.ok r))
+      --   | .none => ExceptT.mk (PredTrans.pure (Except.error ()))
       )
     )
 
 
 instance [ZKField f] : WPMonad (ZKBuilder f) (.arg (ZKState f) (.except PUnit .pure)) where
+-- instance [ZKField f] : WPMonad (ZKBuilder f) (.except PUnit (.arg (ZKState f) .pure)) where
   wp_pure a := by
     aesop
   wp_bind x f := by
@@ -62,7 +79,9 @@ instance [ZKField f] : WPMonad (ZKBuilder f) (.arg (ZKState f) (.except PUnit .p
     unfold instMonadZKBuilder
     unfold inferInstance
     unfold FreeM.instMonad
-    simp
+    simp -- [simp_FreeM]
+    unfold FreeM.bind
+    -- simp
     sorry
 
 
