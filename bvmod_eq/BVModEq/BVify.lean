@@ -41,7 +41,7 @@ lemma BitVec.ofNat_mul {w a b : ℕ} :
   BitVec.ofNat w (a * b) = (BitVec.ofNat w a) * (BitVec.ofNat w b)
   := by
     rw [BitVec.ofNat, BitVec.ofNat, BitVec.ofNat]
-    rw [Fin.ofNat, Fin.ofNat,  Fin.ofNat]
+    rw [Fin.Internal.ofNat, Fin.Internal.ofNat,  Fin.Internal.ofNat]
     apply congrArg
     simp_all
     apply Fin.eq_of_val_eq
@@ -80,7 +80,7 @@ lemma BitVec.ofNat_sub  {bw x : ℕ} [h0: NeZero bw] (h : 1 ≥ x) :
   BitVec.ofNat bw (1 - x) = (BitVec.ofNat bw 1) - (BitVec.ofNat bw x)
   := by
     unfold BitVec.ofNat
-    rw [Fin.ofNat, Fin.ofNat,  Fin.ofNat]
+    rw [Fin.Internal.ofNat, Fin.Internal.ofNat,  Fin.Internal.ofNat]
     apply congrArg
     simp_all
     apply Fin.eq_of_val_eq
