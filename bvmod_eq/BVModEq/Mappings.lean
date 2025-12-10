@@ -50,7 +50,7 @@ lemma extract_bv_rel {b: ℕ} {x : ZMod ff} [h0: NeZero b]  :
       exfalso
       rw [a] at h
       unfold BitVec.ofNat at h
-      unfold Fin.ofNat at h
+      unfold Fin.Internal.ofNat at h
       have h' := congrArg (fun x => x.toFin.val) h
       simp at h'
       have mod_eq : (m + 2) % (2^b) = m + 2 := by
@@ -91,7 +91,7 @@ lemma BitVec_ofNat_eq_iff (n : ℕ) {x y : ℕ} (hx : x < 2^n) (hy : y < 2^n) :
   rw [h]
   intro h
   unfold BitVec.ofNat at h
-  unfold Fin.ofNat at h
+  unfold Fin.Internal.ofNat at h
   have h' := congrArg (fun x => x.toFin.val) h
   simp at h
   apply Nat.mod_eq_of_modEq at h'
