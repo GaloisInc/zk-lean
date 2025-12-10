@@ -1,0 +1,11 @@
+name = "gkr"
+version = "0.1.0"
+defaultTargets = ["gkr"]
+
+[[lean_lib]]
+name = "gkr"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.25.0"
