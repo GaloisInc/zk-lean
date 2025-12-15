@@ -381,11 +381,10 @@ theorem constrainEq2.soundness [ZKField f] (a b : ZKExpr f) :
   simp [ExceptConds.true, ExceptConds.const]
   simp [liftM, monadLift, MonadLift.monadLift, StateT.run, StateT.pure, bind, StateT.bind, StateT.pure]
   rw [ite_apply]
-  simp [StateT.pure, StateT.lift]
-  rw [match_if]
-  cases H : a.eval * 1 == b.eval
+  simp [StateT.pure, StateT.lift, match_if]
+  split
+  . aesop
   · simp
-  · aesop
 
 theorem constrainEq3.soundness [ZKField f] (a b c : ZKExpr f) :
   ⦃ λ _s => ⌜True⌝ ⦄
