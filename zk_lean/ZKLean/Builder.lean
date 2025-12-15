@@ -7,26 +7,6 @@ import ZKLean.FreeMonad
 import ZKLean.LookupTable
 import ZKLean.SimpSets
 
--- /-- Type for RAM operations (Read and Write) -/
--- inductive RamOp (f : Type) where
---   | Read  (ram_id: RamId) (addr: ZKExpr f)
---   | Write (ram_id: RamId) (addr: ZKExpr f) (value: ZKExpr f)
--- deriving instance Inhabited for RamOp
---
--- /--
--- State associated with the building process of a ZK circuit.
---
--- It holds witnesses, constraints, and RAM operations.
--- -/
--- structure ZKBuilderState (f : Type) where
---   allocated_witness_count: Nat
---   -- Pairs of expressions that are constrained to be equal to one another.
---   constraints: List (ZKExpr f × ZKExpr f)
---   -- Array of sizes and array of operations for each RAM.
---   ram_sizes: Array Nat
---   ram_ops: (Array (RamOp f))
--- deriving instance Inhabited for ZKBuilderState
-
 
 /-- Type to identify a specific RAM -/
 structure RamId where
@@ -174,65 +154,6 @@ def ramWrite (r : RAM f) (a v : ZKExpr f) : ZKBuilder f PUnit :=
 end ZKBuilder
 
 open ZKBuilder
-
--- /-- Execute one `ZKOp` instruction and update the `ZKBuilderState`. -/
--- @[simp_ZKBuilder]
--- def ZKOpInterp_old [Zero f] {β} (op : ZKOp f β) (st : ZKBuilderState f) : (β × ZKBuilderState f) :=
---   match op with
---   | ZKOp.AllocWitness =>
---       let idx := st.allocated_witness_count
---       (ZKExpr.WitnessVar idx, { st with allocated_witness_count := idx + 1 })
---   | ZKOp.ConstrainEq x y =>
---       ((), { st with constraints := (x, y) :: st.constraints })
---   | ZKOp.ConstrainR1CS a b c =>
---       ((), { st with constraints := (ZKExpr.Mul a b, c) :: st.constraints })
---   | ZKOp.ComposedLookupMLE tbl args =>
---       (ZKExpr.ComposedLookupMLE tbl args[0] args[1] args[2] args[3], st)
---   | ZKOp.LookupMLE tbl arg1 arg2 =>
---       (ZKExpr.LookupMLE tbl arg1 arg2, st)
---   | ZKOp.LookupMaterialized tbl arg =>
---       (ZKExpr.LookupMaterialized tbl arg, st)
---   | ZKOp.MuxLookup ch cases =>
---       let sum := Array.foldl (fun acc (flag, tbl) =>
---         acc + ZKExpr.Mul flag (ZKExpr.ComposedLookupMLE tbl ch[0] ch[1] ch[2] ch[3])) (ZKExpr.Field (0 : f)) cases
---       (sum, st)
---   | ZKOp.RamNew n =>
---       let id := st.ram_sizes.size
---       ({ id := { ram_id := id } }, { st with ram_sizes := st.ram_sizes.push n })
---   | ZKOp.RamRead ram a =>
---       let i := st.ram_ops.size
---       (ZKExpr.RamOp i, { st with ram_ops := st.ram_ops.push (RamOp.Read ram.id a) })
---   | ZKOp.RamWrite ram a v =>
---       ((), { st with ram_ops := st.ram_ops.push (RamOp.Write ram.id a v) })
---
---
--- /-- Convert a `ZKBuilder` computation into a `StateM` computation. -/
--- @[simp_ZKBuilder]
--- def toStateM [Zero f] {α : Type} (comp : ZKBuilder f α) : StateM (ZKBuilderState f) α :=
---   comp.mapM ZKOpInterp_old
---
--- /--
--- Run a `ZKBuilder` program starting from an initial state.
---
--- The function walks through the program step-by-step:
--- • when it reaches `pure`, it simply returns the value without changing the state;
--- • when it sees an operation, it uses `ZKOpInterp_old` to update the state, then
---   continues with the rest of the program.
---
--- Internally this is implemented with `FreeM.foldM`, which is quite literally a `fold` over the `FreeM` tree.
--- -/
--- @[simp_ZKBuilder]
--- def runFold_old [Zero f] (p : ZKBuilder f α) (st : ZKBuilderState f)
---     : (α × ZKBuilderState f) :=
---   FreeM.foldM
---     -- pure case : just return the value, leaving the state untouched
---     (fun a => fun st => (a, st))
---     -- bind case : interpret one primitive with `ZKOpInterp_old`, then feed the
---     -- resulting value into the continuation on the updated state.
---     (fun op k => fun st =>
---       let (b, st') := ZKOpInterp_old op st
---       k b st')
---     p st
 
 /--
 A type is Witnessable if is has an associated building process.

@@ -47,29 +47,13 @@ instance [ZKField f] : WP (ZKBuilder f) (.arg (ZKState f) (.except PUnit .pure))
   wp {α} (x : ZKBuilder f α) :=
     PredTrans.pushArg (fun s => 
       PredTrans.pushOption (
-        -- OptionT (PredTrans PostShape.pure) (α × ZKState f)
-        -- let x := wp ((runFold x).run s)
-        -- x
         let v := ((runFold x).run s)
         .mk (.pure v)
-
-      -- PredTrans.pushExcept (
-        -- do
-        -- let m := runFold x s
-
-        -- set_option diagnostics true in
-        -- (wp ((runFold x) s))
-        -- wp ((runFold x : StateT (ZKState f) Option α) s)
-      -- Std.Do.PredTrans.pushOption (
-      --   match runFold x s with
-      --   | .some r => ExceptT.mk (PredTrans.pure (Except.ok r))
-      --   | .none => ExceptT.mk (PredTrans.pure (Except.error ()))
       )
     )
 
 
 instance [ZKField f] : WPMonad (ZKBuilder f) (.arg (ZKState f) (.except PUnit .pure)) where
--- instance [ZKField f] : WPMonad (ZKBuilder f) (.except PUnit (.arg (ZKState f) .pure)) where
   wp_pure a := by
     aesop
   wp_bind x f := by
@@ -84,49 +68,6 @@ instance [ZKField f] : WPMonad (ZKBuilder f) (.arg (ZKState f) (.except PUnit .p
     -- simp
     sorry
 
-
--- /-- Evaluate an expression given a builder state and some witnesses. -/
--- @[simp_ZKSemantics]
--- def eval_exprf [ZKField f] (expr: ZKExpr f) (state: ZKBuilderState f) (witness: List f) : Option f :=
---   let ram_values := semantics_ram witness state.ram_sizes state.ram_ops
---   if let some ram_values := ram_values
---   then
---     semantics_zkexpr expr witness ram_values
---   else
---     none
---
--- @[simp_ZKSemantics]
--- def eval_traversable_expr {t: Type -> Type} [Traversable t] [ZKField f] (expr: t (ZKExpr f)) (state: ZKBuilderState f) (witness: List f) : Option (t f) :=
---   traverse (eval_exprf · state witness) expr
---
--- open Std.Do
---
--- /-- If a circuit fails at a given state then it must fail for subsequent state. -/
--- lemma failure_propagates [ZKField f] (m : ZKBuilder f a) (witness: List f) s0 :
---  -- TODO: Lawful m
---  ⦃λ s => ⌜s = s0⌝⦄
---  m
---  ⦃⇓_r s1 => ⌜¬(eval_circuit s0 witness) → ¬(eval_circuit s1 witness)⌝⦄
---  := by
---   sorry
---
--- /-- If a circuit succeeds at a given state then it must have succeeded in previous state. -/
--- lemma previous_success [ZKField f] (m : ZKBuilder f a) (witness: List f) :
---  -- TODO: Lawful m
---  ⦃λ s => ⌜s = s0⌝⦄
---  m
---  ⦃⇓_r s1 => ⌜eval_circuit s1 witness → eval_circuit s0 witness⌝⦄
---  := by
---   sorry
---
--- /-- If an expression evaluates to a value at a given state then it must evaluate at the same value for a subsequent state. -/
--- lemma eval_const [ZKField f] (m : ZKBuilder f a) (witness: List f) (expr: ZKExpr f) :
---  -- TODO: Lawful m
---  ⦃λ s => ⌜s = s0⌝⦄
---  m
---  ⦃⇓_r s1 => ⌜eval_exprf expr s0 witness = eval_exprf expr s1 witness⌝⦄
---  := by
---   sorry
 
 /--
 The following machinery is not needed to prove properties about circuits in zkLean, but they may be useful to prove completeness and determinism.

@@ -23,11 +23,6 @@ structure ZKState (f : Type) [ZKField f] where
   allocated_witness_count: Nat
   witness: Array f
   rams: RamStates f
-  -- -- Pairs of expressions that are constrained to be equal to one another.
-  -- constraints: List (ZKExpr f × ZKExpr f)
-  -- -- Array of sizes and array of operations for each RAM.
-  -- ram_sizes: Array Nat
-  -- ram_ops: (Array (RamOp f))
 deriving instance Inhabited for ZKState
 
 
@@ -35,7 +30,6 @@ deriving instance Inhabited for ZKState
 @[simp_ZKBuilder]
 def ZKOpInterp [ZKField f] {β} (op : ZKOp f β)
     : StateT (ZKState f) Option β :=
-    -- : OptionT (StateT (ZKState f) Id) β :=
   match op with
   | ZKOp.AllocWitness => do
       let st ← get
@@ -98,90 +92,9 @@ def ZKOpInterp [ZKField f] {β} (op : ZKOp f β)
       else
         .none
 
--- @[simp_ZKBuilder]
--- def ZKOpInterp [ZKField f] {β} (op : ZKOp f β)
---     -- : StateT (ZKState f) Option β :=
---     : OptionT (StateT (ZKState f) Id) β :=
---   match op with
---   | ZKOp.AllocWitness => do
---       let st ← .lift get
---       let idx := st.allocated_witness_count
---       set ({ st with allocated_witness_count := idx + 1 })
---       .pure (ZKExpr.Field (<- .mk (.pure st.witness[idx]?)))
---       
---   | ZKOp.ConstrainEq x y => do
---       if x.eval == y.eval then
---         .pure ()
---       else
---         .fail
---   | ZKOp.ConstrainR1CS a b c => do
---       let fa := a.eval
---       let fb := b.eval
---       let fc := c.eval
---       if fa * fb == fc then
---         .pure ()
---       else
---         .fail
---   | ZKOp.ComposedLookupMLE tbl args => -- #v[c0, c1, c2, c3] => do
---       let chunks := args.map (λ e => ZKField.field_to_bits e.eval)
---       let res := evalComposedLookupTable tbl chunks
---       .pure (ZKExpr.Field res)
---   | ZKOp.LookupMLE tbl arg1 arg2 =>
---       let res := evalLookupTableMLE tbl
---          (ZKField.field_to_bits (num_bits := 32) arg1.eval)
---          (ZKField.field_to_bits (num_bits := 32) arg2.eval)
---       pure (ZKExpr.Field res)
---   | ZKOp.LookupMaterialized table arg => do
---       let res ← .mk (.pure table[ZKField.field_to_nat arg.eval]?)
---       pure (ZKExpr.Field res)
---   | ZKOp.MuxLookup chunks cases =>
---       let chunks := chunks.map (λ e => ZKField.field_to_bits e.eval)
---       let sum := Array.foldl (fun acc (flag, tbl) =>
---         acc + flag.eval * (evalComposedLookupTable tbl chunks)) 0 cases
---       pure (ZKExpr.Field sum)
---   | ZKOp.RamNew n => do
---       let st ← get
---       let id := st.rams.size
---       let state := { capacity:= n, state:= Std.HashMap.emptyWithCapacity n }
---       set ({st with rams := st.rams.push state})
---       pure ({id := { ram_id := id}})
---   | ZKOp.RamRead ram_id a => do
---       let st ← get
---       let addr_f := a.eval
---       let ram ← .mk (.pure st.rams[ram_id.id.ram_id]?)
---       let val ← .mk (.pure ram.state[addr_f]?)
---       pure (ZKExpr.Field val)
---   | ZKOp.RamWrite ram_id a v => do
---       let st ← get
---       let addr_f := a.eval
---       let val_f := v.eval
---       if h:ram_id.id.ram_id < st.rams.size then
---         let ram := st.rams[ram_id.id.ram_id]
---         let new_ram := {ram with state := ram.state.insert addr_f val_f}
---         let new_rams := st.rams.set ram_id.id.ram_id new_ram
---         set {st with rams := new_rams}
---         pure ()
---       else
---         .fail
-
-
--- @[simp_ZKBuilder]
--- def runFoldOld [ZKField f] (p : ZKBuilder f α) (st : ZKState f)
---     : Option (α × ZKState f) :=
---   FreeM.foldM
---     -- pure case : just return the value, leaving the state untouched
---     (fun a => fun st => .some (a, st))
---     -- bind case : interpret one primitive with `ZKOpInterp`, then feed the
---     -- resulting value into the continuation on the updated state.
---     (fun op k => fun st => do
---       let (b, st') <- ZKOpInterp op st
---       k b st')
---     p st
 
 @[simp_ZKBuilder]
-def runFold [ZKField f] (p : ZKBuilder f α) -- (st : ZKState f)
---     : OptionT (StateT (ZKState f) Id) α :=
--- def runFold2 [ZKField f] (p : ZKBuilder f α) -- (st : ZKState f)
+def runFold [ZKField f] (p : ZKBuilder f α)
     : StateT (ZKState f) Option α :=
   FreeM.foldM
     -- pure case : just return the value, leaving the state untouched
