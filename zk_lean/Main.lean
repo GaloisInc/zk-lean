@@ -11,6 +11,8 @@ import Mathlib.Tactic.Ring
 import Std.Data.HashMap.Basic
 import Std.Do
 import Std.Tactic.BVDecide
+import Mathlib.Data.Nat.Size
+
 
 import ZKLean
 import ZKLean.SimpSets
@@ -484,3 +486,22 @@ theorem constrainEq3.soundness [ZKField f] (a b c : ZKExpr f) :
   mrename_i Eq2
   mpure Eq2
   aesop
+
+#eval 4 % 0
+#eval 4 % -3
+
+lemma rotate_bits (n i: Nat) (m: BitVec n) (h: m < 2^n - 1) : m.rotateLeft i = (m.toNat * 2^i) % (2^n - 1) := by
+
+  simp [BitVec.rotateLeft, BitVec.rotateLeftAux]
+  -- omega
+  -- ring_nf
+  -- aesop
+  -- linarith
+
+  rw [Nat.shiftLeft_eq_mul_pow]
+  -- bv_decide
+  -- 
+  -- induction n
+  -- · grind
+  -- · simp
+
