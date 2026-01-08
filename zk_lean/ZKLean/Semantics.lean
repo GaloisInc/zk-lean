@@ -1,3 +1,4 @@
+import Cslib.Foundations.Control.Monad.Free.Fold
 import Init.Data.Array.Basic
 import Init.Data.Array.Set
 import Init.Prelude
@@ -28,15 +29,14 @@ deriving instance Inhabited for ZKState
 
 /-- Interprets a ZK operation give a state. On success, it returns the result of the operation and the updated state. If a constraint in the circuit is not satisfied, it short circuits and returns `.none`. -/
 @[simp_ZKBuilder]
-def ZKOpInterp [ZKField f] {β} (op : ZKOp f β)
-    : StateT (ZKState f) Option β :=
+def ZKOpInterp [ZKField f] {β} (op : ZKOp f β) : StateT (ZKState f) Option β :=
   match op with
   | ZKOp.AllocWitness => do
       let st ← get
       let idx := st.allocated_witness_count
       set ({ st with allocated_witness_count := idx + 1 })
       .pure (ZKExpr.Field (<- st.witness[idx]?))
-      
+
   | ZKOp.ConstrainEq x y => do
       if x.eval == y.eval then
         .pure ()
@@ -92,19 +92,16 @@ def ZKOpInterp [ZKField f] {β} (op : ZKOp f β)
       else
         .none
 
-
 @[simp_ZKBuilder]
-def runFold [ZKField f] (p : ZKBuilder f α)
-    : StateT (ZKState f) Option α :=
-  FreeM.foldM
+def runZKBuilder [ZKField f] : ZKBuilder f α → StateT (ZKState f) Option α :=
+  Cslib.FreeM.foldFreeM
     -- pure case : just return the value, leaving the state untouched
     (fun a => .pure a)
     -- bind case : interpret one primitive with `ZKOpInterp`, then feed the
     -- resulting value into the continuation on the updated state.
     (fun op k => do
-      let b <- ZKOpInterp op
+      let b ← ZKOpInterp op
       k b)
-    p
 
 /-- Main semantics function
 
@@ -114,5 +111,5 @@ whether the circuit is satisfied.
 @[simp_ZKSemantics]
 def semantics [ZKField f] (circuit: ZKBuilder f α) (witness: List f) : Bool :=
   let st : ZKState f := {witness := witness.toArray, allocated_witness_count := 0, rams:= Array.empty}
-  let res := runFold circuit st
+  let res := runZKBuilder circuit st
   res.isSome

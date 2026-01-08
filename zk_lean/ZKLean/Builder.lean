@@ -1,9 +1,9 @@
+import Cslib.Foundations.Control.Monad.Free
 import Std.Data.HashMap.Basic
 import Std.Do
 import Std.Tactic.Do
 
 import ZKLean.AST
-import ZKLean.FreeMonad
 import ZKLean.LookupTable
 import ZKLean.SimpSets
 
@@ -37,7 +37,7 @@ inductive ZKOp (f : Type) : Type → Type
 
 /-- Type for the ZK circuit builder monad. -/
 @[simp_ZKBuilder]
-def ZKBuilder (f : Type) := FreeM (ZKOp f)
+def ZKBuilder (f : Type) := Cslib.FreeM (ZKOp f)
 
 @[simp_ZKBuilder]
 instance : Monad (ZKBuilder f) := by
@@ -49,6 +49,8 @@ instance : LawfulMonad (ZKBuilder f) := by
   infer_instance
 
 namespace ZKBuilder
+
+open Cslib
 
 -- We define helper functions for each of the primitive operations in the DSL, using `liftM` to lift them to the `ZKBuilder` monad.
 

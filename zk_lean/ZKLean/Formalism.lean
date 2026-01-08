@@ -1,3 +1,5 @@
+import Cslib.Foundations.Control.Monad.Free
+import Cslib.Foundations.Control.Monad.Free.Fold
 import Mathlib.Control.Traversable.Basic
 import Std.Do
 
@@ -7,11 +9,10 @@ import ZKLean.LookupTable
 import ZKLean.Semantics
 import ZKLean.SimpSets
 
--- Note: assuming FreeM gets upstreamed, we would need to register these
 attribute [simp_FreeM] bind
 attribute [simp_FreeM] default
-attribute [simp_FreeM] FreeM.bind
-attribute [simp_FreeM] FreeM.foldM
+attribute [simp_FreeM] Cslib.FreeM.bind
+attribute [simp_FreeM] Cslib.FreeM.foldFreeM
 
 attribute [simp_Triple] Std.Do.Triple
 attribute [simp_Triple] Std.Do.SPred.entails
@@ -39,35 +40,75 @@ implicit `ZKBuilderState`; therefore its predicate shape is `PostShape.arg
 The interpretation simply executes the computation with `runFold_old` and feeds the
 result to the post-condition. -/
 
+def wpZKBuilder [ZKField f] (x : ZKBuilder f a)
+  : PredTrans (.arg (ZKState f) (.except PUnit .pure)) a
+  := PredTrans.pushArg (fun s => PredTrans.pushOption (.mk (.pure ((runZKBuilder x).run s))))
 
-
-@[simp_ZKBuilder]
+@[reducible, simp_ZKBuilder]
 instance [ZKField f] : WP (ZKBuilder f) (.arg (ZKState f) (.except PUnit .pure)) where
--- instance [ZKField f] : WP (ZKBuilder f) (.except PUnit (.arg (ZKState f) .pure)) where
-  wp {α} (x : ZKBuilder f α) :=
-    PredTrans.pushArg (fun s => 
-      PredTrans.pushOption (
-        let v := ((runFold x).run s)
-        .mk (.pure v)
-      )
-    )
+  wp := wpZKBuilder
 
+@[simp]
+def runZKBuilder_liftBind [ZKField f] op (cont : a → ZKBuilder f b) s
+  : runZKBuilder (.liftBind op cont) s = (ZKOpInterp op s).bind fun (r, s') => runZKBuilder (cont r) s'
+  := by rfl
+
+def runZKBuilder_bind [ZKField f] (lhs : ZKBuilder f a) (rhs : a → ZKBuilder f b) s
+  : runZKBuilder (.bind lhs rhs) s =
+    match runZKBuilder lhs s with
+    | none => none
+    | some (r, s') => runZKBuilder (rhs r) s'
+  := by
+  revert s
+  induction lhs
+  · simp [runZKBuilder, StateT.pure]
+  · case liftBind op cont IH =>
+    intro s
+    unfold Cslib.FreeM.bind
+    simp
+    conv =>
+      lhs
+      rhs
+      intro x
+      rw [IH]
+    cases ZKOpInterp op s
+    · simp
+    · simp
+
+-- wp⟦ op ≫= (cont ≫= g) ⟧ = wp ⟦ (op ≫= cont) ⟧ ≫= (λ r ⇒ wp ⟦g r⟧)
+def wpZKBuilder_liftBind_bind [ZKField f] (g : a → ZKBuilder f b) (cont : ι → ZKBuilder f a)
+  : wpZKBuilder (.liftBind op fun x => (cont x).bind fun r => g r)
+  = (wpZKBuilder (.liftBind op cont)).bind (fun r => wpZKBuilder (g r)) := by
+  ext pc s
+  unfold wpZKBuilder
+  simp [PredTrans.pushArg_apply, OptionT.mk, StateT.run]
+  conv =>
+    lhs
+    arg 1
+    arg 2
+    arg 2
+    intro a
+    rw [runZKBuilder_bind]
+  simp [PredTrans.bind]
+  cases (ZKOpInterp op s)
+  · simp
+  · case some res =>
+    simp
+    cases (runZKBuilder (cont res.1) res.2)
+    · simp
+    · rfl
 
 instance [ZKField f] : WPMonad (ZKBuilder f) (.arg (ZKState f) (.except PUnit .pure)) where
   wp_pure a := by
     aesop
   wp_bind x f := by
     ext
-    simp [simp_FreeM]
-    unfold bind
-    unfold instMonadZKBuilder
-    unfold inferInstance
-    unfold FreeM.instMonad
-    simp -- [simp_FreeM]
-    unfold FreeM.bind
-    -- simp
-    sorry
-
+    simp [simp_ZKBuilder]
+    induction x
+    · rfl
+    · simp
+      rw [wpZKBuilder_liftBind_bind]
+      rfl
 
 /--
 The following machinery is not needed to prove properties about circuits in zkLean, but they may be useful to prove completeness and determinism.

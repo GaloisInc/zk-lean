@@ -1,3 +1,4 @@
+import Cslib.Foundations.Control.Monad.Free
 import Lean.Elab.Term
 import Lean.Meta.Basic
 import Mathlib.Algebra.Field.Defs
@@ -18,14 +19,10 @@ import ZKLean.SimpSets
 open Lean Meta Elab Term
 open Std Do
 
-def main : IO Unit :=
-  IO.println s!"Hello!"
-
--- Note: assuming FreeM gets upstreamed, we would need to register these
 attribute [simp_FreeM] bind
 attribute [simp_FreeM] default
-attribute [simp_FreeM] FreeM.bind
-attribute [simp_FreeM] FreeM.foldM
+attribute [simp_FreeM] Cslib.FreeM.bind
+attribute [simp_FreeM] Cslib.FreeM.foldFreeM
 
 attribute [simp_Triple] Std.Do.Triple
 attribute [simp_Triple] Std.Do.SPred.entails
@@ -152,7 +149,7 @@ def uniform_jolt_constraint [ZKField f] (jolt_inputs: JoltR1CSInputs f) : ZKBuil
 --   constrainR1CS (step_1.jolt_flag * 872187687 + ...) (step_2.jolt_flag + 1) (1)
 --   ...
 
-attribute [simp_circuit] runFold
+attribute [simp_circuit] runZKBuilder
 
 @[simp_circuit]
 def run_circuit' [ZKField f] (circuit: ZKBuilder f a) (witness: List f) : Bool :=
@@ -270,7 +267,9 @@ def circuit12 : ZKBuilder (ZMod 7) PUnit := do
 #eval run_circuit' circuit12 [0, 0]
 
 theorem circuitEq2SoundTry [ZKField f] (a : f) : (run_circuit' circuit1 [a, a] = true) := by
-  simp [simp_circuit, simp_FreeM, simp_ZKBuilder, simp_ZKSemantics] -- , OptionT.bind, OptionT.mk, StateT.bind, OptionT.lift, StateT.get] -- , OptionT.lift, OptionT.mk, OptionT.bind, StateT.get.eq_1, Option.isSome, StateT.bind, StateT.pure, ExceptConds.true, ExceptConds.const, SPred.pure, simp_FreeM, simp_ZKBuilder, OptionT.fail, OptionT.mk, OptionT.pure, OptionT.bind, OptionT.mk, pure, StateT.pure, Id.run, StateT.bind, StateT.get]
+  simp [simp_circuit, simp_FreeM, simp_ZKBuilder, simp_ZKSemantics]
+  unfold StateT.pure
+
   -- simp [ExceptConds.true, ExceptConds.const, SPred.pure]
   -- simp [simp_FreeM, simp_ZKBuilder, OptionT.fail, OptionT.mk, OptionT.pure]
   -- simp [OptionT.bind, OptionT.mk, wp]
@@ -377,9 +376,10 @@ theorem constrainEq2.soundness [ZKField f] (a b : ZKExpr f) :
   ⦃ ⇓? _r _s => ⌜a.eval = b.eval⌝ ⦄
   := by
   mintro _ ∀s
-  simp [simp_FreeM, simp_ZKBuilder, simp_Triple, simp_circuit, OptionT.mk]
-  simp [ExceptConds.true, ExceptConds.const]
-  simp [liftM, monadLift, MonadLift.monadLift, StateT.run, StateT.pure, bind, StateT.bind, StateT.pure]
+  simp
+    [ simp_FreeM, simp_ZKBuilder, simp_Triple, simp_circuit, wpZKBuilder, OptionT.mk
+    , ExceptConds.true, ExceptConds.const, liftM, monadLift, MonadLift.monadLift, StateT.run
+    , StateT.pure, bind, StateT.bind, StateT.pure]
   rw [ite_apply]
   simp [StateT.pure, StateT.lift, match_if]
   split
@@ -400,3 +400,7 @@ theorem constrainEq3.soundness [ZKField f] (a b c : ZKExpr f) :
   mrename_i Eq2
   mpure Eq2
   aesop
+
+def main : IO Unit := do
+  IO.println "Currently, main does nothing."
+  return ()
