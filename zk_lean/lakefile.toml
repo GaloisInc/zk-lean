@@ -12,7 +12,12 @@ root = "Main"
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
-rev = "v4.23.0"
+rev = "v4.25.2"
+
+[[require]]
+name = "cslib"
+scope = "leanprover"
+rev = "v4.25.1" # Note: they did not make a 4.25.2 release yet
 
 [[require]]
 name = "BVModEq"
