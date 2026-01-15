@@ -22,65 +22,62 @@ def rotationOffsets : Array Nat :=
 
 /-- State type: 5x5 array of 64-bit lanes --/
 structure State where
-  lanes : Array (BitVec 64)
-  h : lanes.size = 25
+  lanes : Vector (BitVec 64) 25
 
 /-- Create initial state --/
 def State.init : State :=
-  { lanes := Array.mkArray 25 0#64
-    h := by simp [Array.mkArray] }
+  { lanes := Vector.replicate 25 0#64 }
 
 /-- Get lane at position (x, y) --/
 def State.get (s : State) (x y : Fin 5) : BitVec 64 :=
-  s.lanes.get! (y.val * 5 + x.val)
+  s.lanes[y.val * 5 + x.val]
 
 /-- Set lane at position (x, y) --/
 def State.set (s : State) (x y : Fin 5) (val : BitVec 64) : State :=
-  { lanes := s.lanes.set! (y.val * 5 + x.val) val
-    h := by simp [Array.size_set!, s.h] }
+  { lanes := s.lanes.set! (y.val * 5 + x.val) val }
 
 /-- Theta step --/
 def theta (s : State) : State :=
-  let c := Array.ofFn fun (x : Fin 5) =>
+  let c := Vector.ofFn fun (x : Fin 5) =>
     s.get x 0 ^^^ s.get x 1 ^^^ s.get x 2 ^^^ s.get x 3 ^^^ s.get x 4
-  let d := Array.ofFn fun (x : Fin 5) =>
-    c.get! ((x.val + 4) % 5) ^^^ (c.get! ((x.val + 1) % 5)).rotateLeft 1
-  let lanes := Array.ofFn fun (i : Fin 25) =>
+  let d := Vector.ofFn fun (x : Fin 5) =>
+    c[(x.val + 4) % 5]! ^^^ (c[(x.val + 1) % 5]!).rotateLeft 1
+  let lanes := Vector.ofFn fun (i : Fin 25) =>
     let x := i.val % 5
     let y := i.val / 5
-    s.lanes.get! i ^^^ d.get! x
-  { lanes := lanes, h := by simp [Array.size_ofFn] }
+    s.lanes[i]! ^^^ d[x]!
+  { lanes := lanes }
 
 /-- Rho step --/
 def rho (s : State) : State :=
-  let lanes := Array.ofFn fun (i : Fin 25) =>
-    (s.lanes.get! i).rotateLeft (rotationOffsets.get! i)
-  { lanes := lanes, h := by simp [Array.size_ofFn] }
+  let lanes := Vector.ofFn fun (i : Fin 25) =>
+    (s.lanes[i]!).rotateLeft (rotationOffsets[i]!)
+  { lanes := lanes }
 
 /-- Pi step --/
 def pi (s : State) : State :=
-  let lanes := Array.ofFn fun (i : Fin 25) =>
+  let lanes := Vector.ofFn fun (i : Fin 25) =>
     let x := i.val % 5
     let y := i.val / 5
     let newX := y
     let newY := (2 * x + 3 * y) % 5
-    s.lanes.get! (newY * 5 + newX)
-  { lanes := lanes, h := by simp [Array.size_ofFn] }
+    s.lanes[newY * 5 + newX]!
+  { lanes := lanes }
 
 /-- Chi step --/
 def chi (s : State) : State :=
-  let lanes := Array.ofFn fun (i : Fin 25) =>
+  let lanes := Vector.ofFn fun (i : Fin 25) =>
     let x := i.val % 5
     let y := i.val / 5
     let lane := s.get ⟨x, by omega⟩ ⟨y, by omega⟩
     let next := s.get ⟨(x + 1) % 5, by omega⟩ ⟨y, by omega⟩
     let next2 := s.get ⟨(x + 2) % 5, by omega⟩ ⟨y, by omega⟩
     lane ^^^ ((~~~next) &&& next2)
-  { lanes := lanes, h := by simp [Array.size_ofFn] }
+  { lanes := lanes }
 
 /-- Iota step --/
 def iota (s : State) (round : Fin 24) : State :=
-  let lane0 := s.get 0 0 ^^^ roundConstants.get! round.val
+  let lane0 := s.get 0 0 ^^^ roundConstants[round.val]
   s.set 0 0 lane0
 
 /-- Single round of Keccak-f[1600] --/
@@ -89,19 +86,19 @@ def keccakRound (s : State) (round : Fin 24) : State :=
 
 /-- Full Keccak-f[1600] permutation (24 rounds) --/
 def keccakF (s : State) : State :=
-  (Array.range 24).foldl (fun acc i => keccakRound acc ⟨i, by omega⟩) s
+  (Array.finRange 24).foldl (fun acc i => keccakRound acc i) s
 
 /-- Absorb a block into the state --/
 def absorb (s : State) (block : ByteArray) (rate : Nat) : State :=
   let lanes := s.lanes.mapIdx fun i lane =>
-    let byteIdx := i.val * 8
+    let byteIdx := i * 8
     if byteIdx + 8 <= rate then
       let bytes := block.extract byteIdx (byteIdx + 8)
-      let value := bytes.foldl (fun acc b => (acc <<< 8) ||| b.toUInt64) 0
+      let value := bytes.foldl (fun (acc:UInt64) b => (acc <<< 8) ||| b.toUInt64) 0
       lane ^^^ BitVec.ofNat 64 value.toNat
     else
       lane
-  keccakF { lanes := lanes, h := by simp [Array.size_mapIdx, s.h] }
+  keccakF { lanes := lanes }
 
 /-- Pad message using pad10*1 rule --/
 def pad101 (msg : ByteArray) (rate : Nat) : ByteArray :=
@@ -128,10 +125,12 @@ def squeeze (s : State) (outLen : Nat) : ByteArray :=
           ((lane >>> (i.val * 8)).toNat &&& 0xFF).toUInt8
         else
           0)
+      let acc' := acc ++ bytes.extract 0 bytesToExtract
       if remaining <= 8 then
-        acc ++ bytes.extract 0 bytesToExtract
+        acc'
       else
-        aux (keccakF st) (remaining - bytesToExtract) (acc ++ bytes.extract 0 bytesToExtract)
+        aux (keccakF st) (remaining - bytesToExtract) acc'
+  termination_by remaining
   aux s outLen ByteArray.empty
 
 /-- SHA3-256 hash function --/
@@ -163,11 +162,11 @@ end SHA3
 def main : IO Unit := do
   let msg := "abc".toUTF8
   let hash := SHA3.sha3_256 msg
-  IO.println s!"SHA3-256('abc') = {hash.toHex}"
+  IO.println s!"SHA3-256('abc') = {SHA3.ByteArray.toHex hash}"
   
   let msg2 := "".toUTF8
   let hash2 := SHA3.sha3_256 msg2
-  IO.println s!"SHA3-256('') = {hash2.toHex}"
+  IO.println s!"SHA3-256('') = {SHA3.ByteArray.toHex hash2}"
 
 #eval main
 
