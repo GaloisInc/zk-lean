@@ -23,6 +23,7 @@ def rotationOffsets : Array Nat :=
 /-- State type: 5x5 array of 64-bit lanes --/
 structure State where
   lanes : Vector (BitVec 64) 25
+deriving BEq, Repr
 
 /-- Create initial state --/
 def State.init : State :=
@@ -38,15 +39,26 @@ def State.set (s : State) (x y : Fin 5) (val : BitVec 64) : State :=
 
 /-- Theta step --/
 def theta (s : State) : State :=
-  let c := Vector.ofFn fun (x : Fin 5) =>
-    s.get x 0 ^^^ s.get x 1 ^^^ s.get x 2 ^^^ s.get x 3 ^^^ s.get x 4
+  let c := Vector.ofFn fun (y : Fin 5) =>
+    s.get 0 y ^^^ s.get 1 y ^^^ s.get 2 y ^^^ s.get 3 y ^^^ s.get 4 y
+  let exp := #v[0x7cd7ba31ef4382eb, 0xab8f193a7da597bb, 0x735b21bc27a74f1, 0xf1d458358a5d5534, 0x636739a411984a7b]
+  dbg_trace (exp == c) 
   let d := Vector.ofFn fun (x : Fin 5) =>
     c[(x.val + 4) % 5]! ^^^ (c[(x.val + 1) % 5]!).rotateLeft 1
+  let exp := #v[0x34790bd0ead3650c, 0x72bcde066bb76b09, 0x4827a951691f3dd2, 0xc1fbc153e14ae007, 0x87b2c5654da50e2]
+  dbg_trace (exp == d) 
   let lanes := Vector.ofFn fun (i : Fin 25) =>
     let x := i.val % 5
     let y := i.val / 5
-    s.lanes[i]! ^^^ d[x]!
+    s.get ⟨x, by omega⟩ ⟨y, by omega⟩ ^^^ d[y]
   { lanes := lanes }
+
+def in1: State := { lanes := #v[0xb776c454221536a0, 0x76626ac752f6f6aa, 0xa0b01b1261ab6a01, 0xd3881a5ca182984d, 0xcefb15ec5f89b0ad, 0x2cc562aab665c6ac, 0x4e6fb95a23376335, 0xae3d547551959057, 0xbd5f1e80592136c8, 0xda47883fe04394bd, 0x96854ec3f757a478, 0x6dd890fa0ac6380b, 0x16e9bf1d538d80d, 0x9b8a935ba0ddf5b0, 0x668c64884a0ec53f, 0xbaf0e8c55c739718, 0xe63e22ac7de0af2a, 0x2167900ea6e5a7be, 0x242c1ecef1782e23, 0xa8511c9cfc53e49b, 0x8263456ba091515a, 0x9ecfc93f76589eec, 0x7a406941f60cf465, 0xf105204297c34be6, 0xf48efcf3a69e3a4e] }
+def out1: State := { lanes := #v[0x830fcf84c8c653ac, 0x421b6117b82593a6, 0x94c910c28b780f0d, 0xe7f1118c4b51fd41, 0xfa821e3cb55ad5a1, 0x5e79bcacddd2ada5, 0x3cd3675c4880083c, 0xdc818a733a22fb5e, 0xcfe3c08632965dc1, 0xa8fb56398bf4ffb4, 0xdea2e7929e4899aa, 0x25ff39ab63d905d9, 0x494932a0bc27e5df, 0xd3ad3a0ac9c2c862, 0x2eabcdd92311f8ed, 0x7b0b2996bd39771f, 0x27c5e3ff9caa4f2d, 0xe09c515d47af47b9, 0xe5d7df9d1032ce24, 0x69aaddcf1d19049c, 0x8a18693df44b01b8, 0x96b4e5692282ce0e, 0x723b4517a2d6a487, 0xf97e0c14c3191b04, 0xfcf5d0a5f2446aac] }
+#eval in1.lanes[0] ^^^ in1.lanes[1] ^^^ in1.lanes[2] ^^^ in1.lanes[3] ^^^ in1.lanes[4]
+#eval let s := in1; Vector.ofFn fun (y : Fin 5) => s.get 0 y ^^^ s.get 1 y ^^^ s.get 2 y ^^^ s.get 3 y ^^^ s.get 4 y
+#eval theta in1
+#eval theta in1 == out1
 
 /-- Rho step --/
 def rho (s : State) : State :=
