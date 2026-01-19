@@ -49,7 +49,7 @@ def theta (s : State) : State :=
     s.get ⟨x, by omega⟩ ⟨y, by omega⟩ ^^^ d[y]
   { lanes := lanes }
 
--- def in1: State := { lanes := #v[0xb776c454221536a0, 0x76626ac752f6f6aa, 0xa0b01b1261ab6a01, 0xd3881a5ca182984d, 0xcefb15ec5f89b0ad, 0x2cc562aab665c6ac, 0x4e6fb95a23376335, 0xae3d547551959057, 0xbd5f1e80592136c8, 0xda47883fe04394bd, 0x96854ec3f757a478, 0x6dd890fa0ac6380b, 0x16e9bf1d538d80d, 0x9b8a935ba0ddf5b0, 0x668c64884a0ec53f, 0xbaf0e8c55c739718, 0xe63e22ac7de0af2a, 0x2167900ea6e5a7be, 0x242c1ecef1782e23, 0xa8511c9cfc53e49b, 0x8263456ba091515a, 0x9ecfc93f76589eec, 0x7a406941f60cf465, 0xf105204297c34be6, 0xf48efcf3a69e3a4e] }
+def in1: State := { lanes := #v[0xb776c454221536a0, 0x76626ac752f6f6aa, 0xa0b01b1261ab6a01, 0xd3881a5ca182984d, 0xcefb15ec5f89b0ad, 0x2cc562aab665c6ac, 0x4e6fb95a23376335, 0xae3d547551959057, 0xbd5f1e80592136c8, 0xda47883fe04394bd, 0x96854ec3f757a478, 0x6dd890fa0ac6380b, 0x16e9bf1d538d80d, 0x9b8a935ba0ddf5b0, 0x668c64884a0ec53f, 0xbaf0e8c55c739718, 0xe63e22ac7de0af2a, 0x2167900ea6e5a7be, 0x242c1ecef1782e23, 0xa8511c9cfc53e49b, 0x8263456ba091515a, 0x9ecfc93f76589eec, 0x7a406941f60cf465, 0xf105204297c34be6, 0xf48efcf3a69e3a4e] }
 -- def out1: State := { lanes := #v[0x830fcf84c8c653ac, 0x421b6117b82593a6, 0x94c910c28b780f0d, 0xe7f1118c4b51fd41, 0xfa821e3cb55ad5a1, 0x5e79bcacddd2ada5, 0x3cd3675c4880083c, 0xdc818a733a22fb5e, 0xcfe3c08632965dc1, 0xa8fb56398bf4ffb4, 0xdea2e7929e4899aa, 0x25ff39ab63d905d9, 0x494932a0bc27e5df, 0xd3ad3a0ac9c2c862, 0x2eabcdd92311f8ed, 0x7b0b2996bd39771f, 0x27c5e3ff9caa4f2d, 0xe09c515d47af47b9, 0xe5d7df9d1032ce24, 0x69aaddcf1d19049c, 0x8a18693df44b01b8, 0x96b4e5692282ce0e, 0x723b4517a2d6a487, 0xf97e0c14c3191b04, 0xfcf5d0a5f2446aac] }
 -- #eval theta in1 == out1
 
@@ -143,26 +143,38 @@ def extractLaneBytes (lane : BitVec 64) (numBytes : Nat) : ByteArray :=
     else
       0) |>.extract 0 numBytes
 
-/-- Squeeze output from state (rate = 136 bytes = 17 lanes for SHA3-256) --/
-def squeeze (s : State) (outLen : Nat) : ByteArray :=
-  let rate := 136  -- rate in bytes
-  let rateLanes := rate / 8  -- 17 lanes
-  let rec aux (st : State) (remaining : Nat) (acc : ByteArray) (laneIdx : Nat) : ByteArray :=
-    if remaining == 0 then acc
-    else if laneIdx >= rateLanes then
-      -- Need more bytes but exhausted rate, apply keccakF and restart from lane 0
-      aux (keccakF st) remaining acc 0
-    else
-      let bytesToExtract := min remaining 8
-      -- Lanes are stored as y*5 + x, and we read them in order (0,0), (1,0), (2,0), ...
-      let x := laneIdx % 5
-      let y := laneIdx / 5
-      let lane := st.get ⟨x, by omega⟩ ⟨y, by omega⟩
-      let bytes := extractLaneBytes lane bytesToExtract
-      let acc' := acc ++ bytes
-      aux st (remaining - bytesToExtract) acc' (laneIdx + 1)
-  termination_by (remaining, rateLanes - laneIdx)
-  aux s outLen ByteArray.empty 0
+-- /-- Squeeze output from state (rate = 136 bytes = 17 lanes for SHA3-256) --/
+-- def squeeze (s : State) (outLen : Nat) : ByteArray :=
+--   let rate := 136  -- rate in bytes
+--   let rateLanes := rate / 8  -- 17 lanes
+--   let rec aux (st : State) (remaining : Nat) (acc : ByteArray) (laneIdx : Nat) : ByteArray :=
+--     if remaining == 0 then acc
+--     else if laneIdx >= rateLanes then
+--       -- Need more bytes but exhausted rate, apply keccakF and restart from lane 0
+--       aux (keccakF st) remaining acc 0
+--     else
+--       let bytesToExtract := min remaining 8
+--       -- Lanes are stored as y*5 + x, and we read them in order (0,0), (1,0), (2,0), ...
+--       let x := laneIdx % 5
+--       let y := laneIdx / 5
+--       let lane := st.get ⟨x, by omega⟩ ⟨y, by omega⟩
+--       let bytes := extractLaneBytes lane bytesToExtract
+--       let acc' := acc ++ bytes
+--       aux st (remaining - bytesToExtract) acc' (laneIdx + 1)
+--   termination_by (remaining, rateLanes - laneIdx)
+--   aux s outLen ByteArray.empty 0
+def squeeze (s : State) := -- : ByteArray :=
+  ByteArray.mk (Array.ofFn fun (i : Fin 32) =>
+  -- (Array.ofFn fun (i : Fin 42) =>
+    let j := i % 8;
+    let x := (i.val / 8) % 5;
+    let y := (i.val / (8 * 5)) % 5;
+    let lane := s.get ⟨x, by omega⟩ ⟨y, by omega⟩
+    ((lane >>> (j.val * 8)).toNat &&& 0xFF).toUInt8
+  )
+
+-- #eval squeeze in1
+
 
 /-- SHA3-256 hash function --/
 def sha3_256 (msg : ByteArray) : ByteArray :=
@@ -175,7 +187,7 @@ def sha3_256 (msg : ByteArray) : ByteArray :=
     let block := padded.extract start blockEnd
     absorb s block rate
   ) State.init
-  squeeze state 32
+  squeeze state -- 32
 
 /-- Convert ByteArray to hex string --/
 def ByteArray.toHex (ba : ByteArray) : String :=
