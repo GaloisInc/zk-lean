@@ -1,13 +1,13 @@
 name = "ZKLeanExamples"
 version = "0.0.1"
-defaultTargets = ["ZKLeanExamplesMain"]
+defaultTargets = ["ZKLeanExamples"]
 
 [[lean_lib]]
 name = "ZKLeanExamples"
 
-[[lean_exe]]
-name = "ZKLeanExamplesMain"
-root = "ZKLeanExamples"
+# [[lean_exe]]
+# name = "ZKLeanExamplesMain"
+# root = "ZKLeanExamples"
 
 [[require]]
 name = "BVModEq"
