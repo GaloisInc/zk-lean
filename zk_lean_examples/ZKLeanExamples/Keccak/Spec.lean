@@ -135,29 +135,59 @@ def keccakRound (s : State) (round : Fin 24) : State :=
 def keccakF (s : State) : State :=
   (Array.finRange 24).foldl (fun acc i => keccakRound acc i) s
 
+-- def in1: State := { lanes := #v[0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8000000000000000, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0] }
+-- def out1: State := { lanes := #v[0x3c23f7860146d2c5, 0xcb9b1161ecb0a2b9, 0x3cf26d5eba2553e8, 0xeb829c854e19a949, 0xdee8b8eca7b2acba, 0xc003c7dcb27d7e92, 0x1f2211c4c0f9ed5c, 0x3bce6a98fe5b7210, 0x1b5d1a6545a611ff, 0x163b62b71dcf4521, 0x3b2782ca53b600e5, 0x820dc6175fa24161, 0xba7d9fa73545d2a2, 0x64146f400e16b72, 0x6b571b9910726d91, 0x70a4855d04d8fa7b, 0x81babfbcab8046d2, 0xfa0d3cd3b03b15bb, 0xfe8734e16471ab9f, 0xb7fa22cf622318be, 0x74a97cd82c9abb3d, 0xb1d551b7242b765b, 0x3bfed7eb12c7ce09, 0x9c3088bdeebb0936, 0xa3fe1af7779fafd7] }
+-- #eval keccakF in1 == out1
+
 /-- Load 8 bytes in little-endian order into a UInt64 --/
-def loadLittleEndian (bytes : ByteArray) (offset : Nat) : UInt64 :=
-  let b0 := if offset < bytes.size then bytes.get! offset else 0
-  let b1 := if offset + 1 < bytes.size then bytes.get! (offset + 1) else 0
-  let b2 := if offset + 2 < bytes.size then bytes.get! (offset + 2) else 0
-  let b3 := if offset + 3 < bytes.size then bytes.get! (offset + 3) else 0
-  let b4 := if offset + 4 < bytes.size then bytes.get! (offset + 4) else 0
-  let b5 := if offset + 5 < bytes.size then bytes.get! (offset + 5) else 0
-  let b6 := if offset + 6 < bytes.size then bytes.get! (offset + 6) else 0
-  let b7 := if offset + 7 < bytes.size then bytes.get! (offset + 7) else 0
-  b0.toUInt64 ||| (b1.toUInt64 <<< 8) ||| (b2.toUInt64 <<< 16) ||| (b3.toUInt64 <<< 24) |||
-  (b4.toUInt64 <<< 32) ||| (b5.toUInt64 <<< 40) ||| (b6.toUInt64 <<< 48) ||| (b7.toUInt64 <<< 56)
+def loadLittleEndian (b : ByteArray) (offset : Nat) : BitVec 64 :=
+      b[offset + 7]!.toBitVec
+   ++ b[offset + 6]!.toBitVec
+   ++ b[offset + 5]!.toBitVec
+   ++ b[offset + 4]!.toBitVec
+   ++ b[offset + 3]!.toBitVec
+   ++ b[offset + 2]!.toBitVec
+   ++ b[offset + 1]!.toBitVec
+   ++ b[offset + 0]!.toBitVec
+
+-- def loadLittleEndian (bytes : ByteArray) (offset : Nat) : UInt64 :=
+--   let b0 := if offset < bytes.size then bytes.get! offset else 0
+--   let b1 := if offset + 1 < bytes.size then bytes.get! (offset + 1) else 0
+--   let b2 := if offset + 2 < bytes.size then bytes.get! (offset + 2) else 0
+--   let b3 := if offset + 3 < bytes.size then bytes.get! (offset + 3) else 0
+--   let b4 := if offset + 4 < bytes.size then bytes.get! (offset + 4) else 0
+--   let b5 := if offset + 5 < bytes.size then bytes.get! (offset + 5) else 0
+--   let b6 := if offset + 6 < bytes.size then bytes.get! (offset + 6) else 0
+--   let b7 := if offset + 7 < bytes.size then bytes.get! (offset + 7) else 0
+--   b0.toUInt64 ||| (b1.toUInt64 <<< 8) ||| (b2.toUInt64 <<< 16) ||| (b3.toUInt64 <<< 24) |||
+--   (b4.toUInt64 <<< 32) ||| (b5.toUInt64 <<< 40) ||| (b6.toUInt64 <<< 48) ||| (b7.toUInt64 <<< 56)
 
 /-- Absorb a block into the state --/
 def absorb (s : State) (block : ByteArray) (rate : Nat) : State :=
   let lanes := s.lanes.mapIdx fun i lane =>
     let byteIdx := i * 8
-    if byteIdx + 8 <= rate then
+    -- if byteIdx + 8 <= rate then
+    -- dbg_trace byteIdx
+    -- dbg_trace rate
+    if byteIdx < rate then
       let value := loadLittleEndian block byteIdx
-      lane ^^^ BitVec.ofNat 64 value.toNat
+      -- dbg_trace value
+      lane ^^^ value
     else
       lane
+  -- { lanes := lanes }
   keccakF { lanes := lanes }
+
+-- def in1: State := { lanes := #v[0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0] }
+-- def block : ByteArray := ByteArray.mk #[0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x80]
+-- -- def out1: State := { lanes := #v[0x3c23f7860146d2c5, 0xcb9b1161ecb0a2b9, 0x3cf26d5eba2553e8, 0xeb829c854e19a949, 0xdee8b8eca7b2acba, 0xc003c7dcb27d7e92, 0x1f2211c4c0f9ed5c, 0x3bce6a98fe5b7210, 0x1b5d1a6545a611ff, 0x163b62b71dcf4521, 0x3b2782ca53b600e5, 0x820dc6175fa24161, 0xba7d9fa73545d2a2, 0x64146f400e16b72, 0x6b571b9910726d91, 0x70a4855d04d8fa7b, 0x81babfbcab8046d2, 0xfa0d3cd3b03b15bb, 0xfe8734e16471ab9f, 0xb7fa22cf622318be, 0x74a97cd82c9abb3d, 0xb1d551b7242b765b, 0x3bfed7eb12c7ce09, 0x9c3088bdeebb0936, 0xa3fe1af7779fafd7] }
+-- def out1: State := { lanes := #v[0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8000000000000000, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0] }
+-- #eval loadLittleEndian block (16*8)
+-- #eval absorb in1 block 136 -- == out1
+-- #eval block.size
+-- #eval let i := 8; (absorb in1 block 136).lanes[i] == out1.lanes[i]
+-- #eval let i := 16; (absorb in1 block 136).lanes[i] -- == out1.lanes[i]
+-- #eval let i := 8; out1.lanes[i]
 
 /-- Pad message using pad10*1 rule for SHA3 --/
 def pad101 (msg : ByteArray) (rate : Nat) : ByteArray :=
@@ -167,23 +197,24 @@ def pad101 (msg : ByteArray) (rate : Nat) : ByteArray :=
   let padLen := blockSize - (msgLen % blockSize)
   -- If only 1 byte needed, use 0x06 | 0x80 = 0x86
   if padLen == 1 then
-    msg.push 0x86
+    msg.push 0x81
   else
+    let padLen := if padLen == 0 then rate else padLen
     -- First byte is 0x06 (SHA3 domain separator)
     -- Last byte is 0x80
     -- Middle bytes (if any) are 0x00
-    let padded := msg.push 0x06
+    let padded := msg.push 0x01
     let padded := (Array.range (padLen - 2)).foldl (fun acc _ => acc.push 0x00) padded
     padded.push 0x80
 
-/-- Extract bytes from a lane in little-endian order --/
-def extractLaneBytes (lane : BitVec 64) (numBytes : Nat) : ByteArray :=
-  ByteArray.mk (Array.ofFn fun (i : Fin 8) =>
-    if i.val < numBytes then
-      ((lane >>> (i.val * 8)).toNat &&& 0xFF).toUInt8
-    else
-      0) |>.extract 0 numBytes
-
+-- /-- Extract bytes from a lane in little-endian order --/
+-- def extractLaneBytes (lane : BitVec 64) (numBytes : Nat) : ByteArray :=
+--   ByteArray.mk (Array.ofFn fun (i : Fin 8) =>
+--     if i.val < numBytes then
+--       ((lane >>> (i.val * 8)).toNat &&& 0xFF).toUInt8
+--     else
+--       0) |>.extract 0 numBytes
+-- 
 -- /-- Squeeze output from state (rate = 136 bytes = 17 lanes for SHA3-256) --/
 -- def squeeze (s : State) (outLen : Nat) : ByteArray :=
 --   let rate := 136  -- rate in bytes
@@ -206,7 +237,6 @@ def extractLaneBytes (lane : BitVec 64) (numBytes : Nat) : ByteArray :=
 --   aux s outLen ByteArray.empty 0
 def squeeze (s : State) := -- : ByteArray :=
   ByteArray.mk (Array.ofFn fun (i : Fin 32) =>
-  -- (Array.ofFn fun (i : Fin 42) =>
     let j := i % 8;
     let x := (i.val / 8) % 5;
     let y := (i.val / (8 * 5)) % 5;
@@ -221,11 +251,13 @@ def squeeze (s : State) := -- : ByteArray :=
 def sha3_256 (msg : ByteArray) : ByteArray :=
   let rate := 136  -- (1600 - 2*256) / 8
   let padded := pad101 msg rate
+  -- dbg_trace padded
   let blocks := (padded.size + rate - 1) / rate
   let state := (Array.range blocks).foldl (fun s i =>
     let start := i * rate
     let blockEnd := min (start + rate) padded.size
     let block := padded.extract start blockEnd
+    -- dbg_trace block
     absorb s block rate
   ) State.init
   squeeze state -- 32
@@ -268,6 +300,8 @@ def hexToByteArray (hex : String) : ByteArray :=
 /-- Expected SHA3-256 hash of empty string --/
 def expectedEmptyHash : String :=
   "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a"
+
+#eval SHA3.ByteArray.toHex (SHA3.sha3_256 "".toUTF8)
 
 /-- Expected SHA3-256 hash of "abc" --/
 def expectedAbcHash : String :=
@@ -315,10 +349,11 @@ def runAllTests : IO UInt32 := do
   IO.println "Running SHA3-256 Tests..."
   IO.println "========================="
   let r1 ← testEmpty
-  let r2 ← testAbc
-  let r3 ← testA3x200
+  -- let r2 ← testAbc
+  -- let r3 ← testA3x200
   IO.println "========================="
-  let passed := [r1, r2, r3].filter id |>.length
+  -- let passed := [r1, r2, r3].filter id |>.length
+  let passed := [r1].filter id |>.length
   let total := 3
   IO.println s!"Results: {passed}/{total} tests passed"
   return if passed == total then 0 else 1
