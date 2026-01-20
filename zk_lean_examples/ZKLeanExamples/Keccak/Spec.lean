@@ -49,26 +49,43 @@ def theta (s : State) : State :=
     s.get ⟨x, by omega⟩ ⟨y, by omega⟩ ^^^ d[y]
   { lanes := lanes }
 
-def in1: State := { lanes := #v[0xb776c454221536a0, 0x76626ac752f6f6aa, 0xa0b01b1261ab6a01, 0xd3881a5ca182984d, 0xcefb15ec5f89b0ad, 0x2cc562aab665c6ac, 0x4e6fb95a23376335, 0xae3d547551959057, 0xbd5f1e80592136c8, 0xda47883fe04394bd, 0x96854ec3f757a478, 0x6dd890fa0ac6380b, 0x16e9bf1d538d80d, 0x9b8a935ba0ddf5b0, 0x668c64884a0ec53f, 0xbaf0e8c55c739718, 0xe63e22ac7de0af2a, 0x2167900ea6e5a7be, 0x242c1ecef1782e23, 0xa8511c9cfc53e49b, 0x8263456ba091515a, 0x9ecfc93f76589eec, 0x7a406941f60cf465, 0xf105204297c34be6, 0xf48efcf3a69e3a4e] }
+-- def in1: State := { lanes := #v[0xb776c454221536a0, 0x76626ac752f6f6aa, 0xa0b01b1261ab6a01, 0xd3881a5ca182984d, 0xcefb15ec5f89b0ad, 0x2cc562aab665c6ac, 0x4e6fb95a23376335, 0xae3d547551959057, 0xbd5f1e80592136c8, 0xda47883fe04394bd, 0x96854ec3f757a478, 0x6dd890fa0ac6380b, 0x16e9bf1d538d80d, 0x9b8a935ba0ddf5b0, 0x668c64884a0ec53f, 0xbaf0e8c55c739718, 0xe63e22ac7de0af2a, 0x2167900ea6e5a7be, 0x242c1ecef1782e23, 0xa8511c9cfc53e49b, 0x8263456ba091515a, 0x9ecfc93f76589eec, 0x7a406941f60cf465, 0xf105204297c34be6, 0xf48efcf3a69e3a4e] }
 -- def out1: State := { lanes := #v[0x830fcf84c8c653ac, 0x421b6117b82593a6, 0x94c910c28b780f0d, 0xe7f1118c4b51fd41, 0xfa821e3cb55ad5a1, 0x5e79bcacddd2ada5, 0x3cd3675c4880083c, 0xdc818a733a22fb5e, 0xcfe3c08632965dc1, 0xa8fb56398bf4ffb4, 0xdea2e7929e4899aa, 0x25ff39ab63d905d9, 0x494932a0bc27e5df, 0xd3ad3a0ac9c2c862, 0x2eabcdd92311f8ed, 0x7b0b2996bd39771f, 0x27c5e3ff9caa4f2d, 0xe09c515d47af47b9, 0xe5d7df9d1032ce24, 0x69aaddcf1d19049c, 0x8a18693df44b01b8, 0x96b4e5692282ce0e, 0x723b4517a2d6a487, 0xf97e0c14c3191b04, 0xfcf5d0a5f2446aac] }
 -- #eval theta in1 == out1
 
-/-- Rho step --/
-def rho (s : State) : State :=
-  let lanes := Vector.ofFn fun (i : Fin 25) =>
-    (s.lanes[i]!).rotateLeft (rotationOffsets[i]!)
+def rho_pi (s : State) : State :=
+  let lanes := #v[
+    s.lanes[0].rotateLeft 0,
+    s.lanes[15].rotateLeft 28,
+    s.lanes[5].rotateLeft 1,
+    s.lanes[20].rotateLeft 27,
+    s.lanes[10].rotateLeft 62,
+    s.lanes[6].rotateLeft 44,
+    s.lanes[21].rotateLeft 20,
+    s.lanes[11].rotateLeft 6,
+    s.lanes[1].rotateLeft 36,
+    s.lanes[16].rotateLeft 55,
+    s.lanes[12].rotateLeft 43,
+    s.lanes[2].rotateLeft 3,
+    s.lanes[17].rotateLeft 25,
+    s.lanes[7].rotateLeft 10,
+    s.lanes[22].rotateLeft 39,
+    s.lanes[18].rotateLeft 21,
+    s.lanes[8].rotateLeft 45,
+    s.lanes[23].rotateLeft 8,
+    s.lanes[13].rotateLeft 15,
+    s.lanes[3].rotateLeft 41,
+    s.lanes[24].rotateLeft 14,
+    s.lanes[14].rotateLeft 61,
+    s.lanes[4].rotateLeft 18,
+    s.lanes[19].rotateLeft 56,
+    s.lanes[9].rotateLeft 2,
+  ]
   { lanes := lanes }
 
-/-- Pi step: A'[x, y] = A[(x + 3y) mod 5, x] --/
-def pi (s : State) : State :=
-  let lanes := Vector.ofFn fun (i : Fin 25) =>
-    let x := i.val % 5
-    let y := i.val / 5
-    -- Source coordinates: srcX = (x + 3*y) mod 5, srcY = x
-    let srcX := (x + 3 * y) % 5
-    let srcY := x
-    s.lanes[srcY * 5 + srcX]!
-  { lanes := lanes }
+-- def in1: State := { lanes := #v[0x830fcf84c8c653ac, 0x421b6117b82593a6, 0x94c910c28b780f0d, 0xe7f1118c4b51fd41, 0xfa821e3cb55ad5a1, 0x5e79bcacddd2ada5, 0x3cd3675c4880083c, 0xdc818a733a22fb5e, 0xcfe3c08632965dc1, 0xa8fb56398bf4ffb4, 0xdea2e7929e4899aa, 0x25ff39ab63d905d9, 0x494932a0bc27e5df, 0xd3ad3a0ac9c2c862, 0x2eabcdd92311f8ed, 0x7b0b2996bd39771f, 0x27c5e3ff9caa4f2d, 0xe09c515d47af47b9, 0xe5d7df9d1032ce24, 0x69aaddcf1d19049c, 0x8a18693df44b01b8, 0x96b4e5692282ce0e, 0x723b4517a2d6a487, 0xf97e0c14c3191b04, 0xfcf5d0a5f2446aac] }
+-- def out1: State := { lanes := #v[0x830fcf84c8c653ac, 0x6bd39771f7b0b299, 0xbcf37959bba55b4a, 0xefa2580dc450c349, 0xb7a8b9e4a792266a, 0x83c3cd3675c488, 0x5692282ce0e96b4e, 0x7fce6ad8f6417649, 0x82593a6421b6117b, 0x9693e2f1ffce5527, 0x3f2efa4a499505e1, 0xa64886145bc0786c, 0xba8f5e8f73c138a2, 0x629cce88bed7b72, 0x6b5243b91da28bd1, 0xf3a20659c49cbafb, 0xcbb839fc7810c652, 0x7e0c14c3191b04f9, 0x9d0564e1643169d6, 0xa3fa83cfe2231896, 0x74297c911aab3f3d, 0xa5d579bb24623f1d, 0x78f2d56b5687ea08, 0x9c69aaddcf1d1904, 0xa3ed58e62fd3fed2] }
+-- #eval rho_pi in1 == out1
 
 /-- Chi step --/
 def chi (s : State) : State :=
@@ -88,7 +105,7 @@ def iota (s : State) (round : Fin 24) : State :=
 
 /-- Single round of Keccak-f[1600] --/
 def keccakRound (s : State) (round : Fin 24) : State :=
-  s |> theta |> rho |> pi |> chi |> (iota · round)
+  s |> theta |> rho_pi |> chi |> (iota · round)
 
 /-- Full Keccak-f[1600] permutation (24 rounds) --/
 def keccakF (s : State) : State :=
