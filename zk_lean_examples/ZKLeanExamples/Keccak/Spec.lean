@@ -89,14 +89,38 @@ def rho_pi (s : State) : State :=
 
 /-- Chi step --/
 def chi (s : State) : State :=
-  let lanes := Vector.ofFn fun (i : Fin 25) =>
-    let x := i.val % 5
-    let y := i.val / 5
-    let lane := s.get ⟨x, by omega⟩ ⟨y, by omega⟩
-    let next := s.get ⟨(x + 1) % 5, by omega⟩ ⟨y, by omega⟩
-    let next2 := s.get ⟨(x + 2) % 5, by omega⟩ ⟨y, by omega⟩
-    lane ^^^ ((~~~next) &&& next2)
+  let lanes := #v[
+    s.lanes[0] ^^^ ((~~~s.lanes[5]) &&& s.lanes[10]),
+    s.lanes[1] ^^^ ((~~~s.lanes[6]) &&& s.lanes[11]),
+    s.lanes[2] ^^^ ((~~~s.lanes[7]) &&& s.lanes[12]),
+    s.lanes[3] ^^^ ((~~~s.lanes[8]) &&& s.lanes[13]),
+    s.lanes[4] ^^^ ((~~~s.lanes[9]) &&& s.lanes[14]),
+    s.lanes[5] ^^^ ((~~~s.lanes[10]) &&& s.lanes[15]),
+    s.lanes[6] ^^^ ((~~~s.lanes[11]) &&& s.lanes[16]),
+    s.lanes[7] ^^^ ((~~~s.lanes[12]) &&& s.lanes[17]),
+    s.lanes[8] ^^^ ((~~~s.lanes[13]) &&& s.lanes[18]),
+    s.lanes[9] ^^^ ((~~~s.lanes[14]) &&& s.lanes[19]),
+    s.lanes[10] ^^^ ((~~~s.lanes[15]) &&& s.lanes[20]),
+    s.lanes[11] ^^^ ((~~~s.lanes[16]) &&& s.lanes[21]),
+    s.lanes[12] ^^^ ((~~~s.lanes[17]) &&& s.lanes[22]),
+    s.lanes[13] ^^^ ((~~~s.lanes[18]) &&& s.lanes[23]),
+    s.lanes[14] ^^^ ((~~~s.lanes[19]) &&& s.lanes[24]),
+    s.lanes[15] ^^^ ((~~~s.lanes[20]) &&& s.lanes[0]),
+    s.lanes[16] ^^^ ((~~~s.lanes[21]) &&& s.lanes[1]),
+    s.lanes[17] ^^^ ((~~~s.lanes[22]) &&& s.lanes[2]),
+    s.lanes[18] ^^^ ((~~~s.lanes[23]) &&& s.lanes[3]),
+    s.lanes[19] ^^^ ((~~~s.lanes[24]) &&& s.lanes[4]),
+    s.lanes[20] ^^^ ((~~~s.lanes[0]) &&& s.lanes[5]),
+    s.lanes[21] ^^^ ((~~~s.lanes[1]) &&& s.lanes[6]),
+    s.lanes[22] ^^^ ((~~~s.lanes[2]) &&& s.lanes[7]),
+    s.lanes[23] ^^^ ((~~~s.lanes[3]) &&& s.lanes[8]),
+    s.lanes[24] ^^^ ((~~~s.lanes[4]) &&& s.lanes[9]),
+  ]
   { lanes := lanes }
+
+-- def in1: State := { lanes := #v[0x830fcf84c8c653ac, 0x6bd39771f7b0b299, 0xbcf37959bba55b4a, 0xefa2580dc450c349, 0xb7a8b9e4a792266a, 0x83c3cd3675c488, 0x5692282ce0e96b4e, 0x7fce6ad8f6417649, 0x82593a6421b6117b, 0x9693e2f1ffce5527, 0x3f2efa4a499505e1, 0xa64886145bc0786c, 0xba8f5e8f73c138a2, 0x629cce88bed7b72, 0x6b5243b91da28bd1, 0xf3a20659c49cbafb, 0xcbb839fc7810c652, 0x7e0c14c3191b04f9, 0x9d0564e1643169d6, 0xa3fa83cfe2231896, 0x74297c911aab3f3d, 0xa5d579bb24623f1d, 0x78f2d56b5687ea08, 0x9c69aaddcf1d1904, 0xa3ed58e62fd3fed2] }
+-- def out1: State := { lanes := #v[0xbc23f786814652cd, 0xcb9b1161ecb0a2b9, 0x3cf26d5eba2553e8, 0xeb829c854e19a949, 0xdee8b8eca7b2acba, 0xc003c7dcb27d7e92, 0x1f2211c4c0f9ed5c, 0x3bce6a98fe5b7210, 0x1b5d1a6545a611ff, 0x163b62b71dcf4521, 0x3b2782ca53b600e5, 0x820dc6175fa24161, 0xba7d9fa73545d2a2, 0x64146f400e16b72, 0x6b571b9910726d91, 0x70a4855d04d8fa7b, 0x81babfbcab8046d2, 0xfa0d3cd3b03b15bb, 0xfe8734e16471ab9f, 0xb7fa22cf622318be, 0x74a97cd82c9abb3d, 0xb1d551b7242b765b, 0x3bfed7eb12c7ce09, 0x9c3088bdeebb0936, 0xa3fe1af7779fafd7] }
+-- #eval chi in1 == out1
 
 /-- Iota step --/
 def iota (s : State) (round : Fin 24) : State :=
