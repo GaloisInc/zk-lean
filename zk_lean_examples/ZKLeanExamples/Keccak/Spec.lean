@@ -49,10 +49,6 @@ def theta (s : State) : State :=
     s.get ⟨x, by omega⟩ ⟨y, by omega⟩ ^^^ d[x]
   { lanes := lanes }
 
--- def in1: State := { lanes := #v[0xb776c454221536a0, 0x76626ac752f6f6aa, 0xa0b01b1261ab6a01, 0xd3881a5ca182984d, 0xcefb15ec5f89b0ad, 0x2cc562aab665c6ac, 0x4e6fb95a23376335, 0xae3d547551959057, 0xbd5f1e80592136c8, 0xda47883fe04394bd, 0x96854ec3f757a478, 0x6dd890fa0ac6380b, 0x16e9bf1d538d80d, 0x9b8a935ba0ddf5b0, 0x668c64884a0ec53f, 0xbaf0e8c55c739718, 0xe63e22ac7de0af2a, 0x2167900ea6e5a7be, 0x242c1ecef1782e23, 0xa8511c9cfc53e49b, 0x8263456ba091515a, 0x9ecfc93f76589eec, 0x7a406941f60cf465, 0xf105204297c34be6, 0xf48efcf3a69e3a4e] }
--- def out1: State := { lanes := #v[0x830fcf84c8c653ac, 0x421b6117b82593a6, 0x94c910c28b780f0d, 0xe7f1118c4b51fd41, 0xfa821e3cb55ad5a1, 0x5e79bcacddd2ada5, 0x3cd3675c4880083c, 0xdc818a733a22fb5e, 0xcfe3c08632965dc1, 0xa8fb56398bf4ffb4, 0xdea2e7929e4899aa, 0x25ff39ab63d905d9, 0x494932a0bc27e5df, 0xd3ad3a0ac9c2c862, 0x2eabcdd92311f8ed, 0x7b0b2996bd39771f, 0x27c5e3ff9caa4f2d, 0xe09c515d47af47b9, 0xe5d7df9d1032ce24, 0x69aaddcf1d19049c, 0x8a18693df44b01b8, 0x96b4e5692282ce0e, 0x723b4517a2d6a487, 0xf97e0c14c3191b04, 0xfcf5d0a5f2446aac] }
--- #eval theta in1 == out1
-
 def rho_pi (s : State) : State :=
   let lanes := #v[
     s.lanes[0].rotateLeft 0,
@@ -82,10 +78,6 @@ def rho_pi (s : State) : State :=
     s.lanes[21].rotateLeft 2
   ]
   { lanes := lanes }
-
--- def in1: State := { lanes := #v[0x830fcf84c8c653ac, 0x421b6117b82593a6, 0x94c910c28b780f0d, 0xe7f1118c4b51fd41, 0xfa821e3cb55ad5a1, 0x5e79bcacddd2ada5, 0x3cd3675c4880083c, 0xdc818a733a22fb5e, 0xcfe3c08632965dc1, 0xa8fb56398bf4ffb4, 0xdea2e7929e4899aa, 0x25ff39ab63d905d9, 0x494932a0bc27e5df, 0xd3ad3a0ac9c2c862, 0x2eabcdd92311f8ed, 0x7b0b2996bd39771f, 0x27c5e3ff9caa4f2d, 0xe09c515d47af47b9, 0xe5d7df9d1032ce24, 0x69aaddcf1d19049c, 0x8a18693df44b01b8, 0x96b4e5692282ce0e, 0x723b4517a2d6a487, 0xf97e0c14c3191b04, 0xfcf5d0a5f2446aac] }
--- def out1: State := { lanes := #v[0x830fcf84c8c653ac, 0x6bd39771f7b0b299, 0xbcf37959bba55b4a, 0xefa2580dc450c349, 0xb7a8b9e4a792266a, 0x83c3cd3675c488, 0x5692282ce0e96b4e, 0x7fce6ad8f6417649, 0x82593a6421b6117b, 0x9693e2f1ffce5527, 0x3f2efa4a499505e1, 0xa64886145bc0786c, 0xba8f5e8f73c138a2, 0x629cce88bed7b72, 0x6b5243b91da28bd1, 0xf3a20659c49cbafb, 0xcbb839fc7810c652, 0x7e0c14c3191b04f9, 0x9d0564e1643169d6, 0xa3fa83cfe2231896, 0x74297c911aab3f3d, 0xa5d579bb24623f1d, 0x78f2d56b5687ea08, 0x9c69aaddcf1d1904, 0xa3ed58e62fd3fed2] }
--- #eval rho_pi in1 == out1
 
 /-- Chi step --/
 def chi (s : State) : State :=
@@ -118,10 +110,6 @@ def chi (s : State) : State :=
   ]
   { lanes := lanes }
 
--- def in1: State := { lanes := #v[0x830fcf84c8c653ac, 0x6bd39771f7b0b299, 0xbcf37959bba55b4a, 0xefa2580dc450c349, 0xb7a8b9e4a792266a, 0x83c3cd3675c488, 0x5692282ce0e96b4e, 0x7fce6ad8f6417649, 0x82593a6421b6117b, 0x9693e2f1ffce5527, 0x3f2efa4a499505e1, 0xa64886145bc0786c, 0xba8f5e8f73c138a2, 0x629cce88bed7b72, 0x6b5243b91da28bd1, 0xf3a20659c49cbafb, 0xcbb839fc7810c652, 0x7e0c14c3191b04f9, 0x9d0564e1643169d6, 0xa3fa83cfe2231896, 0x74297c911aab3f3d, 0xa5d579bb24623f1d, 0x78f2d56b5687ea08, 0x9c69aaddcf1d1904, 0xa3ed58e62fd3fed2] }
--- def out1: State := { lanes := #v[0xbc23f786814652cd, 0xcb9b1161ecb0a2b9, 0x3cf26d5eba2553e8, 0xeb829c854e19a949, 0xdee8b8eca7b2acba, 0xc003c7dcb27d7e92, 0x1f2211c4c0f9ed5c, 0x3bce6a98fe5b7210, 0x1b5d1a6545a611ff, 0x163b62b71dcf4521, 0x3b2782ca53b600e5, 0x820dc6175fa24161, 0xba7d9fa73545d2a2, 0x64146f400e16b72, 0x6b571b9910726d91, 0x70a4855d04d8fa7b, 0x81babfbcab8046d2, 0xfa0d3cd3b03b15bb, 0xfe8734e16471ab9f, 0xb7fa22cf622318be, 0x74a97cd82c9abb3d, 0xb1d551b7242b765b, 0x3bfed7eb12c7ce09, 0x9c3088bdeebb0936, 0xa3fe1af7779fafd7] }
--- #eval chi in1 == out1
-
 /-- Iota step --/
 def iota (s : State) (round : Fin 24) : State :=
   let lane0 := s.get 0 0 ^^^ roundConstants[round.val]
@@ -135,10 +123,6 @@ def keccakRound (s : State) (round : Fin 24) : State :=
 def keccakF (s : State) : State :=
   (Array.finRange 24).foldl (fun acc i => keccakRound acc i) s
 
--- def in1: State := { lanes := #v[0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8000000000000000, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0] }
--- def out1: State := { lanes := #v[0x3c23f7860146d2c5, 0xcb9b1161ecb0a2b9, 0x3cf26d5eba2553e8, 0xeb829c854e19a949, 0xdee8b8eca7b2acba, 0xc003c7dcb27d7e92, 0x1f2211c4c0f9ed5c, 0x3bce6a98fe5b7210, 0x1b5d1a6545a611ff, 0x163b62b71dcf4521, 0x3b2782ca53b600e5, 0x820dc6175fa24161, 0xba7d9fa73545d2a2, 0x64146f400e16b72, 0x6b571b9910726d91, 0x70a4855d04d8fa7b, 0x81babfbcab8046d2, 0xfa0d3cd3b03b15bb, 0xfe8734e16471ab9f, 0xb7fa22cf622318be, 0x74a97cd82c9abb3d, 0xb1d551b7242b765b, 0x3bfed7eb12c7ce09, 0x9c3088bdeebb0936, 0xa3fe1af7779fafd7] }
--- #eval keccakF in1 == out1
-
 /-- Load 8 bytes in little-endian order into a UInt64 --/
 def loadLittleEndian (b : ByteArray) (offset : Nat) : BitVec 64 :=
       b[offset + 7]!.toBitVec
@@ -150,44 +134,17 @@ def loadLittleEndian (b : ByteArray) (offset : Nat) : BitVec 64 :=
    ++ b[offset + 1]!.toBitVec
    ++ b[offset + 0]!.toBitVec
 
--- def loadLittleEndian (bytes : ByteArray) (offset : Nat) : UInt64 :=
---   let b0 := if offset < bytes.size then bytes.get! offset else 0
---   let b1 := if offset + 1 < bytes.size then bytes.get! (offset + 1) else 0
---   let b2 := if offset + 2 < bytes.size then bytes.get! (offset + 2) else 0
---   let b3 := if offset + 3 < bytes.size then bytes.get! (offset + 3) else 0
---   let b4 := if offset + 4 < bytes.size then bytes.get! (offset + 4) else 0
---   let b5 := if offset + 5 < bytes.size then bytes.get! (offset + 5) else 0
---   let b6 := if offset + 6 < bytes.size then bytes.get! (offset + 6) else 0
---   let b7 := if offset + 7 < bytes.size then bytes.get! (offset + 7) else 0
---   b0.toUInt64 ||| (b1.toUInt64 <<< 8) ||| (b2.toUInt64 <<< 16) ||| (b3.toUInt64 <<< 24) |||
---   (b4.toUInt64 <<< 32) ||| (b5.toUInt64 <<< 40) ||| (b6.toUInt64 <<< 48) ||| (b7.toUInt64 <<< 56)
-
 /-- Absorb a block into the state --/
 def absorb (s : State) (block : ByteArray) (rate : Nat) : State :=
   let lanes := s.lanes.mapIdx fun i lane =>
     let byteIdx := i * 8
     -- if byteIdx + 8 <= rate then
-    -- dbg_trace byteIdx
-    -- dbg_trace rate
     if byteIdx < rate then
       let value := loadLittleEndian block byteIdx
-      -- dbg_trace value
       lane ^^^ value
     else
       lane
-  -- { lanes := lanes }
   keccakF { lanes := lanes }
-
--- def in1: State := { lanes := #v[0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0] }
--- def block : ByteArray := ByteArray.mk #[0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x80]
--- -- def out1: State := { lanes := #v[0x3c23f7860146d2c5, 0xcb9b1161ecb0a2b9, 0x3cf26d5eba2553e8, 0xeb829c854e19a949, 0xdee8b8eca7b2acba, 0xc003c7dcb27d7e92, 0x1f2211c4c0f9ed5c, 0x3bce6a98fe5b7210, 0x1b5d1a6545a611ff, 0x163b62b71dcf4521, 0x3b2782ca53b600e5, 0x820dc6175fa24161, 0xba7d9fa73545d2a2, 0x64146f400e16b72, 0x6b571b9910726d91, 0x70a4855d04d8fa7b, 0x81babfbcab8046d2, 0xfa0d3cd3b03b15bb, 0xfe8734e16471ab9f, 0xb7fa22cf622318be, 0x74a97cd82c9abb3d, 0xb1d551b7242b765b, 0x3bfed7eb12c7ce09, 0x9c3088bdeebb0936, 0xa3fe1af7779fafd7] }
--- def out1: State := { lanes := #v[0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8000000000000000, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0] }
--- #eval loadLittleEndian block (16*8)
--- #eval absorb in1 block 136 -- == out1
--- #eval block.size
--- #eval let i := 8; (absorb in1 block 136).lanes[i] == out1.lanes[i]
--- #eval let i := 16; (absorb in1 block 136).lanes[i] -- == out1.lanes[i]
--- #eval let i := 8; out1.lanes[i]
 
 /-- Pad message using pad10*1 rule for SHA3 --/
 def pad101 (msg : ByteArray) (rate : Nat) : ByteArray :=
@@ -207,34 +164,6 @@ def pad101 (msg : ByteArray) (rate : Nat) : ByteArray :=
     let padded := (Array.range (padLen - 2)).foldl (fun acc _ => acc.push 0x00) padded
     padded.push 0x80
 
--- /-- Extract bytes from a lane in little-endian order --/
--- def extractLaneBytes (lane : BitVec 64) (numBytes : Nat) : ByteArray :=
---   ByteArray.mk (Array.ofFn fun (i : Fin 8) =>
---     if i.val < numBytes then
---       ((lane >>> (i.val * 8)).toNat &&& 0xFF).toUInt8
---     else
---       0) |>.extract 0 numBytes
--- 
--- /-- Squeeze output from state (rate = 136 bytes = 17 lanes for SHA3-256) --/
--- def squeeze (s : State) (outLen : Nat) : ByteArray :=
---   let rate := 136  -- rate in bytes
---   let rateLanes := rate / 8  -- 17 lanes
---   let rec aux (st : State) (remaining : Nat) (acc : ByteArray) (laneIdx : Nat) : ByteArray :=
---     if remaining == 0 then acc
---     else if laneIdx >= rateLanes then
---       -- Need more bytes but exhausted rate, apply keccakF and restart from lane 0
---       aux (keccakF st) remaining acc 0
---     else
---       let bytesToExtract := min remaining 8
---       -- Lanes are stored as y*5 + x, and we read them in order (0,0), (1,0), (2,0), ...
---       let x := laneIdx % 5
---       let y := laneIdx / 5
---       let lane := st.get ⟨x, by omega⟩ ⟨y, by omega⟩
---       let bytes := extractLaneBytes lane bytesToExtract
---       let acc' := acc ++ bytes
---       aux st (remaining - bytesToExtract) acc' (laneIdx + 1)
---   termination_by (remaining, rateLanes - laneIdx)
---   aux s outLen ByteArray.empty 0
 def squeeze (s : State) := -- : ByteArray :=
   ByteArray.mk (Array.ofFn fun (i : Fin 32) =>
     let j := i % 8;
@@ -244,20 +173,15 @@ def squeeze (s : State) := -- : ByteArray :=
     ((lane >>> (j.val * 8)).toNat &&& 0xFF).toUInt8
   )
 
--- #eval squeeze in1
-
-
 /-- SHA3-256 hash function --/
 def sha3_256 (msg : ByteArray) : ByteArray :=
   let rate := 136  -- (1600 - 2*256) / 8
   let padded := pad101 msg rate
-  -- dbg_trace padded
   let blocks := (padded.size + rate - 1) / rate
   let state := (Array.range blocks).foldl (fun s i =>
     let start := i * rate
     let blockEnd := min (start + rate) padded.size
     let block := padded.extract start blockEnd
-    -- dbg_trace block
     absorb s block rate
   ) State.init
   squeeze state -- 32
@@ -300,8 +224,6 @@ def hexToByteArray (hex : String) : ByteArray :=
 /-- Expected SHA3-256 hash of empty string --/
 def expectedEmptyHash : String :=
   "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a"
-
-#eval SHA3.ByteArray.toHex (SHA3.sha3_256 "".toUTF8)
 
 /-- Expected SHA3-256 hash of "abc" --/
 def expectedAbcHash : String :=
