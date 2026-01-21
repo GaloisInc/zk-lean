@@ -39,14 +39,14 @@ def State.set (s : State) (x y : Fin 5) (val : BitVec 64) : State :=
 
 /-- Theta step --/
 def theta (s : State) : State :=
-  let c := Vector.ofFn fun (y : Fin 5) =>
-    s.get 0 y ^^^ s.get 1 y ^^^ s.get 2 y ^^^ s.get 3 y ^^^ s.get 4 y
+  let c := Vector.ofFn fun (x : Fin 5) =>
+    s.get x 0 ^^^ s.get x 1 ^^^ s.get x 2 ^^^ s.get x 3 ^^^ s.get x 4
   let d := Vector.ofFn fun (x : Fin 5) =>
     c[(x.val + 4) % 5]! ^^^ (c[(x.val + 1) % 5]!).rotateLeft 1
   let lanes := Vector.ofFn fun (i : Fin 25) =>
     let x := i.val % 5
     let y := i.val / 5
-    s.get ⟨x, by omega⟩ ⟨y, by omega⟩ ^^^ d[y]
+    s.get ⟨x, by omega⟩ ⟨y, by omega⟩ ^^^ d[x]
   { lanes := lanes }
 
 -- def in1: State := { lanes := #v[0xb776c454221536a0, 0x76626ac752f6f6aa, 0xa0b01b1261ab6a01, 0xd3881a5ca182984d, 0xcefb15ec5f89b0ad, 0x2cc562aab665c6ac, 0x4e6fb95a23376335, 0xae3d547551959057, 0xbd5f1e80592136c8, 0xda47883fe04394bd, 0x96854ec3f757a478, 0x6dd890fa0ac6380b, 0x16e9bf1d538d80d, 0x9b8a935ba0ddf5b0, 0x668c64884a0ec53f, 0xbaf0e8c55c739718, 0xe63e22ac7de0af2a, 0x2167900ea6e5a7be, 0x242c1ecef1782e23, 0xa8511c9cfc53e49b, 0x8263456ba091515a, 0x9ecfc93f76589eec, 0x7a406941f60cf465, 0xf105204297c34be6, 0xf48efcf3a69e3a4e] }
@@ -56,30 +56,30 @@ def theta (s : State) : State :=
 def rho_pi (s : State) : State :=
   let lanes := #v[
     s.lanes[0].rotateLeft 0,
-    s.lanes[15].rotateLeft 28,
-    s.lanes[5].rotateLeft 1,
-    s.lanes[20].rotateLeft 27,
-    s.lanes[10].rotateLeft 62,
     s.lanes[6].rotateLeft 44,
-    s.lanes[21].rotateLeft 20,
-    s.lanes[11].rotateLeft 6,
-    s.lanes[1].rotateLeft 36,
-    s.lanes[16].rotateLeft 55,
     s.lanes[12].rotateLeft 43,
-    s.lanes[2].rotateLeft 3,
-    s.lanes[17].rotateLeft 25,
-    s.lanes[7].rotateLeft 10,
-    s.lanes[22].rotateLeft 39,
     s.lanes[18].rotateLeft 21,
-    s.lanes[8].rotateLeft 45,
-    s.lanes[23].rotateLeft 8,
-    s.lanes[13].rotateLeft 15,
-    s.lanes[3].rotateLeft 41,
     s.lanes[24].rotateLeft 14,
-    s.lanes[14].rotateLeft 61,
-    s.lanes[4].rotateLeft 18,
-    s.lanes[19].rotateLeft 56,
-    s.lanes[9].rotateLeft 2,
+    s.lanes[3].rotateLeft 28,
+    s.lanes[9].rotateLeft 20,
+    s.lanes[10].rotateLeft 3,
+    s.lanes[16].rotateLeft 45,
+    s.lanes[22].rotateLeft 61,
+    s.lanes[1].rotateLeft 1,
+    s.lanes[7].rotateLeft 6,
+    s.lanes[13].rotateLeft 25,
+    s.lanes[19].rotateLeft 8,
+    s.lanes[20].rotateLeft 18,
+    s.lanes[4].rotateLeft 27,
+    s.lanes[5].rotateLeft 36,
+    s.lanes[11].rotateLeft 10,
+    s.lanes[17].rotateLeft 15,
+    s.lanes[23].rotateLeft 56,
+    s.lanes[2].rotateLeft 62,
+    s.lanes[8].rotateLeft 55,
+    s.lanes[14].rotateLeft 39,
+    s.lanes[15].rotateLeft 41,
+    s.lanes[21].rotateLeft 2
   ]
   { lanes := lanes }
 
@@ -90,31 +90,31 @@ def rho_pi (s : State) : State :=
 /-- Chi step --/
 def chi (s : State) : State :=
   let lanes := #v[
-    s.lanes[0] ^^^ ((~~~s.lanes[5]) &&& s.lanes[10]),
-    s.lanes[1] ^^^ ((~~~s.lanes[6]) &&& s.lanes[11]),
-    s.lanes[2] ^^^ ((~~~s.lanes[7]) &&& s.lanes[12]),
-    s.lanes[3] ^^^ ((~~~s.lanes[8]) &&& s.lanes[13]),
-    s.lanes[4] ^^^ ((~~~s.lanes[9]) &&& s.lanes[14]),
-    s.lanes[5] ^^^ ((~~~s.lanes[10]) &&& s.lanes[15]),
-    s.lanes[6] ^^^ ((~~~s.lanes[11]) &&& s.lanes[16]),
-    s.lanes[7] ^^^ ((~~~s.lanes[12]) &&& s.lanes[17]),
-    s.lanes[8] ^^^ ((~~~s.lanes[13]) &&& s.lanes[18]),
-    s.lanes[9] ^^^ ((~~~s.lanes[14]) &&& s.lanes[19]),
-    s.lanes[10] ^^^ ((~~~s.lanes[15]) &&& s.lanes[20]),
-    s.lanes[11] ^^^ ((~~~s.lanes[16]) &&& s.lanes[21]),
-    s.lanes[12] ^^^ ((~~~s.lanes[17]) &&& s.lanes[22]),
-    s.lanes[13] ^^^ ((~~~s.lanes[18]) &&& s.lanes[23]),
-    s.lanes[14] ^^^ ((~~~s.lanes[19]) &&& s.lanes[24]),
-    s.lanes[15] ^^^ ((~~~s.lanes[20]) &&& s.lanes[0]),
-    s.lanes[16] ^^^ ((~~~s.lanes[21]) &&& s.lanes[1]),
-    s.lanes[17] ^^^ ((~~~s.lanes[22]) &&& s.lanes[2]),
-    s.lanes[18] ^^^ ((~~~s.lanes[23]) &&& s.lanes[3]),
-    s.lanes[19] ^^^ ((~~~s.lanes[24]) &&& s.lanes[4]),
-    s.lanes[20] ^^^ ((~~~s.lanes[0]) &&& s.lanes[5]),
-    s.lanes[21] ^^^ ((~~~s.lanes[1]) &&& s.lanes[6]),
-    s.lanes[22] ^^^ ((~~~s.lanes[2]) &&& s.lanes[7]),
-    s.lanes[23] ^^^ ((~~~s.lanes[3]) &&& s.lanes[8]),
-    s.lanes[24] ^^^ ((~~~s.lanes[4]) &&& s.lanes[9]),
+    s.lanes[0] ^^^ ((~~~s.lanes[1]) &&& s.lanes[2]),
+    s.lanes[1] ^^^ ((~~~s.lanes[2]) &&& s.lanes[3]),
+    s.lanes[2] ^^^ ((~~~s.lanes[3]) &&& s.lanes[4]),
+    s.lanes[3] ^^^ ((~~~s.lanes[4]) &&& s.lanes[0]),
+    s.lanes[4] ^^^ ((~~~s.lanes[0]) &&& s.lanes[1]),
+    s.lanes[5] ^^^ ((~~~s.lanes[6]) &&& s.lanes[7]),
+    s.lanes[6] ^^^ ((~~~s.lanes[7]) &&& s.lanes[8]),
+    s.lanes[7] ^^^ ((~~~s.lanes[8]) &&& s.lanes[9]),
+    s.lanes[8] ^^^ ((~~~s.lanes[9]) &&& s.lanes[5]),
+    s.lanes[9] ^^^ ((~~~s.lanes[5]) &&& s.lanes[6]),
+    s.lanes[10] ^^^ ((~~~s.lanes[11]) &&& s.lanes[12]),
+    s.lanes[11] ^^^ ((~~~s.lanes[12]) &&& s.lanes[13]),
+    s.lanes[12] ^^^ ((~~~s.lanes[13]) &&& s.lanes[14]),
+    s.lanes[13] ^^^ ((~~~s.lanes[14]) &&& s.lanes[10]),
+    s.lanes[14] ^^^ ((~~~s.lanes[10]) &&& s.lanes[11]),
+    s.lanes[15] ^^^ ((~~~s.lanes[16]) &&& s.lanes[17]),
+    s.lanes[16] ^^^ ((~~~s.lanes[17]) &&& s.lanes[18]),
+    s.lanes[17] ^^^ ((~~~s.lanes[18]) &&& s.lanes[19]),
+    s.lanes[18] ^^^ ((~~~s.lanes[19]) &&& s.lanes[15]),
+    s.lanes[19] ^^^ ((~~~s.lanes[15]) &&& s.lanes[16]),
+    s.lanes[20] ^^^ ((~~~s.lanes[21]) &&& s.lanes[22]),
+    s.lanes[21] ^^^ ((~~~s.lanes[22]) &&& s.lanes[23]),
+    s.lanes[22] ^^^ ((~~~s.lanes[23]) &&& s.lanes[24]),
+    s.lanes[23] ^^^ ((~~~s.lanes[24]) &&& s.lanes[20]),
+    s.lanes[24] ^^^ ((~~~s.lanes[20]) &&& s.lanes[21])
   ]
   { lanes := lanes }
 
@@ -197,13 +197,13 @@ def pad101 (msg : ByteArray) (rate : Nat) : ByteArray :=
   let padLen := blockSize - (msgLen % blockSize)
   -- If only 1 byte needed, use 0x06 | 0x80 = 0x86
   if padLen == 1 then
-    msg.push 0x81
+    msg.push 0x86
   else
     let padLen := if padLen == 0 then rate else padLen
     -- First byte is 0x06 (SHA3 domain separator)
     -- Last byte is 0x80
     -- Middle bytes (if any) are 0x00
-    let padded := msg.push 0x01
+    let padded := msg.push 0x06
     let padded := (Array.range (padLen - 2)).foldl (fun acc _ => acc.push 0x00) padded
     padded.push 0x80
 
@@ -335,7 +335,7 @@ def testAbc : IO Bool := do
 
 /-- Test SHA3-256 on 200 bytes of 0xa3 --/
 def testA3x200 : IO Bool := do
-  let msg := ByteArray.mk (Array.mkArray 200 0xa3)
+  let msg := ByteArray.mk (Array.replicate 200 0xa3)
   let hash := SHA3.sha3_256 msg
   let expected := hexToByteArray expectedA3x200Hash
   let result := hash == expected
@@ -349,20 +349,17 @@ def runAllTests : IO UInt32 := do
   IO.println "Running SHA3-256 Tests..."
   IO.println "========================="
   let r1 ← testEmpty
-  -- let r2 ← testAbc
-  -- let r3 ← testA3x200
+  let r2 ← testAbc
+  let r3 ← testA3x200
   IO.println "========================="
-  -- let passed := [r1, r2, r3].filter id |>.length
-  let passed := [r1].filter id |>.length
+  let passed := [r1, r2, r3].filter id |>.length
   let total := 3
   IO.println s!"Results: {passed}/{total} tests passed"
   return if passed == total then 0 else 1
 
 end SHA3.Tests
 
-/-- Example usage --/
-def main : IO UInt32 := SHA3.Tests.runAllTests
-
-#eval main
+-- Example usage
+#eval SHA3.Tests.runAllTests
 
 
