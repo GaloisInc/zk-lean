@@ -3,6 +3,7 @@ import Mathlib.Algebra.Field.Defs
 import Mathlib.Algebra.Field.ZMod
 import Mathlib.Data.Nat.Prime.Defs
 import Mathlib.Data.ZMod.Defs
+import ZKLean
 
 
 -- From ArkLib: BN254 scalar
@@ -20,4 +21,9 @@ instance : Field f := ZMod.instField scalarFieldSize
 
 -- State of keccak
 structure State where
-  lanes : Vector f 25
+  lanes : Vector (ZKExpr f) 25
+
+/-- Get lane at position (x, y) --/
+def State.get (s : State) (x y : Fin 5) : ZKExpr f :=
+  s.lanes[y.val * 5 + x.val]
+
