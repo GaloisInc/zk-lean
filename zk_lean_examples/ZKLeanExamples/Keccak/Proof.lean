@@ -23,14 +23,14 @@ def keccakRound.soundness (s0 : State) (round : Fin 24) :
   keccakRound s0 round
   ⦃ ⇓? s1 _e => ⌜eqState s1 (SHA3.keccakRound s0_bv round)⌝ ⦄
   := by
-  -- The proof relies on composing the soundness of theta, rho_pi, chi, and iota
-  -- keccakRound s0 round = theta s0 >>= rho_pi >>= chi >>= (iota · round)
-  -- SHA3.keccakRound s0_bv round = SHA3.iota (SHA3.chi (SHA3.rho_pi (SHA3.theta s0_bv))) round
-  --
-  -- When the component soundness proofs (theta.soundness, rho_pi.soundness,
-  -- chi.soundness, iota.soundness) are complete, this proof can be completed
-  -- by composing them using the bind rules for Hoare triples.
-  sorry
+  mintro h ∀e
+  simp_rw [keccakRound, bind_assoc, SHA3.keccakRound]
+  -- Goal: theta s0 >>= (λ s1 => rho_pi s1 >>= (λ s2 => chi s2 >>= (iota · round)))
+  -- Use mspec without Spec.bind - let it figure out the right decomposition
+  mspec (theta.soundness (s0_bv := s0_bv) s0)
+  mspec (rho_pi.soundness (s0_bv := SHA3.theta s0_bv) _)
+  mspec (chi.soundness (s0_bv := SHA3.rho_pi (SHA3.theta s0_bv)) _)
+  mspec (iota.soundness (s0_bv := SHA3.chi (SHA3.rho_pi (SHA3.theta s0_bv))) _ round)
 
 -- Soundness of keccakF: the circuit correctly computes the full Keccak-f[1600] permutation
 -- This is proved using Spec.foldlM_array with a loop invariant that tracks eqState
