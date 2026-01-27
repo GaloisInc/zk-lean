@@ -35,7 +35,7 @@ def State.get (s : State) (x y : Fin 5) : BitVec 64 :=
 
 /-- Set lane at position (x, y) --/
 def State.set (s : State) (x y : Fin 5) (val : BitVec 64) : State :=
-  { lanes := s.lanes.set! (y.val * 5 + x.val) val }
+  { lanes := s.lanes.set (y.val * 5 + x.val) val }
 
 /-- Theta step --/
 def theta (s : State) : State :=

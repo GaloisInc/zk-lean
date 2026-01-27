@@ -14,5 +14,5 @@ def roundConstants : Array (ZKExpr f) :=
 
 def iota (s : State) (round : Fin 24) : ZKBuilder f State := do
   let lane0 ← xor64 s.lanes[0] roundConstants[round.val]
-  pure { lanes := s.lanes.set! 0 lane0 }
+  pure { lanes := s.lanes.set 0 lane0 }
 
