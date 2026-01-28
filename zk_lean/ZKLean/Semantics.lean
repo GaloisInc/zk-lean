@@ -67,6 +67,10 @@ def ZKOpInterp [ZKField f] {β} (op : ZKOp f β) : StateT (ZKState f) Option β 
       let sum := Array.foldl (fun acc (flag, tbl) =>
         acc + flag.eval * (evalComposedLookupTable tbl chunks)) 0 cases
       pure (ZKExpr.Field sum)
+  | ZKOp.Mux cases =>
+      let sum := Array.foldl
+        (fun acc (flag, term) => acc + flag.eval * term.eval) 0 cases
+      pure (ZKExpr.Field sum)
   | ZKOp.RamNew n => do
       let st ← get
       let id := st.rams.size

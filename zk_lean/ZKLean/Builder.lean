@@ -31,6 +31,7 @@ inductive ZKOp (f : Type) : Type → Type
 | MuxLookup      (chunks : Vector (ZKExpr f) 4)
                  (cases  : Array (ZKExpr f × ComposedLookupTable f 16 4))
                                                      : ZKOp f (ZKExpr f)
+| Mux (cases : Array (ZKExpr f × ZKExpr f)) : ZKOp f (ZKExpr f)
 | RamNew         (size   : Nat)                       : ZKOp f (RAM f)
 | RamRead        (ram    : RAM f) (addr  : ZKExpr f)  : ZKOp f (ZKExpr f)
 | RamWrite       (ram    : RAM f) (addr v: ZKExpr f)  : ZKOp f PUnit
@@ -117,6 +118,25 @@ def muxLookup (chunks : Vector (ZKExpr f) 4)
               (cases  : Array (ZKExpr f × ComposedLookupTable f 16 4))
   : ZKBuilder f (ZKExpr f) :=
   FreeM.lift (ZKOp.MuxLookup chunks cases)
+
+/--
+Helper function to perform a general mux over field elements.
+We use zkLean to compute the product of every flag with the result of the lookup.
+All flags in `flags_and_lookups` should be 0 or 1 with only a single flag being set to 1.
+Example:
+```
+mux
+    #[
+      (addFlag, addInstructionEval),
+      (andFlag, andInstructionEval),
+      ...
+    ]
+```
+-/
+@[simp_ZKBuilder]
+def mux (cases : Array (ZKExpr f × ZKExpr f))
+  : ZKBuilder f (ZKExpr f) :=
+  FreeM.lift (ZKOp.Mux cases)
 
 /--
 Create a new oblivious RAM in circuit of the given size.
