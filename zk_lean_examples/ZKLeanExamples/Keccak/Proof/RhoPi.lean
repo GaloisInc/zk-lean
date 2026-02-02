@@ -25,10 +25,10 @@ def rho_pi.soundness (s0 : State) :
   := by
   mintro h ∀e
   unfold rho_pi
+  mpure h
 
   -- Lane 0: s0.lanes[0] rotateLeft 0
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[0]) (bv2 := 0) _ _)
-  rename_i h
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 0 h)
@@ -38,7 +38,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 1: s0.lanes[6] rotateLeft 44
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[6]) (bv2 := 44) _ _)
-  rename_i h _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 6 h)
@@ -48,7 +47,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 2: s0.lanes[12] rotateLeft 43
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[12]) (bv2 := 43) _ _)
-  rename_i h _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 12 h)
@@ -58,7 +56,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 3: s0.lanes[18] rotateLeft 21
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[18]) (bv2 := 21) _ _)
-  rename_i h _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 18 h)
@@ -68,7 +65,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 4: s0.lanes[24] rotateLeft 14
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[24]) (bv2 := 14) _ _)
-  rename_i h _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 24 h)
@@ -78,7 +74,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 5: s0.lanes[3] rotateLeft 28
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[3]) (bv2 := 28) _ _)
-  rename_i h _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 3 h)
@@ -88,7 +83,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 6: s0.lanes[9] rotateLeft 20
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[9]) (bv2 := 20) _ _)
-  rename_i h _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 9 h)
@@ -98,7 +92,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 7: s0.lanes[10] rotateLeft 3
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[10]) (bv2 := 3) _ _)
-  rename_i h _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 10 h)
@@ -108,7 +101,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 8: s0.lanes[16] rotateLeft 45
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[16]) (bv2 := 45) _ _)
-  rename_i h _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 16 h)
@@ -118,7 +110,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 9: s0.lanes[22] rotateLeft 61
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[22]) (bv2 := 61) _ _)
-  rename_i h _ _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 22 h)
@@ -128,7 +119,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 10: s0.lanes[1] rotateLeft 1
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[1]) (bv2 := 1) _ _)
-  rename_i h _ _ _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 1 h)
@@ -138,7 +128,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 11: s0.lanes[7] rotateLeft 6
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[7]) (bv2 := 6) _ _)
-  rename_i h _ _ _ _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 7 h)
@@ -148,7 +137,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 12: s0.lanes[13] rotateLeft 25
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[13]) (bv2 := 25) _ _)
-  rename_i h _ _ _ _ _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 13 h)
@@ -158,7 +146,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 13: s0.lanes[19] rotateLeft 8
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[19]) (bv2 := 8) _ _)
-  rename_i h _ _ _ _ _ _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 19 h)
@@ -168,7 +155,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 14: s0.lanes[20] rotateLeft 18
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[20]) (bv2 := 18) _ _)
-  rename_i h _ _ _ _ _ _ _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 20 h)
@@ -178,7 +164,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 15: s0.lanes[4] rotateLeft 27
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[4]) (bv2 := 27) _ _)
-  rename_i h _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 4 h)
@@ -188,7 +173,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 16: s0.lanes[5] rotateLeft 36
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[5]) (bv2 := 36) _ _)
-  rename_i h _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 5 h)
@@ -198,7 +182,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 17: s0.lanes[11] rotateLeft 10
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[11]) (bv2 := 10) _ _)
-  rename_i h _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 11 h)
@@ -208,7 +191,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 18: s0.lanes[17] rotateLeft 15
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[17]) (bv2 := 15) _ _)
-  rename_i h _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 17 h)
@@ -218,7 +200,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 19: s0.lanes[23] rotateLeft 56
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[23]) (bv2 := 56) _ _)
-  rename_i h _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 23 h)
@@ -228,7 +209,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 20: s0.lanes[2] rotateLeft 62
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[2]) (bv2 := 62) _ _)
-  rename_i h _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 2 h)
@@ -238,7 +218,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 21: s0.lanes[8] rotateLeft 55
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[8]) (bv2 := 55) _ _)
-  rename_i h _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 8 h)
@@ -248,7 +227,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 22: s0.lanes[14] rotateLeft 39
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[14]) (bv2 := 39) _ _)
-  rename_i h _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 14 h)
@@ -258,7 +236,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 23: s0.lanes[15] rotateLeft 41
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[15]) (bv2 := 41) _ _)
-  rename_i h _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 15 h)
@@ -268,7 +245,6 @@ def rho_pi.soundness (s0 : State) :
 
   -- Lane 24: s0.lanes[21] rotateLeft 2
   mspec (rotateLeft64.soundness (bv1 := s0_bv.lanes[21]) (bv2 := 2) _ _)
-  rename_i h _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
   simp
   constructor
   · apply (eqState_implies_lane_eq _ _ 21 h)
@@ -286,4 +262,3 @@ def rho_pi.soundness (s0 : State) :
   intro i hi
   simp only [Vector.getElem_zip, eqF]
   interval_cases i <;> assumption
-
