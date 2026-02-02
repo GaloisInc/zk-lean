@@ -1,11 +1,11 @@
 
+import BVModEq.Mappings
 import Mathlib.Algebra.Field.Defs
 import Mathlib.Algebra.Field.ZMod
 import Mathlib.Data.Nat.Prime.Defs
 import Mathlib.Data.ZMod.Defs
 import ZKLean
 import ZKLeanExamples.Keccak.Spec
-
 
 -- From ArkLib: BN254 scalar
 @[reducible]
@@ -44,6 +44,34 @@ def State.get (s : State) (x y : Fin 5) : ZKExpr f :=
 -- Check that a field element expression is equal to a bitvector.
 def eqF (felt : ZKExpr f) (bv : BitVec 64) : Bool :=
   felt.eval == (bv.toNat : f)
+
+lemma eqFIff : some bv = BVModEq.map_f_to_bv 64 felt ↔ eqF (ZKExpr.Field felt) bv := by
+  constructor
+
+  simp [BVModEq.map_f_to_bv, eqF, ZKExpr.eval]
+  intros h1 h2
+  rw [h2]
+  simp
+  rw [Nat.mod_eq_of_lt h1]
+  simp
+
+  simp [BVModEq.map_f_to_bv, eqF, ZKExpr.eval]
+  intros h1
+  rw [h1]
+  have h2 : bv.toNat < 18446744073709551616 := by
+    apply BitVec.isLt
+  have h3: bv.toNat < scalarFieldSize := by
+    apply (lt_trans h2)
+    decide
+  constructor
+  ·
+    simp
+    rw [Nat.mod_eq_of_lt h3]
+    assumption
+  ·
+    simp
+    rw [Nat.mod_eq_of_lt h3]
+    simp
 
 -- Check that a state of field elements is equal to a state of bitvectors.
 def eqState (s : State) (sBV : SHA3.State) : Bool :=
