@@ -54,10 +54,10 @@ def ZKOpInterp [ZKField f] {β} (op : ZKOp f β) : StateT (ZKState f) Option β 
       let chunks := args.map (λ e => ZKField.field_to_bits e.eval)
       let res := evalComposedLookupTable tbl chunks
       .pure (ZKExpr.Field res)
-  | ZKOp.LookupMLE tbl arg1 arg2 =>
+  | ZKOp.LookupMLE n tbl arg1 arg2 =>
       let res := evalLookupTableMLE tbl
-         (ZKField.field_to_bits (num_bits := 32) arg1.eval)
-         (ZKField.field_to_bits (num_bits := 32) arg2.eval)
+         (ZKField.field_to_bits (num_bits := n) arg1.eval)
+         (ZKField.field_to_bits (num_bits := n) arg2.eval)
       pure (ZKExpr.Field res)
   | ZKOp.LookupMaterialized table arg => do
       let res ← table[ZKField.field_to_nat arg.eval]?

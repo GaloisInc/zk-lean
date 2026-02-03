@@ -25,7 +25,7 @@ inductive ZKOp (f : Type) : Type → Type
 | ConstrainR1CS  (a b c  : ZKExpr f)   : ZKOp f PUnit
 | ComposedLookupMLE (tbl : ComposedLookupTable f 16 4)
                     (args : Vector (ZKExpr f) 4) : ZKOp f (ZKExpr f)
-| LookupMLE (lookupMLE: LookupTableMLE f 64)
+| LookupMLE (n : Nat) (lookupMLE: LookupTableMLE f (n + n))
             (arg1 arg2: ZKExpr f) : ZKOp f (ZKExpr f)
 | LookupMaterialized (table: Vector f n) (arg: ZKExpr f) : ZKOp f (ZKExpr f)
 | MuxLookup      (chunks : Vector (ZKExpr f) 4)
@@ -86,8 +86,8 @@ def lookup_mle_composed (tbl : ComposedLookupTable f 16 4)
 /--
 Perform a lookup into the given MLE table with the provided arguments.
 -/
-def lookup_mle (tbl : LookupTableMLE f 64) (e1 e2: ZKExpr f) : ZKBuilder f (ZKExpr f) :=
-  FreeM.lift (ZKOp.LookupMLE tbl e1 e2)
+def lookup_mle (tbl : LookupTableMLE f (n + n)) (e1 e2: ZKExpr f) : ZKBuilder f (ZKExpr f) :=
+  FreeM.lift (ZKOp.LookupMLE n tbl e1 e2)
 
 /--
 Perform a lookup in a given materialized table with the provided argument.
