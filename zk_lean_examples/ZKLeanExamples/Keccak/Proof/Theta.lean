@@ -26,47 +26,87 @@ compose correctly, then `Vector.ofFnM f` produces a vector where each element
 satisfies its corresponding property.
 -/
 
+-- Helper: getElem for cast-append-singleton pattern
+@[simp]
+theorem vector_cast_append_getElem_zero {α : Type} (a : α) (v : Vector α k) :
+    (Vector.cast (Nat.add_comm 1 k) (#v[a] ++ v))[(0 : Fin (k + 1))] = a := by
+  have h1 : (Vector.cast (Nat.add_comm 1 k) (#v[a] ++ v))[(0 : Fin (k + 1))] =
+            (#v[a] ++ v)[(0 : Nat)] := Vector.getElem_cast (by omega)
+  have h2 : (#v[a] ++ v)[(0 : Nat)] = #v[a][(0 : Nat)] := Vector.getElem_append_left (by omega)
+  have h3 : #v[a][(0 : Nat)] = a := Vector.getElem_singleton (by omega)
+  rw [h1, h2, h3]
+
+@[simp]
+theorem vector_cast_append_getElem_succ {α : Type} (a : α) (v : Vector α k) (i : Fin k) :
+    (Vector.cast (Nat.add_comm 1 k) (#v[a] ++ v))[(i.succ : Fin (k + 1))] = v[i] := by
+  have h1 : (Vector.cast (Nat.add_comm 1 k) (#v[a] ++ v))[(i.succ : Fin (k + 1))] =
+            (#v[a] ++ v)[(i.val + 1 : Nat)] := Vector.getElem_cast (by omega)
+  have h2 : (#v[a] ++ v)[(i.val + 1 : Nat)] = v[(i.val : Nat)] := by
+    rw [Vector.getElem_append_right (by omega) (by omega)]
+    simp only [Nat.add_sub_cancel]
+  -- v[↑i] = v[i] by Fin.getElem_fin (which is rfl)
+  rw [h1, h2, Fin.getElem_fin]
+
 namespace Std.Do
-
-/--
-Hoare triple specification for Vector.ofFnM.
-
-Given:
-- A monadic function `f : Fin n → m α` that builds each element
-- An element property `elemProp : Fin n → α → Prop` that each element should satisfy
-- A step proof showing that for each index i, running `f i` produces a result
-  satisfying `elemProp i`
-
-The spec concludes that `Vector.ofFnM f` produces a vector where each element
-at index i satisfies `elemProp i`.
--/
 @[spec]
-theorem Spec.Vector_ofFnM {n : Nat} {α : Type u}
-    [Monad m] [WPMonad m ps] [LawfulMonad m]
-    {f : Fin n → m α}
-    {elemProp : Fin n → α → Prop}
-    {P : Assertion ps}
-    {exceptConds : ExceptConds ps}
-    (step : ∀ i : Fin n,
-      Triple (f i) (spred(P)) (spred(fun a => ⌜elemProp i a⌝ ∧ P), exceptConds)) :
-    Triple
-      (Vector.ofFnM f)
-      (spred(P))
-      (spred(fun v => ⌜∀ i : Fin n, elemProp i v[i]⌝ ∧ P), exceptConds) := by
-  -- The proof uses induction on n with ofFnM_succ' decomposition.
-  -- Key steps:
-  -- 1. Base case (n=0): Vector.ofFnM_zero gives pure #v[], trivially satisfies postcondition
-  -- 2. Inductive case: Vector.ofFnM_succ' decomposes into f 0 >>= (ofFnM rest >>= pure)
-  --    - Apply step 0 to get elemProp 0 for first element
-  --    - Apply IH to get elemProp i.succ for remaining elements
-  --    - Frame the pure fact (elemProp 0 a) through the recursive call
-  --    - Combine in the final pure step using Vector cons indexing lemmas
-  --
-  -- The proof requires a frame lemma for pure facts through WP, which states:
-  -- If P ⊢ₛ wp[x] (Q, R), then ⌜φ⌝ ∧ P ⊢ₛ wp[x] (⌜φ⌝ ∧ Q, R)
-  -- This follows from the conjunctive property of wp.
-  sorry
-
+theorem Spec.Vector_ofFnM {n : Nat} {α : Type}
+  (inv : Prop)
+  (f : Fin n → ZKBuilder f α)
+  (postStep : Fin n → α → Prop)
+  (hStep : ∀ (i : Fin n),
+    ⦃ λ _e => ⌜inv⌝ ⦄
+    f i
+    ⦃ ⇓? s _e => ⌜postStep i s ∧ inv⌝ ⦄
+  ) :
+    ⦃ λ _e => ⌜inv⌝ ⦄
+    Vector.ofFnM fun (x : Fin n) => f x
+    ⦃ ⇓? v _e => ⌜inv ∧ ∀ (i : Fin n), postStep i v[i]⌝ ⦄
+  := by
+    induction n with
+    | zero =>
+      -- Base case: Vector.ofFnM f = pure #v[]
+      simp only [Vector.ofFnM_zero]
+      -- Use Triple.pure: need to show precond entails postcond applied to #v[]
+      apply Triple.pure
+      -- Goal: ⌜inv⌝ ⊢ₛ ⌜inv ∧ ∀ i : Fin 0, postStep i #v[][i]⌝
+      apply SPred.pure_elim' (fun h_inv => ?_)
+      apply SPred.pure_intro
+      exact ⟨h_inv, fun i => i.elim0⟩
+    | succ k ih =>
+      -- Inductive case: use ofFnM_succ'
+      rw [Vector.ofFnM_succ']
+      mintro h_inv ∀e
+      mpure h_inv
+      -- First: run f 0
+      mspec (hStep 0)
+      mrename_i h0
+      mpure h0
+      -- Second: run recursive ofFnM
+      have ih_inst := ih (f := fun i => f i.succ) (postStep := fun i => postStep i.succ)
+        (fun i => hStep i.succ)
+      mspec ih_inst
+      mrename_i h_rest
+      mpure h_rest
+      -- Final: pure step to construct result
+      mintro ∀e'
+      mpure_intro
+      obtain ⟨h_inv', h_all⟩ := h_rest
+      obtain ⟨h_post0, _⟩ := h0
+      constructor
+      · exact h_inv'
+      · intro i
+        -- The result vector is ((#v[first_elem] ++ rest_vec).cast ...)
+        -- For i=0, the element is first_elem which satisfies h_post0
+        -- For i>0, the element is rest_vec[i-1] which satisfies h_all
+        cases i using Fin.cases with
+        | zero =>
+          -- Use helper lemma for zero case
+          simp only [vector_cast_append_getElem_zero]
+          exact h_post0
+        | succ i' =>
+          -- Use helper lemma for succ case
+          simp only [vector_cast_append_getElem_succ]
+          exact h_all i'
 end Std.Do
 
 /-!
