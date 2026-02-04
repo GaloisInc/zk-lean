@@ -218,6 +218,116 @@ theorem lanes_body_soundness (s : State) (s_bv : SHA3.State)
   mspec (xor64.soundness (bv1 := s_bv.lanes[i]) (bv2 := d_bv.get ⟨i.val % 5, hx_lt⟩) _ _)
   simp; exact ⟨hs_lane, hd_elem⟩
 
+-- Step lemmas for Spec.Vector_ofFnM: with inv=True and postStep ∧ inv postcondition
+
+-- Step lemma for c computation
+-- Takes h_eq as explicit parameter since it's a pure fact from outer scope
+theorem c_step_soundness (s : State) (s_bv : SHA3.State) (x : Fin 5)
+    (h_eq : eqState s s_bv)
+    (cBV_fn : Fin 5 → BitVec 64)
+    (hcBV : ∀ x, cBV_fn x = s_bv.get x 0 ^^^ s_bv.get x 1 ^^^ s_bv.get x 2 ^^^ s_bv.get x 3 ^^^ s_bv.get x 4) :
+  ⦃ λ _e => ⌜True⌝ ⦄
+  (do xor64 (← xor64 (← xor64 (← xor64 (s.get x 0) (s.get x 1)) (s.get x 2)) (s.get x 3)) (s.get x 4))
+  ⦃ ⇓? o _e => ⌜eqF o (cBV_fn x) ∧ True⌝ ⦄ := by
+  mintro _ ∀e'
+  -- xor64 (s.get x 0) (s.get x 1)
+  mspec (xor64.soundness (bv1 := s_bv.get x 0) (bv2 := s_bv.get x 1) _ _)
+  · simp; exact ⟨state_get_lane_eq s s_bv x 0 h_eq, state_get_lane_eq s s_bv x 1 h_eq⟩
+  mrename_i h1; mpure h1
+  -- xor64 _ (s.get x 2)
+  mspec (xor64.soundness (bv1 := s_bv.get x 0 ^^^ s_bv.get x 1) (bv2 := s_bv.get x 2) _ _)
+  · simp; exact ⟨h1, state_get_lane_eq s s_bv x 2 h_eq⟩
+  mrename_i h2; mpure h2
+  -- xor64 _ (s.get x 3)
+  mspec (xor64.soundness (bv1 := s_bv.get x 0 ^^^ s_bv.get x 1 ^^^ s_bv.get x 2) (bv2 := s_bv.get x 3) _ _)
+  · simp; exact ⟨h2, state_get_lane_eq s s_bv x 3 h_eq⟩
+  mrename_i h3; mpure h3
+  -- xor64 _ (s.get x 4)
+  mspec (xor64.soundness (bv1 := s_bv.get x 0 ^^^ s_bv.get x 1 ^^^ s_bv.get x 2 ^^^ s_bv.get x 3) (bv2 := s_bv.get x 4) _ _)
+  · simp; exact ⟨h3, state_get_lane_eq s s_bv x 4 h_eq⟩
+  mrename_i h4; mpure h4
+  -- Final step: produce postStep ∧ inv
+  mintro ∀e''
+  mpure_intro
+  rw [hcBV]
+  exact ⟨h4, trivial⟩
+
+-- Step lemma for d computation
+theorem d_step_soundness (cF : Vector (ZKExpr f) 5) (cBV : Vector (BitVec 64) 5) (x : Fin 5)
+    (h_c : ∀ i : Fin 5, eqF (cF.get i) (cBV.get i))
+    (dBV_fn : Fin 5 → BitVec 64)
+    (hdBV : ∀ x, dBV_fn x = cBV[(x.val + 4) % 5] ^^^ (cBV[(x.val + 1) % 5]).rotateLeft 1) :
+  ⦃ λ _e => ⌜True⌝ ⦄
+  (do xor64 (cF.get ⟨(x.val + 4) % 5, by omega⟩) (← rotateLeft64 (cF.get ⟨(x.val + 1) % 5, by omega⟩) 1))
+  ⦃ ⇓? o _e => ⌜eqF o (dBV_fn x) ∧ True⌝ ⦄ := by
+  have h1_lt : (x.val + 1) % 5 < 5 := Nat.mod_lt _ (by omega)
+  have h4_lt : (x.val + 4) % 5 < 5 := Nat.mod_lt _ (by omega)
+  mintro _ ∀e'
+  -- First step: rotateLeft64
+  have hc1 : eqF (cF.get ⟨(x.val + 1) % 5, h1_lt⟩) (cBV.get ⟨(x.val + 1) % 5, h1_lt⟩) :=
+    h_c ⟨(x.val + 1) % 5, h1_lt⟩
+  have hc4 : eqF (cF.get ⟨(x.val + 4) % 5, h4_lt⟩) (cBV.get ⟨(x.val + 4) % 5, h4_lt⟩) :=
+    h_c ⟨(x.val + 4) % 5, h4_lt⟩
+  mspec (rotateLeft64.soundness (bv1 := cBV.get ⟨(x.val + 1) % 5, h1_lt⟩) (bv2 := 1) _ _)
+  · simp; exact ⟨hc1, rfl⟩
+  mrename_i h_rot; mpure h_rot
+  -- Second step: xor64
+  mspec (xor64.soundness (bv1 := cBV.get ⟨(x.val + 4) % 5, h4_lt⟩) (bv2 := (cBV.get ⟨(x.val + 1) % 5, h1_lt⟩).rotateLeft 1) _ _)
+  · simp; exact ⟨hc4, h_rot⟩
+  mrename_i hdx; mpure hdx
+  -- Final step
+  mintro ∀e''
+  mpure_intro
+  constructor
+  · simp only [hdBV]
+    exact hdx
+  · trivial
+
+-- Step lemma for lanes computation
+theorem lanes_step_soundness (s : State) (s_bv : SHA3.State)
+    (dF : Vector (ZKExpr f) 5) (dBV : Vector (BitVec 64) 5)
+    (i : Fin 25) (h_s : eqState s s_bv) (h_d : ∀ j : Fin 5, eqF (dF.get j) (dBV.get j))
+    (laneBV_fn : Fin 25 → BitVec 64)
+    (hlaneBV : ∀ i, laneBV_fn i = s_bv.get ⟨i.val % 5, by omega⟩ ⟨i.val / 5, by omega⟩ ^^^ dBV[i.val % 5]) :
+  ⦃ λ _e => ⌜True⌝ ⦄
+  (let x := i.val % 5
+   let y := i.val / 5
+   xor64 (s.get ⟨x, by omega⟩ ⟨y, by omega⟩) dF[x])
+  ⦃ ⇓? o _e => ⌜eqF o (laneBV_fn i) ∧ True⌝ ⦄ := by
+  have hx_lt : i.val % 5 < 5 := Nat.mod_lt _ (by omega)
+  have hy_lt : i.val / 5 < 5 := Nat.div_lt_of_lt_mul (by omega)
+  mintro _ ∀e'
+  -- Single step: xor64
+  have hs_lane : eqF (s.get ⟨i.val % 5, hx_lt⟩ ⟨i.val / 5, hy_lt⟩) s_bv.lanes[i] := by
+    have := state_get_lane_eq s s_bv ⟨i.val % 5, hx_lt⟩ ⟨i.val / 5, hy_lt⟩ h_s
+    simp only [eqF] at this ⊢
+    have idx_eq : (i.val / 5) * 5 + i.val % 5 = i.val := by
+      rw [Nat.mul_comm]; exact Nat.div_add_mod i.val 5
+    simp only [idx_eq] at this
+    exact this
+  have hd_elem : eqF dF[i.val % 5] (dBV.get ⟨i.val % 5, hx_lt⟩) := by
+    have := h_d ⟨i.val % 5, hx_lt⟩
+    simp only [Vector.get_eq_getElem] at this
+    simp only [eqF] at this ⊢
+    exact this
+  mspec (xor64.soundness (bv1 := s_bv.lanes[i]) (bv2 := dBV.get ⟨i.val % 5, hx_lt⟩) _ _)
+  · simp; exact ⟨hs_lane, hd_elem⟩
+  mrename_i hli; mpure hli
+  mintro ∀e''
+  mpure_intro
+  constructor
+  · -- eqF li (laneBV_fn i)
+    simp only [hlaneBV, Vector.get_eq_getElem] at hli ⊢
+    simp only [eqF] at hli ⊢
+    have lanes_eq : s_bv.lanes[i] = s_bv.get ⟨i.val % 5, hx_lt⟩ ⟨i.val / 5, hy_lt⟩ := by
+      simp only [SHA3.State.get]
+      have idx_eq : (i.val / 5) * 5 + i.val % 5 = i.val := by
+        rw [Nat.mul_comm]; exact Nat.div_add_mod i.val 5
+      simp only [idx_eq, Fin.getElem_fin]
+    rw [lanes_eq] at hli
+    exact hli
+  · trivial
+
 -- Helper: Show that specC gives the same values as SHA3.theta's c
 theorem specC_eq_theta_c (s_bv : SHA3.State) (x : Fin 5) :
     (specC s_bv)[x] = s_bv.get x 0 ^^^ s_bv.get x 1 ^^^ s_bv.get x 2 ^^^ s_bv.get x 3 ^^^ s_bv.get x 4 := by
@@ -268,35 +378,12 @@ def theta.soundness (s0 : State) :
     s0_bv.get x 0 ^^^ s0_bv.get x 1 ^^^ s0_bv.get x 2 ^^^ s0_bv.get x 3 ^^^ s0_bv.get x 4
   let cBV : Vector (BitVec 64) 5 := Vector.ofFn cBV_fn
 
-  -- Apply Spec.Vector_ofFnM for c
-  -- Use True as invariant since eqState is a pure fact about inputs, not the builder state
+  -- Apply Spec.Vector_ofFnM for c using c_step_soundness
   mspec (Spec.Vector_ofFnM
     (inv := True)
     (f := fun x => do xor64 (← xor64 (← xor64 (← xor64 (s0.get x 0) (s0.get x 1)) (s0.get x 2)) (s0.get x 3)) (s0.get x 4))
     (postStep := fun x cx => eqF cx (cBV_fn x))
-    (fun x => by
-      -- Prove the step directly using the tactic framework
-      mintro _ ∀e'
-      -- xor64 (s0.get x 0) (s0.get x 1)
-      mspec (xor64.soundness (bv1 := s0_bv.get x 0) (bv2 := s0_bv.get x 1) _ _)
-      · simp; exact ⟨state_get_lane_eq s0 s0_bv x 0 h_eq, state_get_lane_eq s0 s0_bv x 1 h_eq⟩
-      mrename_i h1; mpure h1
-      -- xor64 _ (s0.get x 2)
-      mspec (xor64.soundness (bv1 := s0_bv.get x 0 ^^^ s0_bv.get x 1) (bv2 := s0_bv.get x 2) _ _)
-      · simp; exact ⟨h1, state_get_lane_eq s0 s0_bv x 2 h_eq⟩
-      mrename_i h2; mpure h2
-      -- xor64 _ (s0.get x 3)
-      mspec (xor64.soundness (bv1 := s0_bv.get x 0 ^^^ s0_bv.get x 1 ^^^ s0_bv.get x 2) (bv2 := s0_bv.get x 3) _ _)
-      · simp; exact ⟨h2, state_get_lane_eq s0 s0_bv x 3 h_eq⟩
-      mrename_i h3; mpure h3
-      -- xor64 _ (s0.get x 4)
-      mspec (xor64.soundness (bv1 := s0_bv.get x 0 ^^^ s0_bv.get x 1 ^^^ s0_bv.get x 2 ^^^ s0_bv.get x 3) (bv2 := s0_bv.get x 4) _ _)
-      · simp; exact ⟨h3, state_get_lane_eq s0 s0_bv x 4 h_eq⟩
-      mrename_i h4; mpure h4
-      -- Final step: produce postStep ∧ inv
-      mintro ∀e''
-      mpure_intro
-      exact ⟨h4, trivial⟩))
+    (fun x => c_step_soundness s0 s0_bv x h_eq cBV_fn (fun _ => rfl)))
   rename_i cF
   mrename_i hC'
   mpure hC'
@@ -313,35 +400,12 @@ def theta.soundness (s0 : State) :
     simp [Vector.get_eq_getElem, Vector.getElem_ofFn]
     apply (hC i)
 
+  -- Apply Spec.Vector_ofFnM for d using d_step_soundness
   mspec (Spec.Vector_ofFnM
     (inv := True)
     (f := fun x => do xor64 (cF.get ⟨(x.val + 4) % 5, by omega⟩) (← rotateLeft64 (cF.get ⟨(x.val + 1) % 5, by omega⟩) 1))
     (postStep := fun x dx => eqF dx (dBV_fn x))
-    (fun x => by
-      -- Prove the step directly
-      have h1_lt : (x.val + 1) % 5 < 5 := Nat.mod_lt _ (by omega)
-      have h4_lt : (x.val + 4) % 5 < 5 := Nat.mod_lt _ (by omega)
-      mintro _ ∀e'
-      -- First step: rotateLeft64
-      have hc1 : eqF (cF.get ⟨(x.val + 1) % 5, h1_lt⟩) (cBV.get ⟨(x.val + 1) % 5, h1_lt⟩) :=
-        hC_get ⟨(x.val + 1) % 5, h1_lt⟩
-      have hc4 : eqF (cF.get ⟨(x.val + 4) % 5, h4_lt⟩) (cBV.get ⟨(x.val + 4) % 5, h4_lt⟩) :=
-        hC_get ⟨(x.val + 4) % 5, h4_lt⟩
-      mspec (rotateLeft64.soundness (bv1 := cBV.get ⟨(x.val + 1) % 5, h1_lt⟩) (bv2 := 1) _ _)
-      · simp; exact ⟨hc1, rfl⟩
-      mrename_i h_rot; mpure h_rot
-      -- Second step: xor64
-      mspec (xor64.soundness (bv1 := cBV.get ⟨(x.val + 4) % 5, h4_lt⟩) (bv2 := (cBV.get ⟨(x.val + 1) % 5, h1_lt⟩).rotateLeft 1) _ _)
-      · simp; exact ⟨hc4, h_rot⟩
-      mrename_i hdx; mpure hdx
-      -- Final step
-      mintro ∀e''
-      mpure_intro
-      constructor
-      · -- eqF dx (dBV_fn x)
-        simp only [Vector.get_eq_getElem] at hdx
-        exact hdx
-      · trivial))
+    (fun x => d_step_soundness cF cBV x hC_get dBV_fn (fun _ => rfl)))
   rename_i dF
   mrename_i hD'
   mpure hD'
@@ -359,6 +423,7 @@ def theta.soundness (s0 : State) :
     simp [Vector.get_eq_getElem, Vector.getElem_ofFn]
     apply (hD i)
 
+  -- Apply Spec.Vector_ofFnM for lanes using lanes_step_soundness
   mspec (Spec.Vector_ofFnM
     (inv := True)
     (f := fun i =>
@@ -366,44 +431,7 @@ def theta.soundness (s0 : State) :
       let y := i.val / 5
       xor64 (s0.get ⟨x, by omega⟩ ⟨y, by omega⟩) dF[x])
     (postStep := fun i li => eqF li (laneBV_fn i))
-    (fun i => by
-      have hx_lt : i.val % 5 < 5 := Nat.mod_lt _ (by omega)
-      have hy_lt : i.val / 5 < 5 := Nat.div_lt_of_lt_mul (by omega)
-      mintro _ ∀e'
-      -- Single step: xor64
-      have hs_lane : eqF (s0.get ⟨i.val % 5, hx_lt⟩ ⟨i.val / 5, hy_lt⟩) s0_bv.lanes[i] := by
-        have := state_get_lane_eq s0 s0_bv ⟨i.val % 5, hx_lt⟩ ⟨i.val / 5, hy_lt⟩ h_eq
-        simp only [eqF] at this ⊢
-        have idx_eq : (i.val / 5) * 5 + i.val % 5 = i.val := by
-          rw [Nat.mul_comm]; exact Nat.div_add_mod i.val 5
-        simp only [idx_eq] at this
-        exact this
-      have hd_elem : eqF dF[i.val % 5] (dBV.get ⟨i.val % 5, hx_lt⟩) := by
-        have := hD_get ⟨i.val % 5, hx_lt⟩
-        simp only [Vector.get_eq_getElem] at this
-        simp only [eqF] at this ⊢
-        exact this
-      mspec (xor64.soundness (bv1 := s0_bv.lanes[i]) (bv2 := dBV.get ⟨i.val % 5, hx_lt⟩) _ _)
-      · simp; exact ⟨hs_lane, hd_elem⟩
-      mrename_i hli; mpure hli
-      mintro ∀e''
-      mpure_intro
-      constructor
-      · -- eqF li (laneBV_fn i)
-        simp only [Vector.get_eq_getElem] at hli
-        simp only [eqF] at hli ⊢
-        -- laneBV_fn i = s0_bv.get ⟨i.val % 5, _⟩ ⟨i.val / 5, _⟩ ^^^ dBV[i.val % 5]
-        -- hli : ... = s0_bv.lanes[i] ^^^ dBV.get ⟨i.val % 5, _⟩
-        have lanes_eq : s0_bv.lanes[i] = s0_bv.get ⟨i.val % 5, hx_lt⟩ ⟨i.val / 5, hy_lt⟩ := by
-          simp only [SHA3.State.get]
-          have idx_eq : (i.val / 5) * 5 + i.val % 5 = i.val := by
-            rw [Nat.mul_comm]; exact Nat.div_add_mod i.val 5
-          -- Goal: s0_bv.lanes[i] = s0_bv.lanes[(i.val / 5) * 5 + i.val % 5]
-          -- Use idx_eq to rewrite RHS and Fin.getElem_fin
-          simp only [idx_eq, Fin.getElem_fin]
-        rw [lanes_eq] at hli
-        exact hli
-      · trivial))
+    (fun i => lanes_step_soundness s0 s0_bv dF dBV i h_eq hD_get laneBV_fn (fun _ => rfl)))
   rename_i laneF
   mrename_i hLane'
   mpure hLane'
