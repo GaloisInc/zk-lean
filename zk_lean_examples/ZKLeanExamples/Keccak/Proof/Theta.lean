@@ -118,19 +118,6 @@ The theta step of Keccak involves three Vector.ofFnM operations:
 3. Apply to state: s'[x,y] = s[x,y] ⊕ d[x]
 -/
 
--- The c values computed from the spec
-def specC (s_bv : SHA3.State) : Vector (BitVec 64) 5 :=
-  Vector.ofFn fun x : Fin 5 =>
-    s_bv.get x 0 ^^^ s_bv.get x 1 ^^^ s_bv.get x 2 ^^^ s_bv.get x 3 ^^^ s_bv.get x 4
-
--- The d values computed from the spec
-def specD (c_bv : Vector (BitVec 64) 5) : Vector (BitVec 64) 5 :=
-  Vector.ofFn fun x : Fin 5 =>
-    c_bv[(x.val + 4) % 5] ^^^ (c_bv[(x.val + 1) % 5]).rotateLeft 1
-
--- Helper: lane index from x, y coordinates
-theorem lane_index_eq (x y : Fin 5) : (y.val * 5 + x.val) = x.val + y.val * 5 := by omega
-
 -- Helper: converting between lane access styles
 theorem state_get_lane_eq (s : State) (s_bv : SHA3.State) (x y : Fin 5)
     (h : eqState s s_bv) : eqF (s.get x y) s_bv.lanes[y.val * 5 + x.val] := by
@@ -138,85 +125,6 @@ theorem state_get_lane_eq (s : State) (s_bv : SHA3.State) (x y : Fin 5)
   unfold State.get
   simp at this ⊢
   exact this
-
--- Soundness for computing a single c[x] value (4 nested xors)
--- This theorem states the soundness of the inner loop body for computing c
-theorem c_body_soundness (s : State) (s_bv : SHA3.State) (x : Fin 5) :
-  ⦃ λ _e => ⌜eqState s s_bv⌝ ⦄
-  (do xor64 (← xor64 (← xor64 (← xor64 (s.get x 0) (s.get x 1)) (s.get x 2)) (s.get x 3)) (s.get x 4))
-  ⦃ ⇓? o _e => ⌜eqF o (s_bv.get x 0 ^^^ s_bv.get x 1 ^^^ s_bv.get x 2 ^^^ s_bv.get x 3 ^^^ s_bv.get x 4)⌝ ⦄ := by
-  mintro h_eq ∀e
-  mpure h_eq
-
-  -- First xor: s.get x 0 ⊕ s.get x 1
-  mspec (xor64.soundness (bv1 := s_bv.get x 0) (bv2 := s_bv.get x 1) _ _)
-  · simp; exact ⟨state_get_lane_eq s s_bv x 0 h_eq, state_get_lane_eq s s_bv x 1 h_eq⟩
-  mrename_i h1; mpure h1
-
-  -- Second xor: (s.get x 0 ⊕ s.get x 1) ⊕ s.get x 2
-  mspec (xor64.soundness (bv1 := s_bv.get x 0 ^^^ s_bv.get x 1) (bv2 := s_bv.get x 2) _ _)
-  · simp; exact ⟨h1, state_get_lane_eq s s_bv x 2 h_eq⟩
-  mrename_i h2; mpure h2
-
-  -- Third xor
-  mspec (xor64.soundness (bv1 := s_bv.get x 0 ^^^ s_bv.get x 1 ^^^ s_bv.get x 2) (bv2 := s_bv.get x 3) _ _)
-  · simp; exact ⟨h2, state_get_lane_eq s s_bv x 3 h_eq⟩
-  mrename_i h3; mpure h3
-
-  -- Fourth xor (final operation - mspec completes the proof)
-  mspec (xor64.soundness (bv1 := s_bv.get x 0 ^^^ s_bv.get x 1 ^^^ s_bv.get x 2 ^^^ s_bv.get x 3) (bv2 := s_bv.get x 4) _ _)
-  simp; exact ⟨h3, state_get_lane_eq s s_bv x 4 h_eq⟩
-
--- Soundness for computing a single d[x] value
-theorem d_body_soundness (c : Vector (ZKExpr f) 5) (c_bv : Vector (BitVec 64) 5) (x : Fin 5)
-    (h_c : ∀ i : Fin 5, eqF (c.get i) (c_bv.get i)) :
-  ⦃ λ _e => ⌜True⌝ ⦄
-  (do xor64 (c.get ⟨(x.val + 4) % 5, by omega⟩) (← rotateLeft64 (c.get ⟨(x.val + 1) % 5, by omega⟩) 1))
-  ⦃ ⇓? o _e => ⌜eqF o ((c_bv.get ⟨(x.val + 4) % 5, by omega⟩) ^^^ (c_bv.get ⟨(x.val + 1) % 5, by omega⟩).rotateLeft 1)⌝ ⦄ := by
-  mintro _ ∀e
-
-  -- rotateLeft64
-  have hc1 : eqF (c.get ⟨(x.val + 1) % 5, by omega⟩) (c_bv.get ⟨(x.val + 1) % 5, by omega⟩) :=
-    h_c ⟨(x.val + 1) % 5, by omega⟩
-  have hc4 : eqF (c.get ⟨(x.val + 4) % 5, by omega⟩) (c_bv.get ⟨(x.val + 4) % 5, by omega⟩) :=
-    h_c ⟨(x.val + 4) % 5, by omega⟩
-
-  mspec (rotateLeft64.soundness (bv1 := c_bv.get ⟨(x.val + 1) % 5, by omega⟩) (bv2 := 1) _ _)
-  · simp; exact ⟨hc1, rfl⟩
-  mrename_i h_rot; mpure h_rot
-
-  -- xor64 (final operation - mspec completes the proof)
-  mspec (xor64.soundness (bv1 := c_bv.get ⟨(x.val + 4) % 5, by omega⟩) (bv2 := (c_bv.get ⟨(x.val + 1) % 5, by omega⟩).rotateLeft 1) _ _)
-  simp; exact ⟨hc4, h_rot⟩
-
--- Soundness for computing a single lane[i] value in the final step
-theorem lanes_body_soundness (s : State) (s_bv : SHA3.State)
-    (d : Vector (ZKExpr f) 5) (d_bv : Vector (BitVec 64) 5)
-    (i : Fin 25) (h_s : eqState s s_bv) (h_d : ∀ j : Fin 5, eqF (d.get j) (d_bv.get j)) :
-  ⦃ λ _e => ⌜True⌝ ⦄
-  (let x := i.val % 5
-   let y := i.val / 5
-   xor64 (s.get ⟨x, by omega⟩ ⟨y, by omega⟩) (d.get ⟨x, by omega⟩))
-  ⦃ ⇓? o _e => ⌜eqF o (s_bv.lanes[i] ^^^ d_bv.get ⟨i.val % 5, by omega⟩)⌝ ⦄ := by
-  mintro _ ∀e
-  simp only []
-
-  have hx_lt : i.val % 5 < 5 := Nat.mod_lt _ (by omega)
-  have hy_lt : i.val / 5 < 5 := Nat.div_lt_of_lt_mul (by omega : i.val < 5 * 5)
-  -- Prove index equality: (i.val / 5) * 5 + (i.val % 5) = i.val
-  have idx_eq : i.val / 5 * 5 + i.val % 5 = i.val := by
-    rw [Nat.mul_comm]
-    exact Nat.div_add_mod i.val 5
-  have hs_lane : eqF (s.get ⟨i.val % 5, hx_lt⟩ ⟨i.val / 5, hy_lt⟩) s_bv.lanes[i] := by
-    have := state_get_lane_eq s s_bv ⟨i.val % 5, hx_lt⟩ ⟨i.val / 5, hy_lt⟩ h_s
-    simp only [eqF] at this ⊢
-    simp only [idx_eq] at this
-    exact this
-  have hd_elem : eqF (d.get ⟨i.val % 5, hx_lt⟩) (d_bv.get ⟨i.val % 5, hx_lt⟩) := h_d ⟨i.val % 5, hx_lt⟩
-
-  -- xor64 (final operation - mspec completes the proof)
-  mspec (xor64.soundness (bv1 := s_bv.lanes[i]) (bv2 := d_bv.get ⟨i.val % 5, hx_lt⟩) _ _)
-  simp; exact ⟨hs_lane, hd_elem⟩
 
 -- Step lemmas for Spec.Vector_ofFnM: with inv=True and postStep ∧ inv postcondition
 
@@ -328,16 +236,6 @@ theorem lanes_step_soundness (s : State) (s_bv : SHA3.State)
     exact hli
   · trivial
 
--- Helper: Show that specC gives the same values as SHA3.theta's c
-theorem specC_eq_theta_c (s_bv : SHA3.State) (x : Fin 5) :
-    (specC s_bv)[x] = s_bv.get x 0 ^^^ s_bv.get x 1 ^^^ s_bv.get x 2 ^^^ s_bv.get x 3 ^^^ s_bv.get x 4 := by
-  simp [specC]
-
--- Helper: Show that specD gives the same values as SHA3.theta's d
-theorem specD_eq_theta_d (c_bv : Vector (BitVec 64) 5) (x : Fin 5) :
-    (specD c_bv)[x] = c_bv[(x.val + 4) % 5] ^^^ (c_bv[(x.val + 1) % 5]).rotateLeft 1 := by
-  simp [specD]
-
 -- Helper: Build eqState from element-wise eqF
 theorem eqState_of_lanes_eq (lanes : Vector (ZKExpr f) 25) (lanes_bv : Vector (BitVec 64) 25)
     (h : ∀ i : Fin 25, eqF lanes[i] lanes_bv[i]) :
@@ -359,10 +257,7 @@ theorem eqState_of_lanes_eq (lanes : Vector (ZKExpr f) 25) (lanes_bv : Vector (B
 -- 3. Apply Spec.Vector_ofFnM for the lanes vector computation
 -- 4. Combine the results to show eqState holds for the final state
 --
--- The helper lemmas (c_body_soundness, d_body_soundness, lanes_body_soundness)
--- prove the soundness of individual element computations. The Spec.Vector_ofFnM
--- theorem lifts these to the full vector computations.
-set_option maxHeartbeats 800000 in
+-- The helper lemmas prove the soundness of individual element computations. The Spec.Vector_ofFnM theorem lifts these to the full vector computations.
 def theta.soundness (s0 : State) :
   ⦃ λ _e => ⌜eqState s0 s0_bv⌝ ⦄
   theta s0
@@ -450,5 +345,4 @@ def theta.soundness (s0 : State) :
   simp [dBV, dBV_fn, cBV, cBV_fn]
   fin_cases i
   <;> simp
-  -- 
 
