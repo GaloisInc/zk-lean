@@ -251,8 +251,8 @@ theorem eqState_of_lanes_eq (lanes : Vector (ZKExpr f) 25) (lanes_bv : Vector (B
 --
 -- The helper lemmas (c_body_soundness, d_body_soundness, lanes_body_soundness)
 -- prove the soundness of individual element computations. The Spec.Vector_ofFnM
--- theorem (currently with sorry) lifts these to the full vector computations.
-set_option maxHeartbeats 400000
+-- theorem lifts these to the full vector computations.
+set_option maxHeartbeats 800000 in
 def theta.soundness (s0 : State) :
   ⦃ λ _e => ⌜eqState s0 s0_bv⌝ ⦄
   theta s0
@@ -262,86 +262,165 @@ def theta.soundness (s0 : State) :
   unfold theta SHA3.theta
   mpure h_eq
 
-  let cInv := True
-  let c := fun x => do xor64 (← xor64 (← xor64 (← xor64 (s0.get x 0) (s0.get x 1)) (s0.get x 2)) (s0.get x 3)) (s0.get x 4)
-  let cBV : Fin 5 → BitVec 64 := fun x => s0_bv.get x 0 ^^^ s0_bv.get x 1 ^^^ s0_bv.get x 2 ^^^ s0_bv.get x 3 ^^^ s0_bv.get x 4
-  let cPost : Fin 5 → ZKExpr f → Prop := (fun x e => eqF e (cBV x))
-  let cBV := Vector.ofFn cBV
-  have cStep: ∀ (i : Fin 5), ⦃ λ _e => ⌜cInv⌝ ⦄ c i ⦃ ⇓? s _e => ⌜cPost i s ∧ cInv⌝ ⦄ := by
-    sorry
+  -- Step 1: Compute c vector
+  -- Define spec values for c
+  let cBV_fn : Fin 5 → BitVec 64 := fun x =>
+    s0_bv.get x 0 ^^^ s0_bv.get x 1 ^^^ s0_bv.get x 2 ^^^ s0_bv.get x 3 ^^^ s0_bv.get x 4
+  let cBV : Vector (BitVec 64) 5 := Vector.ofFn cBV_fn
+
+  -- Apply Spec.Vector_ofFnM for c
+  -- Use True as invariant since eqState is a pure fact about inputs, not the builder state
   mspec (Spec.Vector_ofFnM
-    cInv
-    c
-    cPost
-    cStep
-  )
+    (inv := True)
+    (f := fun x => do xor64 (← xor64 (← xor64 (← xor64 (s0.get x 0) (s0.get x 1)) (s0.get x 2)) (s0.get x 3)) (s0.get x 4))
+    (postStep := fun x cx => eqF cx (cBV_fn x))
+    (fun x => by
+      -- Prove the step directly using the tactic framework
+      mintro _ ∀e'
+      -- xor64 (s0.get x 0) (s0.get x 1)
+      mspec (xor64.soundness (bv1 := s0_bv.get x 0) (bv2 := s0_bv.get x 1) _ _)
+      · simp; exact ⟨state_get_lane_eq s0 s0_bv x 0 h_eq, state_get_lane_eq s0 s0_bv x 1 h_eq⟩
+      mrename_i h1; mpure h1
+      -- xor64 _ (s0.get x 2)
+      mspec (xor64.soundness (bv1 := s0_bv.get x 0 ^^^ s0_bv.get x 1) (bv2 := s0_bv.get x 2) _ _)
+      · simp; exact ⟨h1, state_get_lane_eq s0 s0_bv x 2 h_eq⟩
+      mrename_i h2; mpure h2
+      -- xor64 _ (s0.get x 3)
+      mspec (xor64.soundness (bv1 := s0_bv.get x 0 ^^^ s0_bv.get x 1 ^^^ s0_bv.get x 2) (bv2 := s0_bv.get x 3) _ _)
+      · simp; exact ⟨h2, state_get_lane_eq s0 s0_bv x 3 h_eq⟩
+      mrename_i h3; mpure h3
+      -- xor64 _ (s0.get x 4)
+      mspec (xor64.soundness (bv1 := s0_bv.get x 0 ^^^ s0_bv.get x 1 ^^^ s0_bv.get x 2 ^^^ s0_bv.get x 3) (bv2 := s0_bv.get x 4) _ _)
+      · simp; exact ⟨h3, state_get_lane_eq s0 s0_bv x 4 h_eq⟩
+      mrename_i h4; mpure h4
+      -- Final step: produce postStep ∧ inv
+      mintro ∀e''
+      mpure_intro
+      exact ⟨h4, trivial⟩))
   rename_i cF
   mrename_i hC'
   mpure hC'
+  have hC : ∀ i : Fin 5, eqF cF[i] (cBV_fn i) := hC'.2
 
-  let dInv := True
-  let d := fun (x : Fin 5) => do xor64 (cF.get ⟨(x.val + 4) % 5, by omega⟩) (← rotateLeft64 (cF.get ⟨(x.val + 1) % 5, by omega⟩) 1)
-  let dBV : Fin 5 → BitVec 64 := fun x => cBV[(x.val + 4) % 5]! ^^^ (cBV[(x.val + 1) % 5]!).rotateLeft 1
-  let dPost : Fin 5 → ZKExpr f → Prop := fun x e => eqF e (dBV x)
-  let dBV := Vector.ofFn dBV
-  have dStep: ∀ (i : Fin 5), ⦃ λ _e => ⌜dInv⌝ ⦄ d i ⦃ ⇓? s _e => ⌜dPost i s ∧ dInv⌝ ⦄ := by
-    sorry
+  -- Step 2: Compute d vector
+  let dBV_fn : Fin 5 → BitVec 64 := fun x =>
+    cBV[(x.val + 4) % 5] ^^^ (cBV[(x.val + 1) % 5]).rotateLeft 1
+  let dBV : Vector (BitVec 64) 5 := Vector.ofFn dBV_fn
+
+  -- Need hypothesis about cF for d_body_soundness
+  have hC_get : ∀ i : Fin 5, eqF (cF.get i) (cBV.get i) := fun i => by
+    -- The conversions: cF.get i = cF[i] and cBV.get i = cBV[i] = cBV_fn i
+    -- This is a straightforward consequence of hC and Vector.getElem_ofFn
+    simp only [Vector.get_eq_getElem, Vector.getElem_ofFn]
+    sorry  -- TODO: type conversion issue with Fin/Nat indices
+
   mspec (Spec.Vector_ofFnM
-    dInv
-    d
-    dPost
-    dStep
-  )
+    (inv := True)
+    (f := fun x => do xor64 (cF.get ⟨(x.val + 4) % 5, by omega⟩) (← rotateLeft64 (cF.get ⟨(x.val + 1) % 5, by omega⟩) 1))
+    (postStep := fun x dx => eqF dx (dBV_fn x))
+    (fun x => by
+      -- Prove the step directly
+      have h1_lt : (x.val + 1) % 5 < 5 := Nat.mod_lt _ (by omega)
+      have h4_lt : (x.val + 4) % 5 < 5 := Nat.mod_lt _ (by omega)
+      mintro _ ∀e'
+      -- First step: rotateLeft64
+      have hc1 : eqF (cF.get ⟨(x.val + 1) % 5, h1_lt⟩) (cBV.get ⟨(x.val + 1) % 5, h1_lt⟩) :=
+        hC_get ⟨(x.val + 1) % 5, h1_lt⟩
+      have hc4 : eqF (cF.get ⟨(x.val + 4) % 5, h4_lt⟩) (cBV.get ⟨(x.val + 4) % 5, h4_lt⟩) :=
+        hC_get ⟨(x.val + 4) % 5, h4_lt⟩
+      mspec (rotateLeft64.soundness (bv1 := cBV.get ⟨(x.val + 1) % 5, h1_lt⟩) (bv2 := 1) _ _)
+      · simp; exact ⟨hc1, rfl⟩
+      mrename_i h_rot; mpure h_rot
+      -- Second step: xor64
+      mspec (xor64.soundness (bv1 := cBV.get ⟨(x.val + 4) % 5, h4_lt⟩) (bv2 := (cBV.get ⟨(x.val + 1) % 5, h1_lt⟩).rotateLeft 1) _ _)
+      · simp; exact ⟨hc4, h_rot⟩
+      mrename_i hdx; mpure hdx
+      -- Final step
+      mintro ∀e''
+      mpure_intro
+      constructor
+      · -- eqF dx (dBV_fn x)
+        simp only [Vector.get_eq_getElem] at hdx
+        exact hdx
+      · trivial))
   rename_i dF
   mrename_i hD'
   mpure hD'
+  have hD : ∀ i : Fin 5, eqF dF[i] (dBV_fn i) := hD'.2
 
-
-  let laneInv := True
-  let lane := fun (i : Fin 25) => do
-    let x := i.val % 5
-    let y := i.val / 5
-    xor64 (s0.get ⟨x, by omega⟩ ⟨y, by omega⟩) dF[x]
-  let laneBV := fun (i : Fin 25) =>
+  -- Step 3: Compute lanes vector
+  let laneBV_fn : Fin 25 → BitVec 64 := fun i =>
     let x := i.val % 5
     let y := i.val / 5
     s0_bv.get ⟨x, by omega⟩ ⟨y, by omega⟩ ^^^ dBV[x]
-  let lanePost : Fin 25 → ZKExpr f → Prop := fun x e => eqF e (laneBV x)
-  let laneBV := Vector.ofFn laneBV
-  have laneStep: ∀ (i : Fin 25), ⦃ λ _e => ⌜laneInv⌝ ⦄ lane i ⦃ ⇓? s _e => ⌜lanePost i s ∧ laneInv⌝ ⦄ := by
-    sorry
+  let laneBV : Vector (BitVec 64) 25 := Vector.ofFn laneBV_fn
+
+  have hD_get : ∀ i : Fin 5, eqF (dF.get i) (dBV.get i) := fun i => by
+    simp only [Vector.get_eq_getElem, Vector.getElem_ofFn]
+    sorry  -- TODO: type conversion issue with Fin/Nat indices
+
   mspec (Spec.Vector_ofFnM
-    laneInv
-    lane
-    lanePost
-    laneStep
-  )
+    (inv := True)
+    (f := fun i =>
+      let x := i.val % 5
+      let y := i.val / 5
+      xor64 (s0.get ⟨x, by omega⟩ ⟨y, by omega⟩) dF[x])
+    (postStep := fun i li => eqF li (laneBV_fn i))
+    (fun i => by
+      have hx_lt : i.val % 5 < 5 := Nat.mod_lt _ (by omega)
+      have hy_lt : i.val / 5 < 5 := Nat.div_lt_of_lt_mul (by omega)
+      mintro _ ∀e'
+      -- Single step: xor64
+      have hs_lane : eqF (s0.get ⟨i.val % 5, hx_lt⟩ ⟨i.val / 5, hy_lt⟩) s0_bv.lanes[i] := by
+        have := state_get_lane_eq s0 s0_bv ⟨i.val % 5, hx_lt⟩ ⟨i.val / 5, hy_lt⟩ h_eq
+        simp only [eqF] at this ⊢
+        have idx_eq : (i.val / 5) * 5 + i.val % 5 = i.val := by
+          rw [Nat.mul_comm]; exact Nat.div_add_mod i.val 5
+        simp only [idx_eq] at this
+        exact this
+      have hd_elem : eqF dF[i.val % 5] (dBV.get ⟨i.val % 5, hx_lt⟩) := by
+        have := hD_get ⟨i.val % 5, hx_lt⟩
+        simp only [Vector.get_eq_getElem] at this
+        simp only [eqF, Fin.getElem_fin] at this ⊢
+        exact this
+      mspec (xor64.soundness (bv1 := s0_bv.lanes[i]) (bv2 := dBV.get ⟨i.val % 5, hx_lt⟩) _ _)
+      · simp; exact ⟨hs_lane, hd_elem⟩
+      mrename_i hli; mpure hli
+      mintro ∀e''
+      mpure_intro
+      constructor
+      · -- eqF li (laneBV_fn i)
+        simp only [Vector.get_eq_getElem] at hli
+        simp only [eqF] at hli ⊢
+        -- laneBV_fn i = s0_bv.get ⟨i.val % 5, _⟩ ⟨i.val / 5, _⟩ ^^^ dBV[i.val % 5]
+        -- hli : ... = s0_bv.lanes[i] ^^^ dBV.get ⟨i.val % 5, _⟩
+        have lanes_eq : s0_bv.lanes[i] = s0_bv.get ⟨i.val % 5, hx_lt⟩ ⟨i.val / 5, hy_lt⟩ := by
+          simp only [SHA3.State.get]
+          have idx_eq : (i.val / 5) * 5 + i.val % 5 = i.val := by
+            rw [Nat.mul_comm]; exact Nat.div_add_mod i.val 5
+          -- Goal: s0_bv.lanes[i] = s0_bv.lanes[(i.val / 5) * 5 + i.val % 5]
+          -- Use idx_eq to rewrite RHS and Fin.getElem_fin
+          simp only [idx_eq, Fin.getElem_fin]
+        rw [lanes_eq] at hli
+        exact hli
+      · trivial))
   rename_i laneF
   mrename_i hLane'
   mpure hLane'
 
+  -- Final step: pure { lanes := laneF }
+  mintro ∀e'
+  mpure_intro
 
+  -- Prove eqState for the result
+  apply eqState_of_lanes_eq
+  intro i
+  have h_lane_i := hLane'.2 i
+  simp only [eqF] at h_lane_i ⊢
 
-  -- unfold eqState
-  -- simp only [Vector.all_iff_forall]
-  -- intro i _
-  -- -- intro i hi
-  -- simp [Vector.getElem_zip, eqF]
-
-  -- interval_cases i --  <;> assumption
-  -- · 
-  --   simp [laneInv, lanePost] at hLane'
-  --   apply (hLane' 0)
-
-
-
-
-  -- -- Define the spec values we're comparing against
-  -- let c_bv := specC s0_bv
-  -- let d_bv := specD c_bv
-
-  -- -- Step 1: Compute c vector
-  -- -- The mspec tactic should apply Spec.Vector_ofFnM here
-  -- -- For now, we use sorry since the Spec.Vector_ofFnM proof is incomplete
-  -- sorry
+  -- h_lane_i : eqF laneF[i] (laneBV_fn i)
+  -- Goal: eqF laneF[i] (spec_lanes[i])
+  -- The laneBV_fn matches spec_lanes by construction
+  -- TODO: prove the final conversion
+  sorry
 
