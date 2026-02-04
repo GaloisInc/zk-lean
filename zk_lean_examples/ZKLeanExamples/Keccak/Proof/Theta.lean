@@ -252,6 +252,7 @@ theorem eqState_of_lanes_eq (lanes : Vector (ZKExpr f) 25) (lanes_bv : Vector (B
 -- The helper lemmas (c_body_soundness, d_body_soundness, lanes_body_soundness)
 -- prove the soundness of individual element computations. The Spec.Vector_ofFnM
 -- theorem (currently with sorry) lifts these to the full vector computations.
+set_option maxHeartbeats 400000
 def theta.soundness (s0 : State) :
   ⦃ λ _e => ⌜eqState s0 s0_bv⌝ ⦄
   theta s0
@@ -261,12 +262,86 @@ def theta.soundness (s0 : State) :
   unfold theta SHA3.theta
   mpure h_eq
 
-  -- Define the spec values we're comparing against
-  let c_bv := specC s0_bv
-  let d_bv := specD c_bv
+  let cInv := True
+  let c := fun x => do xor64 (← xor64 (← xor64 (← xor64 (s0.get x 0) (s0.get x 1)) (s0.get x 2)) (s0.get x 3)) (s0.get x 4)
+  let cBV : Fin 5 → BitVec 64 := fun x => s0_bv.get x 0 ^^^ s0_bv.get x 1 ^^^ s0_bv.get x 2 ^^^ s0_bv.get x 3 ^^^ s0_bv.get x 4
+  let cPost : Fin 5 → ZKExpr f → Prop := (fun x e => eqF e (cBV x))
+  let cBV := Vector.ofFn cBV
+  have cStep: ∀ (i : Fin 5), ⦃ λ _e => ⌜cInv⌝ ⦄ c i ⦃ ⇓? s _e => ⌜cPost i s ∧ cInv⌝ ⦄ := by
+    sorry
+  mspec (Spec.Vector_ofFnM
+    cInv
+    c
+    cPost
+    cStep
+  )
+  rename_i cF
+  mrename_i hC'
+  mpure hC'
 
-  -- Step 1: Compute c vector
-  -- The mspec tactic should apply Spec.Vector_ofFnM here
-  -- For now, we use sorry since the Spec.Vector_ofFnM proof is incomplete
-  sorry
+  let dInv := True
+  let d := fun (x : Fin 5) => do xor64 (cF.get ⟨(x.val + 4) % 5, by omega⟩) (← rotateLeft64 (cF.get ⟨(x.val + 1) % 5, by omega⟩) 1)
+  let dBV : Fin 5 → BitVec 64 := fun x => cBV[(x.val + 4) % 5]! ^^^ (cBV[(x.val + 1) % 5]!).rotateLeft 1
+  let dPost : Fin 5 → ZKExpr f → Prop := fun x e => eqF e (dBV x)
+  let dBV := Vector.ofFn dBV
+  have dStep: ∀ (i : Fin 5), ⦃ λ _e => ⌜dInv⌝ ⦄ d i ⦃ ⇓? s _e => ⌜dPost i s ∧ dInv⌝ ⦄ := by
+    sorry
+  mspec (Spec.Vector_ofFnM
+    dInv
+    d
+    dPost
+    dStep
+  )
+  rename_i dF
+  mrename_i hD'
+  mpure hD'
+
+
+  let laneInv := True
+  let lane := fun (i : Fin 25) => do
+    let x := i.val % 5
+    let y := i.val / 5
+    xor64 (s0.get ⟨x, by omega⟩ ⟨y, by omega⟩) dF[x]
+  let laneBV := fun (i : Fin 25) =>
+    let x := i.val % 5
+    let y := i.val / 5
+    s0_bv.get ⟨x, by omega⟩ ⟨y, by omega⟩ ^^^ dBV[x]
+  let lanePost : Fin 25 → ZKExpr f → Prop := fun x e => eqF e (laneBV x)
+  let laneBV := Vector.ofFn laneBV
+  have laneStep: ∀ (i : Fin 25), ⦃ λ _e => ⌜laneInv⌝ ⦄ lane i ⦃ ⇓? s _e => ⌜lanePost i s ∧ laneInv⌝ ⦄ := by
+    sorry
+  mspec (Spec.Vector_ofFnM
+    laneInv
+    lane
+    lanePost
+    laneStep
+  )
+  rename_i laneF
+  mrename_i hLane'
+  mpure hLane'
+
+
+
+  -- unfold eqState
+  -- simp only [Vector.all_iff_forall]
+  -- intro i _
+  -- -- intro i hi
+  -- simp [Vector.getElem_zip, eqF]
+
+  -- interval_cases i --  <;> assumption
+  -- · 
+  --   simp [laneInv, lanePost] at hLane'
+  --   apply (hLane' 0)
+
+
+
+
+  -- -- Define the spec values we're comparing against
+  -- let c_bv := specC s0_bv
+  -- let d_bv := specD c_bv
+
+  -- -- Step 1: Compute c vector
+  -- -- The mspec tactic should apply Spec.Vector_ofFnM here
+  -- -- For now, we use sorry since the Spec.Vector_ofFnM proof is incomplete
+  -- sorry
 
