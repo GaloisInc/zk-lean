@@ -3,7 +3,6 @@ import ZKLean.Formalism
 import BVModEq.SolveMLE
 
 abbrev ff := 17179869211
-abbrev f := ZMod ff
 
 instance : Fact (Nat.Prime ff) := by sorry
 
