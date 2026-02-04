@@ -5,7 +5,7 @@ import Mathlib.Algebra.Field.ZMod
 import Mathlib.Data.Nat.Prime.Defs
 import Mathlib.Data.ZMod.Defs
 import ZKLean
-import ZKLeanExamples.Keccak.Spec
+import ZKLeanExamples.Sha3.Spec
 
 -- From ArkLib: BN254 scalar
 @[reducible]

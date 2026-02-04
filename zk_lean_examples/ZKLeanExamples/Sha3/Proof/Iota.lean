@@ -1,10 +1,10 @@
 import ZKLean
 import ZKLean.Formalism
-import ZKLeanExamples.Keccak.Circuit
-import ZKLeanExamples.Keccak.Circuit.State
-import ZKLeanExamples.Keccak.Circuit.Iota
-import ZKLeanExamples.Keccak.Proof.Xor
-import ZKLeanExamples.Keccak.Spec
+import ZKLeanExamples.Sha3.Circuit
+import ZKLeanExamples.Sha3.Circuit.State
+import ZKLeanExamples.Sha3.Circuit.Iota
+import ZKLeanExamples.Sha3.Proof.Xor
+import ZKLeanExamples.Sha3.Spec
 
 open Std Do
 

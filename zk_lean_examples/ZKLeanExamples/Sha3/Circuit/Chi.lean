@@ -1,8 +1,8 @@
 import ZKLean
-import ZKLeanExamples.Keccak.Circuit.And
-import ZKLeanExamples.Keccak.Circuit.Not
-import ZKLeanExamples.Keccak.Circuit.State
-import ZKLeanExamples.Keccak.Circuit.Xor
+import ZKLeanExamples.Sha3.Circuit.And
+import ZKLeanExamples.Sha3.Circuit.Not
+import ZKLeanExamples.Sha3.Circuit.State
+import ZKLeanExamples.Sha3.Circuit.Xor
 
 def chi (s: State) : ZKBuilder f State := do
   let lanes := #v[

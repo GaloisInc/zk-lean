@@ -1,8 +1,8 @@
-import ZKLeanExamples.Keccak.Circuit.Chi
-import ZKLeanExamples.Keccak.Circuit.Iota
-import ZKLeanExamples.Keccak.Circuit.RhoPi
-import ZKLeanExamples.Keccak.Circuit.State
-import ZKLeanExamples.Keccak.Circuit.Theta
+import ZKLeanExamples.Sha3.Circuit.Chi
+import ZKLeanExamples.Sha3.Circuit.Iota
+import ZKLeanExamples.Sha3.Circuit.RhoPi
+import ZKLeanExamples.Sha3.Circuit.State
+import ZKLeanExamples.Sha3.Circuit.Theta
 
 def keccakRound (s : State) (round : Fin 24) : ZKBuilder f State := do
   theta s >>= rho_pi >>= chi >>= (iota · round)

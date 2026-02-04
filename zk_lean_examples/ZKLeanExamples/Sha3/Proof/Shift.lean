@@ -1,8 +1,8 @@
 import ZKLean
 import ZKLean.Formalism
-import ZKLeanExamples.Keccak.Circuit
-import ZKLeanExamples.Keccak.Circuit.Shift
-import ZKLeanExamples.Keccak.Spec
+import ZKLeanExamples.Sha3.Circuit
+import ZKLeanExamples.Sha3.Circuit.Shift
+import ZKLeanExamples.Sha3.Spec
 
 open Std Do
 

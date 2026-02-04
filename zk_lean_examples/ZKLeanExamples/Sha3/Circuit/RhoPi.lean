@@ -1,6 +1,6 @@
 import ZKLean
-import ZKLeanExamples.Keccak.Circuit.Shift
-import ZKLeanExamples.Keccak.Circuit.State
+import ZKLeanExamples.Sha3.Circuit.Shift
+import ZKLeanExamples.Sha3.Circuit.State
 
 def rho_pi (s: State) : ZKBuilder f State := do
   let lanes := #v[

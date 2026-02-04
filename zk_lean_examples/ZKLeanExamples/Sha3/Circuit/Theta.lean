@@ -1,7 +1,7 @@
 import ZKLean
-import ZKLeanExamples.Keccak.Circuit.State
-import ZKLeanExamples.Keccak.Circuit.Shift
-import ZKLeanExamples.Keccak.Circuit.Xor
+import ZKLeanExamples.Sha3.Circuit.State
+import ZKLeanExamples.Sha3.Circuit.Shift
+import ZKLeanExamples.Sha3.Circuit.Xor
 
 
 def theta (s : State) : ZKBuilder f State := do

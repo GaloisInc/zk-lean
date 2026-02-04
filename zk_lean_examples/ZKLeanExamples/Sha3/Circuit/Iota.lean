@@ -1,6 +1,6 @@
 import ZKLean
-import ZKLeanExamples.Keccak.Circuit.State
-import ZKLeanExamples.Keccak.Circuit.Xor
+import ZKLeanExamples.Sha3.Circuit.State
+import ZKLeanExamples.Sha3.Circuit.Xor
 
 def roundConstants : Array (ZKExpr f) :=
   #[0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
