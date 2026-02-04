@@ -381,7 +381,7 @@ def theta.soundness (s0 : State) :
       have hd_elem : eqF dF[i.val % 5] (dBV.get ⟨i.val % 5, hx_lt⟩) := by
         have := hD_get ⟨i.val % 5, hx_lt⟩
         simp only [Vector.get_eq_getElem] at this
-        simp only [eqF, Fin.getElem_fin] at this ⊢
+        simp only [eqF] at this ⊢
         exact this
       mspec (xor64.soundness (bv1 := s0_bv.lanes[i]) (bv2 := dBV.get ⟨i.val % 5, hx_lt⟩) _ _)
       · simp; exact ⟨hs_lane, hd_elem⟩
@@ -416,11 +416,11 @@ def theta.soundness (s0 : State) :
   apply eqState_of_lanes_eq
   intro i
   have h_lane_i := hLane'.2 i
-  simp only [eqF] at h_lane_i ⊢
+  apply (eqFhelper h_lane_i)
 
-  -- h_lane_i : eqF laneF[i] (laneBV_fn i)
-  -- Goal: eqF laneF[i] (spec_lanes[i])
-  -- The laneBV_fn matches spec_lanes by construction
-  -- TODO: prove the final conversion
-  sorry
+  unfold laneBV_fn
+  simp [dBV, dBV_fn, cBV, cBV_fn]
+  fin_cases i
+  <;> simp
+  -- 
 

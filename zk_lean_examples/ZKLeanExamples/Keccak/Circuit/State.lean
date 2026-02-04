@@ -73,6 +73,11 @@ lemma eqFIff : some bv = BVModEq.map_f_to_bv 64 felt ↔ eqF (ZKExpr.Field felt)
     rw [Nat.mod_eq_of_lt h3]
     simp
 
+lemma eqFhelper : eqF x a -> a = b -> eqF x b := by
+  intros h1 h2
+  rw [← h2]
+  assumption
+
 -- Check that a state of field elements is equal to a state of bitvectors.
 def eqState (s : State) (sBV : SHA3.State) : Bool :=
   (s.lanes.zip sBV.lanes).all (λ (felt, bv) => eqF felt bv)
