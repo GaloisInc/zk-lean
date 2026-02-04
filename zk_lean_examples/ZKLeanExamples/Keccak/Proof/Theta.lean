@@ -309,10 +309,9 @@ def theta.soundness (s0 : State) :
 
   -- Need hypothesis about cF for d_body_soundness
   have hC_get : ∀ i : Fin 5, eqF (cF.get i) (cBV.get i) := fun i => by
-    -- The conversions: cF.get i = cF[i] and cBV.get i = cBV[i] = cBV_fn i
-    -- This is a straightforward consequence of hC and Vector.getElem_ofFn
-    simp only [Vector.get_eq_getElem, Vector.getElem_ofFn]
-    sorry  -- TODO: type conversion issue with Fin/Nat indices
+    unfold cBV
+    simp [Vector.get_eq_getElem, Vector.getElem_ofFn]
+    apply (hC i)
 
   mspec (Spec.Vector_ofFnM
     (inv := True)
@@ -356,8 +355,9 @@ def theta.soundness (s0 : State) :
   let laneBV : Vector (BitVec 64) 25 := Vector.ofFn laneBV_fn
 
   have hD_get : ∀ i : Fin 5, eqF (dF.get i) (dBV.get i) := fun i => by
-    simp only [Vector.get_eq_getElem, Vector.getElem_ofFn]
-    sorry  -- TODO: type conversion issue with Fin/Nat indices
+    unfold dBV
+    simp [Vector.get_eq_getElem, Vector.getElem_ofFn]
+    apply (hD i)
 
   mspec (Spec.Vector_ofFnM
     (inv := True)
