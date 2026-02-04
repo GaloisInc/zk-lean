@@ -1,7 +1,7 @@
 import Mathlib.Algebra.Field.Defs
 
-import ZKLean.LookupTable
-import ZKLean.SimpSets
+import zkLean.LookupTable
+import zkLean.SimpSets
 
 /--
 Type for expressions to define computation to be verified by a Zero-Knowledge protocol.
@@ -17,7 +17,7 @@ inductive ZKExpr (f : Type) where
   | Mul : (lhs rhs : ZKExpr f) -> ZKExpr f
 
 @[simp_ZKBuilder]
-def ZKExpr.eval [HAdd f f f] [HSub f f f] [HMul f f f] [_root_.Neg f] (e: ZKExpr f) : f := 
+def ZKExpr.eval [HAdd f f f] [HSub f f f] [HMul f f f] [_root_.Neg f] (e: ZKExpr f) : f :=
   match e with
     | ZKExpr.Field f => f
     | ZKExpr.Add lhs rhs =>

@@ -4,11 +4,11 @@ import Init.Data.Array.Set
 import Init.Prelude
 import Mathlib.Algebra.Field.Defs
 
-import ZKLean.AST
-import ZKLean.Builder
-import ZKLean.SimpSets
+import zkLean.AST
+import zkLean.Builder
+import zkLean.SimpSets
 
-/-- Class for Fields with additional properties necessary for ZKLean -/
+/-- Class for Fields with additional properties necessary for zkLean -/
 class ZKField (f: Type) extends Field f, BEq f, Inhabited f, LawfulBEq f, Hashable f where
   -- Mask the lower `num_bits` of a field element and convert to a vector of bits.
   field_to_bits {num_bits: Nat} (val: f) : Vector f num_bits

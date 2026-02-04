@@ -1,0 +1,18 @@
+name = "zkLeanExamples"
+version = "0.0.1"
+defaultTargets = ["zkLeanExamplesMain"]
+
+[[lean_lib]]
+name = "zkLeanExamples"
+
+[[lean_exe]]
+name = "zkLeanExamplesMain"
+root = "zkLeanExamples"
+
+[[require]]
+name = "BVModEq"
+path = "../bvmod_eq"
+
+[[require]]
+name = "zkLean"
+path = "../zkLean"

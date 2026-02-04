@@ -1,12 +1,12 @@
-name = "ZKLean"
+name = "zkLean"
 version = "0.1.0"
-defaultTargets = ["ZKLeanMain"]
+defaultTargets = ["zkLeanMain"]
 
 [[lean_lib]]
-name = "ZKLean"
+name = "zkLean"
 
 [[lean_exe]]
-name = "ZKLeanMain"
+name = "zkLeanMain"
 root = "Main"
 
 [[require]]

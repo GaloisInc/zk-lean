@@ -1,4 +1,4 @@
-import ZKLeanExamples.DefFF
+import zkLeanExamples.DefFF
 
 
 set_option maxHeartbeats  20000000000000000000

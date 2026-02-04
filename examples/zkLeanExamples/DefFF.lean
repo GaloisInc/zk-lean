@@ -1,5 +1,5 @@
 import Mathlib.Algebra.Field.ZMod
-import ZKLean.Formalism
+import zkLean.Formalism
 import BVModEq.SolveMLE
 
 abbrev ff := 17179869211

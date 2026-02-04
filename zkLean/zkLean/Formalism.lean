@@ -3,11 +3,11 @@ import Cslib.Foundations.Control.Monad.Free.Fold
 import Mathlib.Control.Traversable.Basic
 import Std.Do
 
-import ZKLean.AST
-import ZKLean.Builder
-import ZKLean.LookupTable
-import ZKLean.Semantics
-import ZKLean.SimpSets
+import zkLean.AST
+import zkLean.Builder
+import zkLean.LookupTable
+import zkLean.Semantics
+import zkLean.SimpSets
 
 attribute [simp_FreeM] bind
 attribute [simp_FreeM] default

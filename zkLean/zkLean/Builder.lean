@@ -3,9 +3,9 @@ import Std.Data.HashMap.Basic
 import Std.Do
 import Std.Tactic.Do
 
-import ZKLean.AST
-import ZKLean.LookupTable
-import ZKLean.SimpSets
+import zkLean.AST
+import zkLean.LookupTable
+import zkLean.SimpSets
 
 
 /-- Type to identify a specific RAM -/
