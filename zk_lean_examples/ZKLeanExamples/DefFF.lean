@@ -2,8 +2,7 @@ import Mathlib.Algebra.Field.ZMod
 import ZKLean.Formalism
 import BVModEq.SolveMLE
 
-abbrev ff := 17179869211
-abbrev f := ZMod ff
+abbrev ff := 17179869263
 
 instance : Fact (Nat.Prime ff) := by sorry
 
