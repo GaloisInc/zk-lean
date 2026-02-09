@@ -5,10 +5,6 @@ defaultTargets = ["ZKLeanExamples"]
 [[lean_lib]]
 name = "ZKLeanExamples"
 
-# [[lean_exe]]
-# name = "ZKLeanExamplesMain"
-# root = "ZKLeanExamples"
-
 [[require]]
 name = "BVModEq"
 path = "../bvmod_eq"
